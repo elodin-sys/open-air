@@ -152,6 +152,10 @@ drag:
 mass:
   fuel_mass_kg: 4.8
   fuel_mass_mode: "sized"
+  fuel_capacity_kg: 4.8
+  listed_mass_min_kg: 18.14
+  listed_mass_max_kg: 19.05
+  listed_mass_state: "manufacturer-listed weight; dry/equipment state unknown"
   operating_empty_mass_kg: 18.6
   operating_empty_cg_x_m: 1.42
   systems_kg: 3

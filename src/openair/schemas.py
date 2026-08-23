@@ -399,7 +399,9 @@ class StructureSpec(PhysicalModel):
         if abs(eta[0]) > 1e-12 or abs(eta[-1] - 1.0) > 1e-12:
             raise ValueError("structures.spanwise must start at eta=0 and end at eta=1")
         if any(right <= left for left, right in zip(eta, eta[1:])):
-            raise ValueError("structures.spanwise eta values must be strictly increasing")
+            raise ValueError(
+                "structures.spanwise eta values must be strictly increasing"
+            )
         return self
 
 
@@ -461,6 +463,10 @@ class MassGuessSpec(PhysicalModel):
 
     fuel_mass_kg: float = Field(18.0, ge=0)
     fuel_mass_mode: Literal["sized", "fixed"] = "sized"
+    fuel_capacity_kg: float | None = Field(None, gt=0.0)
+    listed_mass_min_kg: float | None = Field(None, gt=0.0)
+    listed_mass_max_kg: float | None = Field(None, gt=0.0)
+    listed_mass_state: str | None = None
     # When supplied, this audited reference value replaces the small-UAV
     # component regression. It includes installed engines but excludes payload
     # and usable fuel, matching conventional operating-empty-mass bookkeeping.
@@ -480,6 +486,23 @@ class MassGuessSpec(PhysicalModel):
                 "operating_empty_mass_kg and operating_empty_cg_x_m "
                 "must be supplied together"
             )
+        bracket_supplied = (
+            self.listed_mass_min_kg is not None
+            or self.listed_mass_max_kg is not None
+            or self.listed_mass_state is not None
+        )
+        if bracket_supplied and (
+            self.listed_mass_min_kg is None
+            or self.listed_mass_max_kg is None
+            or not self.listed_mass_state
+        ):
+            raise ValueError("listed mass min/max/state must be supplied together")
+        if (
+            self.listed_mass_min_kg is not None
+            and self.listed_mass_max_kg is not None
+            and self.listed_mass_min_kg > self.listed_mass_max_kg
+        ):
+            raise ValueError("listed_mass_min_kg cannot exceed listed_mass_max_kg")
         return self
 
 
@@ -716,10 +739,11 @@ class VehicleSpec(PhysicalModel):
             for mix in surface.mixing:
                 if mix.mode == "single" and surface.host != "vtail":
                     raise ValueError("single mixing is reserved for centerline vtail")
-                if mix.mode in {"collective", "differential"} and surface.host == "vtail":
-                    raise ValueError(
-                        "centerline vtail controls require single mixing"
-                    )
+                if (
+                    mix.mode in {"collective", "differential"}
+                    and surface.host == "vtail"
+                ):
+                    raise ValueError("centerline vtail controls require single mixing")
         return self
 
     @computed_field

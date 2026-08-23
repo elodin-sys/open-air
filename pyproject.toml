@@ -21,6 +21,7 @@ dependencies = [
     "pyyaml",
     "pandas",
     "markdown-it-py>=3",
+    "trimesh>=5.0.0",
 ]
 
 [project.optional-dependencies]

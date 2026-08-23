@@ -251,6 +251,7 @@ def _run_reviews(
     *,
     requirements_path: Path | None = None,
 ) -> None:
+    from openair.flightdyn.package import build_elodin_package
     from openair.reporting.report import run_report_stage
     from openair.validation.runner import run_validation_stage
 
@@ -259,6 +260,11 @@ def _run_reviews(
         design_yaml,
         "validation",
         run_validation_stage(spec, outdir, design_yaml),
+    )
+    _record_stage(
+        design_yaml,
+        "elodin_package",
+        build_elodin_package(spec, outdir),
     )
     _record_stage(
         design_yaml,

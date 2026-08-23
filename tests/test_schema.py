@@ -61,6 +61,18 @@ def test_physical_bounds_reject_nonsense():
         VehicleSpec.model_validate({"vtail": {"count": 3}})
     with pytest.raises(ValidationError, match="must be supplied together"):
         VehicleSpec.model_validate({"mass": {"operating_empty_mass_kg": 20.0}})
+    with pytest.raises(ValidationError, match="listed mass min/max/state"):
+        VehicleSpec.model_validate({"mass": {"listed_mass_min_kg": 18.0}})
+    with pytest.raises(ValidationError, match="cannot exceed"):
+        VehicleSpec.model_validate(
+            {
+                "mass": {
+                    "listed_mass_min_kg": 20.0,
+                    "listed_mass_max_kg": 18.0,
+                    "listed_mass_state": "unknown",
+                }
+            }
+        )
     with pytest.raises(ValidationError, match="installed engine mass"):
         VehicleSpec.model_validate(
             {
