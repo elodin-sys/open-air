@@ -301,6 +301,14 @@ def test_glb_is_body_frame_named_and_matches_geometry_bbox(tmp_path: Path):
     assert scene.extents == pytest.approx([2.0, 4.0, 1.0], rel=0.02, abs=0.005)
     assert set(scene.graph.nodes_geometry) == {"fuselage", "wing", "htail", "fin_c"}
     assert model.frames.glb == "X_FORWARD_Y_LEFT_Z_UP_CG_ORIGIN"
+    for geometry in scene.geometry.values():
+        material = geometry.visual.material
+        assert float(material.metallicFactor) == pytest.approx(1.0)
+        assert float(material.roughnessFactor) == pytest.approx(0.32)
+        assert "aluminum" in str(material.name)
+    assert result["glb_verification"]["material"]["name"] == (
+        "aircraft_polished_aluminum"
+    )
 
 
 def test_propulsion_map_is_monotonic_at_each_condition(tmp_path: Path):

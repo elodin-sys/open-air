@@ -550,6 +550,12 @@ def _copy_geometry_assets(
     return copied, components
 
 
+GLB_MATERIAL_NAME = "aircraft_polished_aluminum"
+GLB_BASE_COLOR = (0.75, 0.76, 0.78, 1.0)
+GLB_METALLIC = 1.0
+GLB_ROUGHNESS = 0.32
+
+
 def _write_glb(
     path: Path,
     *,
@@ -566,19 +572,22 @@ def _write_glb(
             [0.0, 0.0, 0.0, 1.0],
         ]
     )
-    palette = (
-        [200, 200, 205, 255],
-        [70, 120, 190, 255],
-        [220, 90, 70, 255],
-        [240, 180, 60, 255],
+    material = trimesh.visual.material.PBRMaterial(
+        name=GLB_MATERIAL_NAME,
+        baseColorFactor=list(GLB_BASE_COLOR),
+        metallicFactor=GLB_METALLIC,
+        roughnessFactor=GLB_ROUGHNESS,
     )
     scene = trimesh.Scene(base_frame="body")
-    for index, (name, source) in enumerate(sorted(components.items())):
+    for name, source in sorted(components.items()):
         mesh = trimesh.load_mesh(source, file_type="stl", process=False)
         if not isinstance(mesh, trimesh.Trimesh):
             raise ValueError(f"component STL did not load as one mesh: {source}")
         mesh.apply_transform(transform)
-        mesh.visual.face_colors = palette[index % len(palette)]
+        # STL duplicates vertices per facet; weld them so the exported vertex
+        # normals average across faces and the metal shades smoothly.
+        mesh.merge_vertices()
+        mesh.visual = trimesh.visual.TextureVisuals(material=material)
         scene.add_geometry(mesh, node_name=name, geom_name=name)
     scene.units = "m"
     scene.metadata.update(
@@ -601,11 +610,28 @@ def _write_glb(
     missing = sorted(set(components) - set(node_names))
     if missing:
         raise ValueError(f"GLB is missing named component nodes: {missing}")
+    for geom_name, geometry in reloaded.geometry.items():
+        loaded = getattr(geometry.visual, "material", None)
+        metallic = getattr(loaded, "metallicFactor", None)
+        if (
+            loaded is None
+            or metallic is None
+            or abs(float(metallic) - GLB_METALLIC) > 1e-6
+        ):
+            raise ValueError(
+                f"GLB node {geom_name!r} lost its PBR metal material on reload"
+            )
     return {
         "ok": True,
         "extent_m": extent.tolist(),
         "expected_extent_m": expected.tolist(),
         "component_nodes": node_names,
+        "material": {
+            "name": GLB_MATERIAL_NAME,
+            "base_color_factor": list(GLB_BASE_COLOR),
+            "metallic_factor": GLB_METALLIC,
+            "roughness_factor": GLB_ROUGHNESS,
+        },
     }
 
 
@@ -870,7 +896,9 @@ def _write_integration_guide(
         + " |",
         "| `trim_map.csv` | solved same-phase trim rows for initialization |",
         f"| `{concept}.glb` | render mesh; spawn at scale 1.0 with no extra"
-        " transforms (origin is already the CG, axes already body) |",
+        " transforms (origin is already the CG, axes already body); embeds a"
+        " polished-aluminum PBR metal material (no texture images) — restyle"
+        " in the consumer if desired |",
         "| `geometry/` | verified VSP3 + STL engineering sources; not runtime assets |",
         "| `provenance.md` | evidence classes and allowances; display, never parse |",
         "",
