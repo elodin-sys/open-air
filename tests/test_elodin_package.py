@@ -254,6 +254,7 @@ def test_builds_low_fidelity_package_and_round_trips(tmp_path: Path):
         "propulsion_map",
         "trim_map",
         "provenance",
+        "integration_guide",
     }
     ElodinModelPackage.model_validate_json(model_path.read_text(encoding="utf-8"))
 
@@ -333,6 +334,33 @@ def test_mixed_phase_pipeline_ids_are_rejected(tmp_path: Path):
 
     with pytest.raises(ValueError, match="mixed pipeline_run_id"):
         build_elodin_package(spec, outdir)
+
+
+def test_integration_guide_reports_numbers_and_tier_status(tmp_path: Path):
+    spec, outdir = _fixture_phase(tmp_path)
+    result = build_elodin_package(spec, outdir)
+    guide = (Path(result["package_dir"]) / "integration_guide.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "# fixture-baseline — Elodin integration guide" in guide
+    assert "4.58366" in guide  # CL_alpha_per_rad from the 0.08/deg fixture slope
+    assert "flag_invalid_do_not_clamp" in guide
+    assert "| `aero.derivatives` (beta, rates, controls) | absent |" in guide
+    assert "| inertia tensor | absent |" in guide
+    assert "| engine deck | absent |" in guide
+    assert "| manufacturer mass bracket | present | — |" in guide
+    assert "never write fallback values into this package" in guide.lower()
+
+    hifi_spec, hifi_outdir = _fixture_phase(tmp_path / "hifi", flightdyn=True)
+    hifi_result = build_elodin_package(hifi_spec, hifi_outdir)
+    hifi_guide = (Path(hifi_result["package_dir"]) / "integration_guide.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "| `aero.derivatives` (beta, rates, controls) | present | — |" in hifi_guide
+    assert "| inertia tensor | present | — |" in hifi_guide
+    assert "Provided control groups: `elevator`" in hifi_guide
 
 
 def test_missing_sizing_uses_aero_balance_for_optimized_style_phase(tmp_path: Path):

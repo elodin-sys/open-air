@@ -13,6 +13,7 @@ import math
 import os
 import shutil
 import subprocess
+import textwrap
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -728,6 +729,226 @@ def _write_provenance(
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def _wrap(text: str) -> list[str]:
+    return textwrap.wrap(text, width=78)
+
+
+def _signed_term(value: float) -> str:
+    magnitude = f"{abs(float(value)):.6g}"
+    return f"- {magnitude}" if float(value) < 0 else f"+ {magnitude}"
+
+
+def _write_integration_guide(
+    path: Path,
+    *,
+    spec: VehicleSpec,
+    model_id: str,
+    concept: str,
+    phase: str,
+    credibility: str,
+    mtow_kg: float,
+    fuel_mass_kg: float,
+    x_cg_m: float,
+    z_cg_m: float,
+    linearization: LongitudinalLinearization,
+    drag_fit: dict[str, Any],
+    rows: list[dict[str, Any]],
+    cruise_throttle: float,
+    derivatives: dict[str, Any] | None,
+    inertia_present: bool,
+) -> None:
+    """Emit the per-package consumption contract with this package's numbers."""
+
+    def fmt(value: float) -> str:
+        return f"{float(value):.6g}"
+
+    alpha_lo = min(float(row["alpha_deg"]) for row in rows)
+    alpha_hi = max(float(row["alpha_deg"]) for row in rows)
+    reynolds = (
+        [float(row["reynolds_per_m"]) for row in rows]
+        if all(row.get("reynolds_per_m") is not None for row in rows)
+        else None
+    )
+    if reynolds is None:
+        reynolds_text = "."
+    else:
+        re_lo, re_hi = fmt(min(reynolds)), fmt(max(reynolds))
+        reynolds_text = (
+            f"; Re/m {re_lo} to {re_hi}."
+            if re_lo != re_hi
+            else f"; Re/m {re_lo} (single tabulated condition)."
+        )
+    deck_present = spec.engine.deck is not None
+    bracket_present = spec.mass.listed_mass_min_kg is not None
+    control_groups = sorted((derivatives or {}).get("controls") or {})
+
+    def tier(present: bool, supply: str) -> str:
+        return "present | —" if present else f"absent | {supply}"
+
+    lines = [
+        f"# {model_id} — Elodin integration guide",
+        "",
+        f"Generated with this package (schema {SCHEMA_VERSION}, phase `{phase}`,",
+        f"credibility **{credibility}**). `elodin_model.json` is the entry point",
+        "and SHA-256 manifest; vendor the directory as one unit. Numbers below are",
+        "this package's actual values, but the JSON is the machine truth.",
+        "",
+        "## 1. Load and validate (hard failures)",
+        "",
+        f'1. Require `schema_version == "{SCHEMA_VERSION}"` and the identity your',
+        f"   scenario expects (`concept` = `{concept}`, `phase` = `{phase}`).",
+        "2. Verify every `manifest` entry: package-relative path, byte size, and",
+        "   SHA-256. Reject the package on any mismatch.",
+        "3. Require the exact `frames` strings; all moments are about the CG.",
+        "4. Refuse any simulation mode whose required block is absent (section 6).",
+        "   A null here is evidence of absence, never an invitation to guess.",
+        "",
+        "After validation the package is the only source of aircraft constants;",
+        "do not restate S, b, MAC, mass, coefficients, thrust, or trim in code.",
+        "",
+        "## 2. Frames and sign adapter",
+        "",
+        "- Geometry frame (VSP3/STL sidecars): X nose-to-tail, +Y right, +Z up,",
+        "  origin at the nose tip.",
+        "- Body frame (GLB and dynamics): X forward, +Y left, +Z up, origin at",
+        f"  the CG, which sits at geometry [{fmt(x_cg_m)}, 0, {fmt(z_cg_m)}] m.",
+        f"- Transform: x_b = {fmt(x_cg_m)} - x_g; y_b = -y_g;",
+        f"  z_b = z_g - {fmt(z_cg_m)} (matrix in `frames.geometry_to_body_matrix`).",
+        "- Coefficients use standard aerospace axes (X fwd, Y right, Z down):",
+        "  body torques are tau_x = +Cl*qbar*S*b, tau_y = -Cm*qbar*S*c,",
+        "  tau_z = +Cn*qbar*S*b after beta/r sign conversion; rates enter as",
+        "  p*b/2V, q*c/2V, r*b/2V; angles and controls are radians.",
+        "",
+        "## 3. Low-fidelity longitudinal model",
+        "",
+        *_wrap(
+            f"References: S = {fmt(spec.wing.area_m2)} m^2,"
+            f" b = {fmt(spec.wing.span_m)} m, c = {fmt(spec.wing.mac_m)} m (MAC)."
+            f" Mass state: {fmt(mtow_kg)} kg with {fmt(fuel_mass_kg)} kg fuel"
+            " aboard (`mass_properties`). With alpha in radians and"
+            f" {linearization.trim_control} held at"
+            f" {fmt(linearization.trim_control_value_deg)} deg:"
+        ),
+        "",
+        "```text",
+        f"CL = {fmt(linearization.CL0)}"
+        f" {_signed_term(linearization.CL_alpha_per_rad)}*alpha",
+        f"Cm = {fmt(linearization.Cm0)}"
+        f" {_signed_term(linearization.Cm_alpha_per_rad)}*alpha   (about the CG)",
+        f"CD = {fmt(drag_fit['CD0'])} {_signed_term(float(drag_fit['k']))}*CL^2",
+        "```",
+        "",
+        *_wrap(
+            "Dimensionalize with qbar = 0.5*rho*V^2 and apply the section 2"
+            " adapter. Initialize from `trim_map.csv` (cruise row:"
+            f" {fmt(linearization.reference_altitude_m)} m,"
+            f" {fmt(linearization.reference_airspeed_mps)} m/s TAS,"
+            f" alpha {fmt(linearization.reference_alpha_deg)} deg,"
+            f" throttle {fmt(cruise_throttle)}); re-solve equilibrium for any"
+            " other condition instead of reusing a trim row off-condition."
+            " Never clamp alpha or floor CL: evaluate the model, then publish"
+            " an `aero_valid` flag from section 5. Regression tests must read"
+            " `performance_anchors` from the JSON rather than copying numbers."
+        ),
+        "",
+        "## 4. Sidecars",
+        "",
+        "| File | Contract |",
+        "|---|---|",
+        "| `aero_tables.npz` | attached-flow polar arrays (`alpha_deg`, `CL`, `CD`,"
+        " `Cm`, `mach`, `tas_mps`, `reynolds_per_m`)"
+        + (" plus normalized derivative arrays" if derivatives is not None else "")
+        + "; open with `allow_pickle=False`; interpolate only inside the table |",
+        "| `propulsion_map.csv` | thrust and fuel flow over throttle x Mach x"
+        " altitude; interpolate, lag commanded throttle through your spool state"
+        " before lookup, deplete fuel by integrating `fuel_flow_kg_s`"
+        + (
+            ""
+            if deck_present
+            else "; the grid is class-D analytic, not a measured deck"
+        )
+        + " |",
+        "| `trim_map.csv` | solved same-phase trim rows for initialization |",
+        f"| `{concept}.glb` | render mesh; spawn at scale 1.0 with no extra"
+        " transforms (origin is already the CG, axes already body) |",
+        "| `geometry/` | verified VSP3 + STL engineering sources; not runtime assets |",
+        "| `provenance.md` | evidence classes and allowances; display, never parse |",
+        "",
+        "## 5. Validity envelope",
+        "",
+        *_wrap(
+            f"Mach 0 to {fmt(spec.mission.dash_mach_cap)}; attached-flow alpha"
+            f" -12 to +12 deg; tabulated alpha {fmt(alpha_lo)} to"
+            f" {fmt(alpha_hi)} deg{reynolds_text} Policy"
+            " `flag_invalid_do_not_clamp`: outside any bound, leave the physics"
+            " untouched, keep integrating, and report the state as invalid."
+        ),
+        "",
+        "## 6. Absent blocks and how to supply them",
+        "",
+        "| Block | Status | Supply by |",
+        "|---|---|---|",
+        "| `aero.derivatives` (beta, rates, controls) | "
+        + tier(
+            derivatives is not None,
+            "measured hinge geometry and control throws ->"
+            " `flight_dynamics.control_surfaces` (plus `enabled` and the"
+            " reference state) in the concept `design.yaml`; rerun the pipeline",
+        )
+        + " |",
+        "| inertia tensor | "
+        + tier(
+            inertia_present,
+            "bifilar / compound-pendulum measurement ->"
+            " `flight_dynamics.inertia` with its source (declare the diagonal"
+            " approximation if products are omitted)",
+        )
+        + " |",
+        "| engine deck | "
+        + tier(
+            deck_present,
+            "test-cell thrust and fuel-flow curves -> `engine.deck` points",
+        )
+        + " |",
+        "| manufacturer mass bracket | "
+        + tier(
+            bracket_present,
+            "listed masses -> `mass.listed_mass_min_kg`/`listed_mass_max_kg`"
+            " plus `listed_mass_state`",
+        )
+        + " |",
+        "",
+    ]
+    if control_groups:
+        lines.extend(
+            [
+                "Provided control groups: "
+                + ", ".join(f"`{name}`" for name in control_groups)
+                + "; evaluate them with the normalized conventions in section 2.",
+                "",
+            ]
+        )
+    lines.extend(
+        [
+            "While a block is absent:",
+            "",
+            "- a mode that requires it must refuse to run, or draw from one",
+            "  clearly labeled class-D fallback module, opt-in per scenario and",
+            "  logged at startup;",
+            "- never write fallback values into this package or blend them with",
+            "  package values; and",
+            "- tier upgrades change evidence, not this contract. Keep loaders",
+            "  keyed to `schema_version` and re-verify every hash after any",
+            "  regeneration.",
+            "",
+            "Producer regeneration:",
+            "`python -m openair.flightdyn.package run <design>`.",
+            "",
+        ]
+    )
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
 def _publish_staging(staging: Path, target: Path) -> None:
     backup = target.with_name(f".{target.name}.backup-{uuid.uuid4().hex}")
     if target.exists():
@@ -865,6 +1086,12 @@ def build_elodin_package(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
         if fuel_volume is None:
             fuel_volume = fuel_mass / spec.engine.fuel_density_kg_m3
         inertia = dict((flightdyn or {}).get("mass_properties") or {})
+        derivatives = (
+            dict(flightdyn["derivatives"])
+            if flightdyn and flightdyn.get("ok") and flightdyn.get("derivatives")
+            else None
+        )
+        drag_fit = _drag_fit(rows)
         validation_summary = _validation_summary(validation)
         credibility = (
             "analysis-correlated" if validation_summary["ok"] else "geometry-correlated"
@@ -902,6 +1129,27 @@ def build_elodin_package(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
             source_git_commit=git_commit,
             allowances=allowances,
         )
+        guide_path = staging / "integration_guide.md"
+        _write_integration_guide(
+            guide_path,
+            spec=spec,
+            model_id=model_id,
+            concept=concept,
+            phase=phase,
+            credibility=credibility,
+            mtow_kg=mtow,
+            fuel_mass_kg=fuel_mass,
+            x_cg_m=x_cg_m,
+            z_cg_m=z_cg_m,
+            linearization=linearization,
+            drag_fit=drag_fit,
+            rows=rows,
+            cruise_throttle=float(
+                ((aero.get("cruise") or {}).get("engine") or {}).get("throttle") or 0.0
+            ),
+            derivatives=derivatives,
+            inertia_present=bool(inertia),
+        )
 
         manifest_paths: dict[str, tuple[Path, str]] = {
             "render_glb": (glb_path, "render_mesh_body_frame"),
@@ -909,6 +1157,7 @@ def build_elodin_package(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
             "propulsion_map": (propulsion_path, "propulsion_lookup_map"),
             "trim_map": (trim_path, "trim_initialization_map"),
             "provenance": (provenance_path, "human_readable_provenance"),
+            "integration_guide": (guide_path, "integration_guide"),
         }
         manifest_paths.update(
             {
@@ -931,11 +1180,6 @@ def build_elodin_package(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
             [0.0, 0.0, 1.0, -z_cg_m],
             [0.0, 0.0, 0.0, 1.0],
         ]
-        derivatives = (
-            dict(flightdyn["derivatives"])
-            if flightdyn and flightdyn.get("ok") and flightdyn.get("derivatives")
-            else None
-        )
         manufacturer_bracket = (
             [
                 float(spec.mass.listed_mass_min_kg),
@@ -1036,7 +1280,7 @@ def build_elodin_package(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
             ),
             aero=AeroBlock(
                 linearization=linearization,
-                drag_polar_fit=_drag_fit(rows),
+                drag_polar_fit=drag_fit,
                 polar_asset=manifest["aero_tables"].path,
                 derivatives=derivatives,
                 derivative_source=(
