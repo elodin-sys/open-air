@@ -70,6 +70,10 @@ non-claims. Do not turn calibration or post-hoc agreement into validation.
 - [12:58 — Diana 2 Class-A plan](2026-08-22-1258-diana2-classA-plan.md): scoped and froze the second capstone around aircraft-specific flexible response.
 - [14:38 — Diana 2 Class-A capstone](2026-08-22-1438-diana2-classA-capstone.md): passed the sealed aeroelastic holdout and closed the reference regression contract.
 
+### 2026-08-23 — Simulator delivery
+
+- [14:41 — Elodin model package export](2026-08-23-1441-elodin-model-package.md): replaced copied simulation constants with a phase-bound, hash-verified low-/high-fidelity package and CG-frame GLB.
+
 ## Adding an entry
 
 Create one file at the time the work closes. Prefer one durable decision or
