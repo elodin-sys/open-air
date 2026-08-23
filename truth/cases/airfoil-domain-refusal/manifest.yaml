@@ -1,0 +1,32 @@
+id: airfoil-domain-refusal
+title: Unsupported airfoil domain refusal
+truth_class: C
+role: verification
+status: active
+intended_uses:
+  - Ensure a named non-four-digit section is refused instead of silently approximated.
+  - Require an actionable route to a four-digit equivalent or experimental polar adapter.
+runner: section-domain-refusal
+source:
+  organization: open-air
+  dataset: Representability contract exercised with the UIUC E387 benchmark section
+  revision: "1"
+  license: CC0-1.0
+  reference_url: https://m-selig.ae.illinois.edu/uiuc_lsat.html
+  redistribution: Expected refusal flags are an internal software contract; no UIUC polar data is redistributed.
+  downloads: []
+observables:
+  - id: unsupported_airfoil_refused
+    units: boolean
+    description: E387 is rejected because only four-digit NACA sections are representable
+  - id: refusal_is_actionable
+    units: boolean
+    description: Error names both the supported format and experimental-polar alternative
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.0
+  min_fraction_within_2sigma: 1.0
+  provisional: false
+stages: [schema, aero]
+notes:
+  - This is a software-domain verification case, not class-B physical validation evidence.

@@ -1,0 +1,48 @@
+id: diana2-ground
+title: Diana 2 visible GVT and load-to-strain ground calibration
+truth_class: B
+role: calibration
+status: active
+intended_uses:
+  - Aircraft-specific spanwise beam modal calibration
+  - Strain-channel mapping and public load-to-strain conversion regression
+runner: diana2-ground-model
+source:
+  organization: TU Delft / Royal NLR / 4TU.ResearchData
+  dataset: Flexible Diana 2 Scaled Glider UAV ground and sensor calibration data
+  revision: flight dataset v1 calibration archive plus GVT dataset v2
+  license: CC-BY-4.0
+  reference_url: https://doi.org/10.4121/2c7ef9a5-d749-4b82-a63e-bde7d15d213e.v2
+  redistribution: >-
+    Derived scalar calibration rows are committed with attribution; the original
+    public archives remain checksum-pinned downloads.
+  downloads: []
+observables:
+  - {id: first_symmetric_wing_bending_frequency_hz, units: Hz, description: Visible first symmetric wing-bending GVT frequency}
+  - {id: strain_channel_mapping_count, units: count, description: Six three-axis wing gauges plus one three-axis tail gauge}
+  - {id: ri_bending_nm_per_microstrain, units: Nm/microstrain, description: Right inner bending calibration slope}
+  - {id: ri_torque_nm_per_microstrain, units: Nm/microstrain, description: Right inner torque calibration slope}
+  - {id: rm_bending_nm_per_microstrain, units: Nm/microstrain, description: Right middle bending calibration slope}
+  - {id: rm_torque_nm_per_microstrain, units: Nm/microstrain, description: Right middle torque calibration slope}
+  - {id: ro_bending_nm_per_microstrain, units: Nm/microstrain, description: Right outer bending calibration slope}
+  - {id: ro_torque_nm_per_microstrain, units: Nm/microstrain, description: Right outer torque calibration slope}
+  - {id: li_bending_nm_per_microstrain, units: Nm/microstrain, description: Left inner bending calibration slope}
+  - {id: li_torque_nm_per_microstrain, units: Nm/microstrain, description: Left inner torque calibration slope}
+  - {id: lm_bending_nm_per_microstrain, units: Nm/microstrain, description: Left middle bending calibration slope}
+  - {id: lm_torque_nm_per_microstrain, units: Nm/microstrain, description: Left middle torque calibration slope}
+  - {id: lo_bending_nm_per_microstrain, units: Nm/microstrain, description: Left outer bending calibration slope}
+  - {id: lo_torque_nm_per_microstrain, units: Nm/microstrain, description: Left outer torque calibration slope}
+  - {id: tail_lift_n_per_microstrain, units: N/microstrain, description: Tail lift-force calibration slope}
+  - {id: tail_side_n_per_microstrain, units: N/microstrain, description: Tail side-force calibration slope}
+  - {id: tail_torque_nm_per_microstrain, units: Nm/microstrain, description: Tail torque calibration slope}
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.25
+  min_fraction_within_2sigma: 1.0
+  provisional: false
+stages: [structures]
+notes:
+  - This is visible L1 calibration, not independent validation.
+  - The beam overlay was tuned to the first wing-bending frequency.
+  - Load-to-strain slopes are ingested calibration constants; their zero residuals verify channel/unit plumbing only.
+  - T-tail structural modes remain outside the beam model and the later flight claim.

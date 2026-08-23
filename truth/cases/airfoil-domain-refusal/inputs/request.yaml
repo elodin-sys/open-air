@@ -1,0 +1,3 @@
+airfoil: E387
+reynolds: 200000
+intended_use: tail-or-tip section at low Reynolds number

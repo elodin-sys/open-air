@@ -1,0 +1,220 @@
+# Fresh design-input-only reconstruction authored for the blind Class-A capstone.
+name: ntnu-x8
+notes: >-
+  NTNU May-2023 Skywalker X8 reproduction translated from the source-cited
+  design-time input pack without validation maneuvers or published aerodynamic
+  coefficients. The equivalent trapezoid, NACA 0012 section, washout, molded
+  body, fin attachment, packaging, structure, and drag are declared conceptual
+  abstractions. The motor/controller package is modeled inside the aft body;
+  the external pusher disk is represented by the published thrust deck. The
+  measured 3.364 kg flight mass includes propulsion and battery. Liquid fuel,
+  battery energy, range, and endurance are not claimed. Fuselage fineness,
+  bay dimensions, component packaging, fin attachment, structural properties,
+  mission screens, and solver settings are engineering assumptions checked by
+  the canonical internal gates, not source or validation claims.
+
+sketch:
+  treatment: reproduction
+  hard_scale: 1.0
+  fidelity_weight: 1.0
+  span_over_length: 2.6582278481012658
+  span_over_length_tol: 0.03
+  root_over_length: 0.5221154312153242
+  root_over_length_tol: 0.03
+  le_sweep_deg: 25.0
+  le_sweep_tol_deg: 5.0
+  taper: 0.7317226765403747
+  taper_tol: 0.05
+  x_le_root_over_length: 0.1864556962025316
+  x_le_root_over_length_tol: 0.04430379746835443
+  twist_root_lo_deg: 1.0
+  twist_root_hi_deg: 3.0
+  twist_tip_lo_deg: -3.0
+  twist_tip_hi_deg: -1.0
+  fin_span_m: 0.22
+  fin_span_tol_m: 0.03
+  fin_root_chord_m: 0.30
+  fin_root_chord_tol_m: 0.04
+  fin_le_sweep_deg: 35.0
+  fin_le_sweep_tol_deg: 5.0
+  fin_cant_deg: 12.0
+  fin_cant_tol_deg: 5.0
+  fin_x_le_m: 0.56
+  fin_x_le_tol_m: 0.08
+
+engine:
+  name: Hacker A40-12 S V2 / Jeti SPIN Pro 66 / Aeronaut CAM 14x8
+  energy_source: electric
+  diameter_m: 0.060
+  length_m: 0.120
+  dry_mass_kg: 0.500
+  installation: internal
+  installation_count: 1
+  x_m: 0.720
+  lateral_offset_m: 0.0
+  z_m: 0.020
+  max_thrust_sl_n: 60.3845350822
+  fuel_flow_max_kg_s: 0.0
+  thrust_lapse_k_mach: 0.0
+  thrust_lapse_floor: 1.0
+  tsfc_part_a: 1.0
+  tsfc_part_b: 0.0
+  tsfc_mach_k: 0.0
+  min_throttle: 0.30
+  fuel_density_kg_m3: 800.0
+  nacelle_frontal_cd: 0.08
+  deck:
+    name: Published X8 electric thrust deck at rho=1.225 kg/m^3
+    interpolation: condition-idw
+    extrapolation: clamp
+    altitude_scale_m: 10000.0
+    mach_scale: 1.0
+    points:
+      - {altitude_m: 0.0, mach: 0.0, throttle: 0.3, thrust_n: 6.1245397711, fuel_flow_kg_s: 0.0}
+      - {altitude_m: 0.0, mach: 0.0, throttle: 0.6, thrust_n: 23.2156994270, fuel_flow_kg_s: 0.0}
+      - {altitude_m: 0.0, mach: 0.0, throttle: 1.0, thrust_n: 60.3845350822, fuel_flow_kg_s: 0.0}
+      - {altitude_m: 0.0, mach: 0.05289543933588392, throttle: 0.6, thrust_n: 10.9792105240, fuel_flow_kg_s: 0.0}
+      - {altitude_m: 0.0, mach: 0.05289543933588392, throttle: 1.0, thrust_n: 44.0867415841, fuel_flow_kg_s: 0.0}
+      - {altitude_m: 0.0, mach: 0.07346588796650545, throttle: 0.6, thrust_n: 3.5675422739, fuel_flow_kg_s: 0.0}
+      - {altitude_m: 0.0, mach: 0.07346588796650545, throttle: 1.0, thrust_n: 34.6208306371, fuel_flow_kg_s: 0.0}
+
+wing:
+  span_m: 2.10
+  root_chord_m: 0.4124711906601062
+  taper: 0.7317226765403747
+  le_sweep_deg: 25.0
+  dihedral_deg: 0.0
+  twist_root_deg: 2.0
+  twist_tip_deg: -2.0
+  t_over_c: 0.12
+  airfoil: "0012"
+  x_le_root_m: 0.1473
+  z_root_m: 0.0
+
+fuselage:
+  length_m: 0.790
+  max_width_m: 0.180
+  max_height_m: 0.170
+  nose_fine_ratio: 0.22
+  tail_fine_ratio: 0.28
+  payload_bay_length_m: 0.200
+  payload_bay_width_m: 0.120
+  payload_bay_height_m: 0.100
+  payload_bay_x_m: 0.180
+  fuel_tank_x_m: 0.435
+  stations: null
+
+vtail:
+  count: 2
+  span_m: 0.22
+  root_chord_m: 0.30
+  taper: 0.45
+  le_sweep_deg: 35.0
+  cant_deg: 12.0
+  t_over_c: 0.10
+  x_le_m: 0.56
+  y_root_m: 0.88
+  z_root_m: 0.02
+
+htail:
+  span_m: 0.0
+  root_chord_m: 0.10
+  taper: 0.50
+  le_sweep_deg: 0.0
+  t_over_c: 0.10
+  x_le_m: 0.49
+  z_m: 0.02
+  incidence_deg: 0.0
+
+mission:
+  endurance_s: 1.0
+  endurance_required: false
+  payload_kg: 0.0
+  cruise_altitude_m: 175.0
+  dash_altitude_m: 175.0
+  cruise_mach: 0.053000154399591666
+  cruise_cl: 0.2254109964699504
+  dash_mach_cap: 0.11
+  limit_positive_g: 4.0
+  limit_negative_g: -2.0
+  safety_factor: 1.5
+  static_margin_min: 0.03
+  static_margin_max: 0.10
+  reserve_fuel_fraction: 0.0
+  cl_max: 1.0
+  cl_max_basis: aircraft
+  stall_speed_max_mps: 12.0
+
+structures:
+  fem_model_type: wingbox
+  spar_thickness_m: 0.0015
+  skin_thickness_m: 0.0010
+  tube_radius_m: 0.012
+  tube_thickness_m: 0.0010
+  wing_weight_ratio: 1.20
+  n_spanwise: 9
+  n_chordwise: 3
+  material:
+    name: Assumed quasi-isotropic CFRP equivalent
+    E_pa: 3.5e10
+    nu: 0.30
+    yield_pa: 2.5e8
+    density_kg_m3: 1600.0
+
+drag:
+  interference_fraction: 0.08
+  protuberance_cd0: 0.004
+
+mass:
+  fuel_mass_kg: 0.0
+  fuel_mass_mode: fixed
+  operating_empty_mass_kg: 3.364
+  operating_empty_cg_x_m: 0.435
+  systems_kg: 0.0
+  landing_gear_fraction: 0.0
+  avionics_kg: 0.0
+  contingency_fraction: 0.0
+
+flight_dynamics:
+  enabled: true
+  calibration_id: ntnu-x8-low-re-elevon-v1
+  reference_airspeed_mps: 18.0
+  reference_altitude_m: 175.0
+  allow_diagonal_inertia_approximation: true
+  inertia:
+    ixx_kg_m2: 0.325
+    iyy_kg_m2: 0.140
+    izz_kg_m2: 0.400
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.029
+    iyz_kg_m2: 0.0
+    source: Løw-Hansen et al. May-2023 configuration; bifilar provenance in Reinhardt et al.
+  control_surfaces:
+    - id: elevon
+      host: wing
+      span_start_fraction: 0.48
+      span_end_fraction: 0.94
+      chord_fraction: 0.20
+      max_up_deg: 20.0
+      max_down_deg: 20.0
+      source: Visible X8 elevons and Gryte et al. +/-20 degree control sweeps
+      mixing:
+        - id: collective_elevon
+          mode: collective
+          axis: pitch
+        - id: differential_elevon
+          mode: differential
+          axis: roll
+
+solver:
+  oas_with_viscous: true
+  oas_with_wave: false
+  optimize_maxiter: 35
+  optimize_tol: 1.0e-5
+  fd_step: 1.0e-3
+  vspaero_wake_iters: 20
+  su2_maxiter: 200
+  gmsh_lc_m: 0.08
+  stability_method: lifting_surface
+  np_shift_mac: 0.043
+  cm_washout_per_deg: 0.00362

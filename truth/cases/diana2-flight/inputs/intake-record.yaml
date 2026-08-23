@@ -1,0 +1,68 @@
+version: 1
+sealed_at: '2026-08-22T20:08:12+00:00'
+source:
+  doi: https://doi.org/10.4121/0c3fcef0-5b63-480c-ae40-3ff726c657e9.v1
+  archive_url: https://data.4tu.nl/file/0c3fcef0-5b63-480c-ae40-3ff726c657e9/ca3846ca-d3dd-4ce2-8dc6-ebe4f358fc06
+  license: CC-BY-4.0
+  attribution: Jurisson, Eussen, de Visser, and de Breuker (2026), Flexible Diana
+    2 Scaled Glider UAV - Aeroelastic Flight Test Measurements, 4TU.ResearchData
+  archive_size_bytes: 2567506171
+  archive_md5: b8de0b9dd229deb0ac22098fa1439f4c
+  archive_sha256: 1a4b9e488c5f6dee30e40d6f52ad4c541c4e446924582653557b96aa993f1079
+split:
+  path: truth/cases/diana2-flight/inputs/holdout-split.yaml
+  committed_revision: 5ec7096a2cc09393f92332b2370b9bfc4492508b
+  state: frozen-before-flight-payload
+zip_member_names:
+- Flight testing/
+- Flight testing/Diana2_sensor_locations.xlsx
+- Flight testing/FT05.mat
+- Flight testing/FT06.mat
+- Flight testing/FT07.mat
+- Flight testing/FT08.mat
+- Flight testing/FT09.mat
+- Flight testing/FT10.mat
+- Flight testing/FT11.mat
+- Flight testing/FT12.mat
+- Flight testing/FT13.mat
+- Flight testing/FToverview.mat
+- Flight testing/FT_plotting.m
+- Flight testing/Raw data/
+- Flight testing/Raw data/FT13_raw.mat
+partition:
+  training:
+    FT05.mat:
+      sha256: 1778cb555e8758ae5ee90cbe4adfdcf8ea4103519f359d4ecc8c6f231be65d68
+      size_bytes: 233001457
+    FT07.mat:
+      sha256: 461412e13be2068addb3ff1d1375c4109c0c5ef3726d3bf834045854372e9819
+      size_bytes: 227926269
+    FT08.mat:
+      sha256: 7e7ea4b1dff7c96940be17d7d00ffb09946711a5b219636fab4582818325b034
+      size_bytes: 165953252
+    FT10.mat:
+      sha256: 8522e2ad10ddcc16c74755e1099a4b9fb7ac98821fb8b48c4c74e730d1f00c92
+      size_bytes: 278741892
+    FT11.mat:
+      sha256: d84119152ab3939679913d9099250b37a18dc34ea57697881ca9487753295f77
+      size_bytes: 282448056
+    FT13.mat:
+      sha256: 3a9c9dd962f7ef044093f50f6d1fe5ef74921a56ad27094e7ce0b903cbef8cd5
+      size_bytes: 325346282
+  validation_holdout:
+    FT06.mat:
+      sha256: 528ecbcf5536d24c9f4eaeea4eb750012095ff460eea57b2b67b0fd5c5fc0c4a
+      size_bytes: 195795029
+    FT12.mat:
+      sha256: 10900fa598edd94377607499f65a824213eee6b8193950108ffacf77a89fd485
+      size_bytes: 328867705
+  reserve:
+    FT09.mat:
+      sha256: 922c5f177adff9aa1965992c78f4b23d3acaa5d0513a04d9edbfcc19426e6db3
+      size_bytes: 340015590
+boundaries:
+  training: truth/cases/diana2-flight/truth/training
+  validation_holdout: external:diana2-flight
+  reserve: external:diana2-reserve
+payload_inspection: ZIP member names only before partition; no MAT payload was opened
+archive_deleted_after_extraction: true

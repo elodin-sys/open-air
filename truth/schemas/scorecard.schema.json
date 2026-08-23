@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-air.local/truth/scorecard.schema.json",
+  "title": "open-air truth scorecard",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "case_id",
+    "truth_class",
+    "role",
+    "status",
+    "generated_at",
+    "residuals",
+    "summary",
+    "acceptance",
+    "evidence"
+  ],
+  "properties": {
+    "case_id": {"type": "string"},
+    "truth_class": {"enum": ["A", "B", "C", "D", "E"]},
+    "role": {"enum": ["calibration", "validation", "verification"]},
+    "status": {"enum": ["pass", "provisional", "fail", "blocked"]},
+    "generated_at": {"type": "string"},
+    "residuals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "observable",
+          "units",
+          "predicted",
+          "truth",
+          "residual",
+          "uncertainty",
+          "z",
+          "within_2sigma"
+        ],
+        "properties": {
+          "observable": {"type": "string"},
+          "units": {"type": "string"},
+          "predicted": {"type": "number"},
+          "truth": {"type": "number"},
+          "residual": {"type": "number"},
+          "uncertainty": {"type": "number", "exclusiveMinimum": 0},
+          "z": {"type": "number"},
+          "within_2sigma": {"type": "boolean"}
+        }
+      }
+    },
+    "summary": {"type": "object"},
+    "acceptance": {"type": "object"},
+    "evidence": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    }
+  }
+}

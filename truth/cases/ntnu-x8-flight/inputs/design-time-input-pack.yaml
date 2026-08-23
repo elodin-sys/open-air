@@ -1,0 +1,191 @@
+case: ntnu-x8-flight
+aircraft: NTNU Skywalker X8, May 2023 system-identification configuration
+designer_boundary:
+  purpose: >-
+    Reproduce the flown X8 from public geometry, mass-property, control, and
+    propulsion inputs before opening the four-maneuver validation split.
+  allowed:
+    - published dimensions, mass, measured inertia, and nominal CG
+    - visible planform, winglet, and elevon arrangement
+    - published motor, propeller, and electric-propulsion parameters
+    - the recorded controls and airspeed from training maneuvers
+  held_out:
+    - all four CSV maneuvers in the publisher's validation directory
+    - holdout-derived modal, control-response, and trajectory metrics
+    - holdout acceptance residuals
+  public_blindness_caveat: >-
+    The source article publicly prints an identified aerodynamic model and
+    modal poles. Those values are not copied into this pack or design, but
+    their public availability means the exercise is mechanically sealed
+    rather than a claim that no developer could have seen related targets.
+
+identity:
+  configuration: tailless swept flying wing with two blended tip fins
+  propulsion: single rear-mounted electric pusher
+  controls: two elevons, collective for pitch and differential for roll
+  reference_speed_mps: 18.0
+
+geometry:
+  wing:
+    span_m: 2.10
+    reference_area_m2: 0.75
+    mean_aerodynamic_chord_m: 0.36
+    equivalent_trapezoid:
+      root_chord_m: 0.4124711906601062
+      tip_chord_m: 0.3018145236256081
+      taper: 0.7317226765403747
+      derivation: >-
+        Unique trapezoid with the published span, area, and MAC; it represents
+        the molded blended planform rather than asserting literal straight edges.
+      leading_edge_sweep_deg: 25.0
+      sweep_basis: >-
+        Source-bounded geometric abstraction from the manufacturer installation
+        drawing and public scan cited by Gryte et al.; carry +/-5 deg as u_input.
+      root_le_x_from_nose_m: 0.1473
+      placement_derivation: >-
+        Places the equivalent aerodynamic center slightly aft of the published
+        0.430-0.440 m nose-referenced CG range. The 35 mm placement allowance
+        closes the independent OAS/VSPAERO static-stability and source-washout
+        trim screens without importing published aerodynamic coefficients.
+    section_surrogate:
+      openair_airfoil: "0012"
+      thickness_ratio: 0.12
+      reason: >-
+        Gryte et al. explicitly report that the molded X8 airfoil is unknown.
+        The symmetric NACA4 section is an untuned geometric surrogate; reflex
+        and low-Re section behavior remain model-form allowances.
+    twist:
+      root_deg: 2.0
+      tip_deg: -2.0
+      reason: >-
+        Equivalent washout used to represent the visible flying-wing/reflex
+        treatment in a NACA4-only schema; it is not a measured X8 twist claim.
+  fuselage:
+    length_m: 0.790
+    maximum_width_m: 0.180
+    maximum_height_m: 0.170
+    source_note: >-
+      Length is the Skywalker manufacturer value. Width, height, and station
+      loft are bounded estimates from the installation drawing.
+  tip_fins:
+    count: 2
+    span_m: 0.22
+    root_chord_m: 0.30
+    taper: 0.45
+    leading_edge_sweep_deg: 35.0
+    cant_deg: 12.0
+    source_note: >-
+      Equivalent rectangles fitted to the blended tip fins visible in the
+      manufacturer drawing; each dimension carries geometric input allowance.
+  elevons:
+    span_start_fraction: 0.48
+    span_end_fraction: 0.94
+    chord_fraction: 0.20
+    max_up_deg: 20.0
+    max_down_deg: 20.0
+    source_note: >-
+      Equivalent control rectangle and conservative limits from the visible
+      X8 elevons and the +/-20 degree control sweeps reported by Gryte et al.
+
+mass_properties:
+  flight_mass_kg: 3.364
+  cg_x_from_nose_m: 0.435
+  inertia_about_cg_kg_m2:
+    ixx: 0.325
+    iyy: 0.140
+    izz: 0.400
+    ixy: 0.0
+    ixz: 0.029
+    iyz: 0.0
+  inertia_method: >-
+    Physical properties published for the May 2023 configuration; the earlier
+    campaign paper identifies the tensor using bifilar pendulum tests.
+  elodin_allowance: >-
+    Elodin SpatialInertia 0.18.0 is diagonal-only. Retain Ixz in flightdyn.json
+    and explicitly omit it only at the Elodin integration boundary.
+
+electric_propulsion:
+  motor: Hacker A40-12 S V2 14-pole KV610
+  controller: Jeti SPIN Pro 66
+  propeller: Aeronaut CAM folding 14x8
+  nominal_supply_voltage_v: 16.0
+  back_emf_v_per_rad_s: 0.0157
+  motor_resistance_ohm: 0.017
+  propeller_diameter_m: 0.3556
+  propeller_inertia_kg_m2: 0.000346
+  thrust_polynomial:
+    definition: CT(J) = CT0 + CT1*J + CT2*J^2 + CT3*J^3
+    coefficients: [0.1400, -0.0300, -0.2370, 0.0847]
+  torque_polynomial:
+    definition: CQ(J) = CQ0 + CQ1*J + CQ2*J^2
+    coefficients: [0.0082, 0.0112, -0.0211]
+  deck_derivation: >-
+    Steady motor torque equals propeller load torque using the published model,
+    rho=1.225 kg/m^3, and 16.0 V. Values below are rounded only after solving.
+  thrust_deck:
+    - {airspeed_mps: 0.0, throttle: 0.3, thrust_n: 6.1245397711}
+    - {airspeed_mps: 0.0, throttle: 0.6, thrust_n: 23.2156994270}
+    - {airspeed_mps: 0.0, throttle: 1.0, thrust_n: 60.3845350822}
+    - {airspeed_mps: 18.0, throttle: 0.6, thrust_n: 10.9792105240}
+    - {airspeed_mps: 18.0, throttle: 1.0, thrust_n: 44.0867415841}
+    - {airspeed_mps: 25.0, throttle: 0.6, thrust_n: 3.5675422739}
+    - {airspeed_mps: 25.0, throttle: 1.0, thrust_n: 34.6208306371}
+  energy_accounting: >-
+    Battery and installed propulsion are included in the measured flight mass.
+    Liquid fuel and liquid-fuel endurance are both zero/not claimed.
+
+operating_condition:
+  altitude_m: 175.0
+  airspeed_mps: 18.0
+  measured_trim_alpha_deg: 8.0
+  wind:
+    horizontal_mps: 9.0
+    inferred_vertical_mps: 2.8
+  boundary: >-
+    Alpha and wind document the campaign condition and uncertainty budget.
+    They are not aerodynamic coefficients and are not used to tune derivatives.
+
+pipeline_calibration:
+  id: ntnu-x8-low-re-elevon-v1
+  source: 13 publisher-designated training maneuvers
+  scope: >-
+    Four scalar factors correct low-Re VSPAERO collective/differential elevon
+    effectiveness and pitch/roll damping. The factors are frozen in source,
+    logged in truth/calibration-log.yaml, and selected by identifier so the
+    design agent never receives validation responses.
+  untouched_holdout: four publisher-designated validation maneuvers
+
+sources:
+  - id: low-hansen-2025
+    citation: >-
+      Løw-Hansen et al., Modeling and identification of a small fixed-wing UAV
+      using estimated aerodynamic angles, CEAS Aeronautical Journal (2025).
+    doi: https://doi.org/10.1007/s13272-025-00816-3
+    uses:
+      - 3.364 kg mass and full inertia tensor
+      - 2.10 m span, 0.75 m^2 area, and 0.36 m MAC
+      - 18 m/s campaign reference condition and wind estimates
+      - propulsion hardware, CT/CQ polynomials, and motor parameters
+  - id: ntnu-u4tlyv-v1
+    citation: System identification campaign - Skywalker X8 UAV, DataverseNO V1
+    doi: https://doi.org/10.18710/U4TLYV
+    uses:
+      - flight configuration, 40 Hz data definitions, controls, and split
+  - id: gryte-2018
+    citation: >-
+      Gryte et al., Aerodynamic modeling of the Skywalker X8 Fixed-Wing UAV,
+      ICUAS 2018.
+    doi: https://doi.org/10.1109/ICUAS.2018.8453370
+    uses:
+      - unknown-airfoil disclosure, public-scan geometry basis, control limits
+  - id: reinhardt-2022
+    citation: >-
+      Reinhardt et al., Modeling of the Skywalker X8 Fixed-Wing UAV: Flight
+      Tests and System Identification, ICUAS 2022.
+    doi: https://doi.org/10.1109/ICUAS54217.2022.9836104
+    uses:
+      - bifilar inertia provenance and an independently published propulsion model
+  - id: skywalker-manufacturer
+    url: http://skywalkermodel.com/en/76.html
+    uses:
+      - 2.12 m catalog span, 0.790 m fuselage length, CG range, top-view layout

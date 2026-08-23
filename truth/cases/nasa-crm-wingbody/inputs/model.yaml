@@ -1,0 +1,19 @@
+configuration: NASA Common Research Model wing/body
+wing:
+  span_m: 1.586738
+  area_m2: 0.27973105344
+  mac_m: 0.1891538
+  taper: 0.275
+  le_sweep_deg: 35.0
+  twist_root_deg: 0.0
+  twist_tip_deg: -8.0
+  mean_t_over_c: 0.108
+condition:
+  mach: 0.85
+  reynolds: 5000000.0
+  alpha_deg: [-0.75, -0.25, 0.25, 0.75, 1.25, 1.75]
+evaluator:
+  naca4_surrogate: "0012"
+  n_spanwise: 41
+  n_chordwise: 5
+  note: The VLM mesh is flat; the NACA code only supplies thickness metadata.

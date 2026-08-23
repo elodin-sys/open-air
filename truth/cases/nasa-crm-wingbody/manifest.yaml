@@ -1,0 +1,39 @@
+id: nasa-crm-wingbody
+title: NASA Common Research Model NTF-197 swept wing/body
+truth_class: B
+role: calibration
+status: active
+intended_uses:
+  - Calibrate and regress three-dimensional attached-flow lift slope on a swept transport wing.
+  - Cross-check longitudinal neutral-point prediction with physical data separate from the post-hoc GTM verification.
+  - Bound the use of an equivalent single trapezoid for a kinked transonic planform.
+runner: crm-equivalent-trapezoid
+source:
+  organization: NASA Langley Research Center
+  dataset: Common Research Model National Transonic Facility Test 197, run 44
+  revision: NTF-197-R44-2014-10
+  license: US-Public-Domain
+  reference_url: https://commonresearchmodel.larc.nasa.gov/experimental-data/ntf-experimental-results/test-197-run-data/
+  redistribution: A factual subset of U.S. Government wind-tunnel data is committed with attribution.
+  downloads:
+    - url: https://commonresearchmodel.larc.nasa.gov/wp-content/uploads/sites/7/2014/10/t197R44.csv
+      sha256: 67c9426f1d0330e2000bb00ff08a76ea9d069f01bb9e56488c613445a25b3d97
+      filename: t197R44.csv
+observables:
+  - id: cl_alpha_per_deg
+    units: 1/deg
+    description: Wall-corrected wing/body lift slope from -1 to 2 degrees
+  - id: neutral_point_mac
+    units: MAC
+    description: Wing/body neutral point aft of MAC leading edge
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.5
+  min_fraction_within_2sigma: 1.0
+  provisional: false
+stages: [aero]
+notes:
+  - "The class-B source is direct NASA NTF force-and-moment data, not plot transcription."
+  - "Input uncertainty covers the single-trapezoid, linear-twist, NACA4, wing-only, and rigid-shape abstractions."
+  - "This case does not validate transonic drag, shock physics, buffet, or maximum lift."
+  - "The observed residuals motivated OAS compressibility and leading-edge-sweep mapping corrections and are asserted in regression tests; this is a consumed calibration/stretch benchmark, not an independent holdout."

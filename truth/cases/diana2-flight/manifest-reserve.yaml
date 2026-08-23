@@ -1,0 +1,42 @@
+id: diana2-reserve
+title: TU Delft/NLR Diana 2 sealed reserve flight
+truth_class: A
+role: validation
+status: deferred
+intended_uses:
+  - One preselected reserve attempt after a predeclared non-model primary invalidation
+runner: diana2-model
+truth_loader: diana2-flight
+scorer_generates_predictions: true
+source:
+  organization: TU Delft / Royal NLR / 4TU.ResearchData
+  dataset: Flexible Diana 2 Scaled Glider UAV - Aeroelastic Flight Test Measurements
+  revision: Version 1, published 2026-05-20; frozen FT09 reserve
+  license: CC-BY-4.0
+  reference_url: https://doi.org/10.4121/0c3fcef0-5b63-480c-ae40-3ff726c657e9.v1
+  redistribution: >-
+    CC BY 4.0 permits redistribution with attribution; FT09 remains external
+    and unopened unless the committed reserve policy authorizes it.
+  downloads:
+    - url: https://data.4tu.nl/file/0c3fcef0-5b63-480c-ae40-3ff726c657e9/ca3846ca-d3dd-4ce2-8dc6-ebe4f358fc06
+      sha256: 922c5f177adff9aa1965992c78f4b23d3acaa5d0513a04d9edbfcc19426e6db3
+      filename: FT09.mat
+      location: external-holdout
+observables:
+  - {id: outer_to_ro_strain_bending_frequency_hz, units: Hz, description: RO bending-strain H1 first-mode frequency}
+  - {id: outer_to_ro_strain_bending_damping_fraction, units: "1", description: RO bending-strain H1 damping fraction}
+  - {id: outer_to_ro_strain_peak_gain, units: microstrain/rad, description: RO bending-strain FRF peak gain}
+  - {id: outer_to_ro_accel_bending_frequency_hz, units: Hz, description: RO acceleration H1 first-mode frequency}
+  - {id: outer_to_ro_accel_bending_damping_fraction, units: "1", description: RO acceleration H1 damping fraction}
+  - {id: outer_to_ro_accel_gain_at_mode, units: m/s2/rad, description: RO acceleration FRF magnitude at mode}
+  - {id: outer_to_rm_accel_bending_frequency_hz, units: Hz, description: RM acceleration H1 first-mode frequency}
+  - {id: outer_to_rm_accel_gain_at_mode, units: m/s2/rad, description: RM acceleration FRF magnitude at mode}
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.25
+  min_fraction_within_2sigma: 1.0
+  provisional: false
+stages: [geometry, aero, flightdyn, structures, validation, report]
+notes:
+  - Deferred by default; a scored model disagreement on the primary holdout does not authorize reserve use.
+  - Activation requires the separately documented non-model invalidation rule in holdout-split.yaml.

@@ -1,0 +1,40 @@
+id: diana2-training
+title: TU Delft/NLR Diana 2 aeroelastic flight training calibration
+truth_class: A
+role: calibration
+status: active
+intended_uses:
+  - Fit one generalized-force scale and reject the over-damped quasi-steady velocity term
+  - Freeze H1 estimator settings and experimental/input/numerical allowances
+  - Quantify first-bending frequency, damping, acceleration, and strain repeatability
+runner: diana2-model
+truth_loader: diana2-flight
+scorer_generates_predictions: true
+source:
+  organization: TU Delft / Royal NLR / 4TU.ResearchData
+  dataset: Flexible Diana 2 Scaled Glider UAV - Aeroelastic Flight Test Measurements
+  revision: Version 1, published 2026-05-20; frozen six-flight training split
+  license: CC-BY-4.0
+  reference_url: https://doi.org/10.4121/0c3fcef0-5b63-480c-ae40-3ff726c657e9.v1
+  redistribution: >-
+    CC BY 4.0 permits local training extraction with attribution. Large MAT
+    files are intake-record pinned and intentionally not committed to Git.
+observables:
+  - {id: outer_to_ro_strain_bending_frequency_hz, units: Hz, description: RO bending-strain H1 first-mode frequency under measured differential outer-aileron forcing}
+  - {id: outer_to_ro_strain_bending_damping_fraction, units: "1", description: RO bending-strain H1 half-power damping fraction}
+  - {id: outer_to_ro_strain_peak_gain, units: microstrain/rad, description: RO calibrated bending-strain FRF peak gain}
+  - {id: outer_to_ro_accel_bending_frequency_hz, units: Hz, description: RO acceleration H1 first-mode frequency after acceleration-order correction}
+  - {id: outer_to_ro_accel_bending_damping_fraction, units: "1", description: RO acceleration H1 half-power damping after acceleration-order correction}
+  - {id: outer_to_ro_accel_gain_at_mode, units: m/s2/rad, description: Raw RO normal-acceleration FRF magnitude at the identified mode}
+  - {id: outer_to_rm_accel_bending_frequency_hz, units: Hz, description: RM acceleration H1 first-mode frequency after acceleration-order correction}
+  - {id: outer_to_rm_accel_gain_at_mode, units: m/s2/rad, description: Raw RM normal-acceleration FRF magnitude at the identified mode}
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.25
+  min_fraction_within_2sigma: 1.0
+  provisional: true
+stages: [flightdyn]
+notes:
+  - This calibration role owns the six training-flight residuals; it cannot establish an independent Class-A claim.
+  - Exact local MAT hashes and the archive hash are committed in inputs/intake-record.yaml.
+  - Publisher *_calib strain values are already bias- and temperature-corrected.

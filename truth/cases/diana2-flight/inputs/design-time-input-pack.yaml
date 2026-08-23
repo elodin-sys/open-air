@@ -1,0 +1,351 @@
+case: diana2-flight
+aircraft: TU Delft / Royal NLR 1:3 Baudismodel Diana 2 flight-test UAV
+pack_revision: diana2-design-input-v1
+
+designer_boundary:
+  purpose: >-
+    Reproduce the as-flown Diana 2 test vehicle from public geometry, mass,
+    inertia, controls, propulsion, and visible ground-calibration evidence
+    before any FT05--FT13 flight payload is opened.
+  allowed:
+    - public dataset README and file metadata
+    - public manufacturer dimensions and configuration
+    - published mass, CG, inertia, modal, and campaign-condition tables
+    - public sensor, aeroprobe, actuator, IMU, temperature, and load-to-strain calibrations
+    - training flights selected by the pre-payload split rule after sealing
+  held_out:
+    - complete FT06.mat and FT12.mat payloads
+    - all maneuver windows, measured responses, metrics, and residuals from those flights
+    - FT09.mat reserve payload
+  public_blindness_caveat: >-
+    Companion papers publish modal frequencies, damping, identified flexible
+    models, and aggregate maneuver counts. Those visible results are confined
+    to L1 calibration/context and are not copied as L2 holdout response targets.
+    The future Class-A result is mechanically sealed and aircraft-specific; it
+    is not evidence that developers were unaware of all Diana 2 behavior.
+
+identity:
+  configuration: high-aspect-ratio composite mid-wing glider with T-tail
+  manufacturer: Baudismodel
+  geometric_scale: 0.3333333333333333
+  propulsion: nose-mounted electric motor with folding propeller; motor off in scored glide segments
+  controls:
+    wing_per_side:
+      - outer aileron
+      - middle aileron
+      - flap
+    tail:
+      - elevator
+      - rudder
+  source_confidence: high
+
+geometry:
+  wing:
+    span_m: 5.0
+    reference_area_m2: 1.03
+    mean_aerodynamic_chord_m: 0.206
+    published_aspect_ratio: 24.3
+    equivalent_trapezoid:
+      root_chord_m: 0.22333333333333333
+      tip_chord_m: 0.18866666666666668
+      taper: 0.8447761194029852
+      leading_edge_sweep_deg: 0.198595
+      root_le_x_from_nose_m: 0.655
+      derivation: >-
+        Root chord is the EASA Diana 2 root chord (0.670 m) divided by three.
+        Tip chord closes the published 5.0 m span and 1.03 m2 area. The small
+        equivalent leading-edge sweep makes the trapezoid quarter-chord nearly
+        unswept. Root placement is a low-confidence image/CG-referenced
+        abstraction and carries a 0.035 m input allowance.
+      representation_limit: >-
+        The real wing has a curvilinear, multi-taper planform and winglets.
+        Equivalent-trapezoid geometry is used for rigid aerodynamics while a
+        separate spanwise structural overlay represents modal properties.
+    section_surrogate:
+      openair_airfoil: "0012"
+      thickness_ratio: 0.12
+      reason: >-
+        Baudismodel credits a proprietary Dirk Pflug section without publishing
+        coordinates. NACA 0012 is a geometry-only surrogate; the full-scale
+        KL-002-12*F/17 family is not asserted to be the model airfoil.
+      source_confidence: low
+    twist:
+      root_deg: 0.0
+      tip_deg: -1.0
+      reason: unsourced conceptual washout, carried as model-form uncertainty
+      source_confidence: low
+  fuselage:
+    length_m: 2.33
+    maximum_width_m: 0.18
+    maximum_height_m: 0.22
+    source_note: >-
+      Length is the Baudismodel product value. Width and body height are
+      bounded estimates from public imagery and are not scored observables.
+    source_confidence:
+      length: high
+      cross_section: low
+  vertical_tail:
+    count: 1
+    span_m: 0.34
+    root_chord_m: 0.32
+    taper: 0.40
+    leading_edge_sweep_deg: 32.0
+    x_le_from_nose_m: 1.96
+    z_root_m: 0.11
+    source_note: scaled/image-derived T-tail abstraction
+    source_confidence: low
+  horizontal_tail:
+    span_m: 0.82
+    root_chord_m: 0.205
+    taper: 0.45
+    leading_edge_sweep_deg: 18.0
+    x_le_from_nose_m: 2.03
+    z_m: 0.37
+    incidence_deg: -2.5
+    source_note: scaled/image-derived T-tail abstraction
+    source_confidence: low
+  controls:
+    surfaces:
+      - id: outer_aileron
+        host: wing
+        span_start_fraction: 0.62
+        span_end_fraction: 0.97
+        chord_fraction: 0.22
+        max_up_deg: 20.0
+        max_down_deg: 12.0
+        symmetry: differential
+      - id: middle_aileron
+        host: wing
+        span_start_fraction: 0.34
+        span_end_fraction: 0.62
+        chord_fraction: 0.22
+        max_up_deg: 14.0
+        max_down_deg: 10.0
+        symmetry: differential
+      - id: flap
+        host: wing
+        span_start_fraction: 0.10
+        span_end_fraction: 0.34
+        chord_fraction: 0.22
+        max_up_deg: 8.0
+        max_down_deg: 20.0
+        symmetry: collective
+      - id: elevator
+        host: htail
+        span_start_fraction: 0.08
+        span_end_fraction: 0.96
+        chord_fraction: 0.30
+        max_up_deg: 20.0
+        max_down_deg: 20.0
+        symmetry: collective
+      - id: rudder
+        host: vtail
+        span_start_fraction: 0.12
+        span_end_fraction: 0.95
+        chord_fraction: 0.32
+        max_up_deg: 25.0
+        max_down_deg: 25.0
+        symmetry: single
+    source_note: >-
+      Inventory and differential mixing are published. Span/chord extents and
+      absolute limits are conservative image/manufacturer abstractions and are
+      not holdout-derived.
+    published_mixing:
+      outer_aileron: {up_percent: 100, down_percent: 60}
+      middle_aileron: {up_percent: 70, down_percent: 50}
+    openair_command_groups:
+      aileron:
+        axis: roll
+        mode: differential
+        members:
+          - {surface: outer_aileron, gain: 1.0}
+          - {surface: middle_aileron, gain: 0.70}
+      flap: {axis: lift, mode: collective, members: [{surface: flap, gain: 1.0}]}
+      elevator: {axis: pitch, mode: collective, members: [{surface: elevator, gain: 1.0}]}
+      rudder: {axis: yaw, mode: single, members: [{surface: rudder, gain: 1.0}]}
+    scored_model_command: aileron
+
+mass_properties:
+  flight_mass_kg: 10.7
+  cg_x_from_nose_m: 0.74
+  component_mass:
+    each_wing_kg: 1.95
+    each_wing_cg_y_from_symmetry_plane_m: 0.975
+    fuselage_and_tail_kg: 6.8
+  inertia_about_cg_kg_m2:
+    ixx: 4.445
+    iyy: 1.642
+    izz: 6.897
+    ixy: 0.0
+    ixz: 0.332
+    iyz: 0.0
+  source_note: >-
+    Mass/CG and component masses are reported by Jürisson et al. (2026);
+    inertia is reported in IFASD-2024-198 from pendulum/rotational testing.
+  source_confidence: high
+
+structural_properties:
+  construction: composite model airframe
+  openair_static_stress_surrogate:
+    role: internal OAS wingbox feasibility only; the spanwise overlay owns modal response
+    material:
+      name: L1-calibrated quasi-isotropic CFRP equivalent
+      E_pa: 3.5e10
+      nu: 0.30
+      yield_pa: 2.5e8
+      density_kg_m3: 1600.0
+    skin_thickness_m: 0.0010
+    spar_thickness_m: 0.0015
+    n_spanwise: 13
+    source_boundary: >-
+      Representability assumptions selected before validation; not an
+      as-built laminate, certification stress, or stiffness claim.
+  published_ground_modes:
+    - {mode: 1, frequency_hz: 7.42, damping_fraction: 0.0288, description: first symmetric wing bending}
+    - {mode: 2, frequency_hz: 9.94, damping_fraction: 0.0218, description: tail roll / first asymmetric in-plane bending}
+    - {mode: 3, frequency_hz: 13.82, damping_fraction: 0.0272, description: vertical-tail torsion}
+    - {mode: 4, frequency_hz: 17.31, damping_fraction: 0.0110, description: second asymmetric wing bending}
+    - {mode: 5, frequency_hz: 20.01, damping_fraction: 0.0075, description: first in-plane wing bending}
+    - {mode: 6, frequency_hz: 21.19, damping_fraction: 0.0247, description: fuselage bending out of symmetry plane}
+  spanwise_overlay_status: frozen-visible-L1-calibration
+  identified_spanwise_overlay:
+    units:
+      ei_bend: N*m2
+      gj: N*m2
+      mass_per_span: kg/m
+      polar_mass_per_span: kg*m
+      section_modulus: m3
+    stations:
+      - {eta: 0.0, ei_bend: 4550.0, gj: 500.0, mass_per_span: 1.10, polar_mass_per_span: 0.0040, section_modulus: 4.5e-6}
+      - {eta: 0.2, ei_bend: 3600.0, gj: 410.0, mass_per_span: 0.95, polar_mass_per_span: 0.0035, section_modulus: 4.0e-6}
+      - {eta: 0.4, ei_bend: 2650.0, gj: 320.0, mass_per_span: 0.82, polar_mass_per_span: 0.0029, section_modulus: 3.4e-6}
+      - {eta: 0.6, ei_bend: 1780.0, gj: 220.0, mass_per_span: 0.68, polar_mass_per_span: 0.0023, section_modulus: 2.8e-6}
+      - {eta: 0.8, ei_bend: 985.0, gj: 120.0, mass_per_span: 0.52, polar_mass_per_span: 0.0017, section_modulus: 2.1e-6}
+      - {eta: 1.0, ei_bend: 303.0, gj: 35.0, mass_per_span: 0.35, polar_mass_per_span: 0.0010, section_modulus: 1.2e-6}
+    closure: first symmetric bending mode 7.4157 Hz versus visible 7.42 Hz GVT target
+  evidence_boundary: >-
+    Public sources do not provide as-built EI, GJ, section modulus, or
+    mass-per-span distributions. The published FEM was explicitly updated from
+    static-load and GVT results. Therefore open-air may identify an
+    aircraft-specific spanwise overlay using visible L1 calibration data, but
+    must not claim first-principles structural prediction or cross-aircraft
+    generality.
+
+sensor_calibration:
+  imu_count: 12
+  strain_response_count: 21
+  wing_gauge_stations_per_side: 3
+  tail_gauge_responses: 3
+  measured_semispan_stations:
+    - {id: I, eta: 0.1638, ads_y_m: 0.409, source: Diana2_sensor_locations.xlsx}
+    - {id: M, eta: 0.3452, ads_y_m: 0.863, source: Diana2_sensor_locations.xlsx}
+    - {id: O, eta: 0.6612, ads_y_m: 1.653, source: Diana2_sensor_locations.xlsx}
+  strain_channels:
+    wing_station_axes: {x: trailing-edge shear, y: leading-edge shear, z: bending}
+    tail_axes: {x: torque, y: side-force bending, z: lift-force bending}
+  load_to_strain_units:
+    bending: Nm_per_microstrain
+    torque: Nm_per_microstrain
+    tail_force: N_per_microstrain
+  temperature_reference_c: 15.0
+  calibration_archive_sha256: 633af9ccc877ce09fd51c3a473abc96fa759d706885c003b7ea1fca84d6b4026
+  note: >-
+    Exact per-channel rotations, biases, temperature fits, and load-to-strain
+    coefficients remain in the checksum-pinned public calibration archive and
+    are ingested by the Diana adapter rather than duplicated by hand here.
+
+electric_propulsion:
+  installation: nose-mounted motor with folding propeller
+  scored_state: motor off
+  energy_accounting: >-
+    Battery and installed propulsion are included in the measured 10.7 kg
+    flight mass. Electric endurance, climb, propulsive efficiency, and range
+    are outside the claim.
+  design_gate_assumption:
+    max_static_thrust_n: 70.0
+    reason: unscored representability value; no source deck is public
+
+operating_condition:
+  test_altitude_m: {minimum: 150.0, maximum: 200.0}
+  excitation_airspeed_mps: {minimum: 20.0, maximum: 25.0}
+  sample_rate_hz: 200.0
+  measurement_lowpass_hz: 60.0
+  scored_phase: engine-off glide
+
+pipeline_calibration:
+  id: diana2-training-aeroelastic-v1
+  source: six preselected training flights plus visible L1 ground calibration
+  scope: >-
+    One shared outer-aileron generalized-force scale and removal of an
+    unsupported over-damping quasi-steady velocity term. The factors are
+    frozen in source and selected by identifier; the design agent receives no
+    validation-flight response.
+  aeroelastic_configuration:
+    strip_count: 64
+    modes_per_family: 1
+    frequency_range_hz: [0.5, 30.0]
+    frequency_points: 1000
+    maximum_reduced_frequency: 0.30
+    elastic_axis_fraction_chord: 0.40
+  untouched_holdout: FT06 and FT12; FT09 is the deferred reserve
+
+claim_scope:
+  l1: >-
+    Visible ground calibration of an aircraft-specific modal/strain model;
+    verification/calibration only.
+  l2: >-
+    Class-A validation candidate for control-to-distributed-acceleration and
+    control-to-strain frequency responses, resonance frequencies, and damping
+    on sealed engine-off flights after training-only calibration.
+  refused:
+    - first-principles stiffness or mass-distribution accuracy
+    - general Diana 2 or cross-aircraft aeroelastic accuracy
+    - certification flutter margin
+    - nonlinear or large-deflection loads
+    - T-tail structural coupling
+    - electric endurance or climb performance
+    - rigid-body handling-quality accuracy as a scored claim
+
+sources:
+  - id: diana2-flight-dataset-v1
+    citation: >-
+      Jurisson, Eussen, de Visser, de Breuker, Flexible Diana 2 Scaled
+      Glider UAV - Aeroelastic Flight Test Measurements, 4TU.ResearchData V1.
+    doi: https://doi.org/10.4121/0c3fcef0-5b63-480c-ae40-3ff726c657e9.v1
+    uses:
+      - nine flights FT05 through FT13, 200 Hz calibrated response format
+      - sensor and control inventory
+      - calibration archive structure and CC BY 4.0 license
+  - id: jurisson-ifasd-2024-198
+    citation: >-
+      Jurisson et al., Flexible Aircraft Flight Dynamics Identification from
+      Flight Test Data in Unsteady Conditions, IFASD 2024, paper 198.
+    url: https://conf.ifasd2024.nl/proceedings/documents/198.pdf
+    uses:
+      - geometry, mass, inertia, controls, propulsion, flight conditions
+      - first six modal frequencies/damping and flexible-model coupling evidence
+  - id: jurisson-applied-sciences-2026
+    citation: >-
+      Jürisson et al., Combined Estimation of Structural Displacement,
+      Rotation and Strain Modes on a Scaled Glider, Applied Sciences 16(1):34.
+    doi: https://doi.org/10.3390/app16010034
+    uses:
+      - component masses and CG
+      - sensor/gauge layout, GVT modes, FEM-calibration disclosure
+  - id: baudismodel-diana2
+    citation: Baudismodel Diana 2 scale 1/3 product specification
+    url: https://www.baudismodel.com/en/production/k2408-actual-production/3-diana-2-scale-1-3.html
+    uses:
+      - 5.0 m span, 2.33 m length, 1.03 m2 area, proprietary Pflug airfoil disclosure
+  - id: easa-diana2-tcds
+    citation: EASA A.451 SZD-56-2 Diana 2 type-certificate data sheet
+    url: https://www.easa.europa.eu/en/downloads/7116/en
+    uses:
+      - full-scale 0.670 m root chord and curvilinear variable-section planform
+  - id: diana2-gvt-v2
+    citation: >-
+      Flexible Diana 2 Scaled Glider UAV - Ground Vibration Test Results,
+      4TU.ResearchData V2.
+    doi: https://doi.org/10.4121/2c7ef9a5-d749-4b82-a63e-bde7d15d213e.v2
+    uses:
+      - public L1 modal/FRF calibration corpus availability

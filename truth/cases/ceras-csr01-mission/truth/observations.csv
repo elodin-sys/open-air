@@ -1,0 +1,10 @@
+observable,value,units,u_exp,u_input,u_num
+study_500_block_fuel_kg,3765,kg,0,376.5,37.65
+study_500_block_time_h,1.55,h,0,0.0775,0.0155
+study_500_requirement_met,1,boolean,0,0.25,0
+design_2750_block_fuel_kg,15420,kg,0,1542,154.2
+design_2750_block_time_h,6.57,h,0,0.3285,0.0657
+design_2750_requirement_met,1,boolean,0,0.25,0
+mtow_2500_block_fuel_kg,14789,kg,0,1478.9,147.89
+mtow_2500_block_time_h,6.01,h,0,0.3005,0.0601
+mtow_2500_requirement_met,1,boolean,0,0.25,0

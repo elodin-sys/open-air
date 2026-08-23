@@ -1,0 +1,95 @@
+aircraft: CeRAS CSR-01
+model_scope: Equivalent two-engine deck and constant-condition block mission
+
+engine:
+  name: Equivalent 2 x V2527-A5 CeRAS rated deck
+  diameter_m: 1.61
+  length_m: 3.2
+  dry_mass_kg: 7362.0
+  x_m: 11.41
+  max_thrust_sl_n: 235800.0
+  fuel_flow_max_kg_s: 2.348568
+  min_throttle: 0.2
+  deck:
+    name: CSR-01 equivalent pair, CeRAS bucket points
+    interpolation: condition-idw
+    extrapolation: clamp
+    altitude_scale_m: 10668.0
+    mach_scale: 0.78
+    points:
+      # Full-power values are two times the CeRAS per-engine table.
+      # Part-power rows preserve proportional thrust and add a declared
+      # 15%/5% low-throttle TSFC penalty; they are not CeRAS measurements.
+      - {altitude_m: 0.0, mach: 0.0, throttle: 0.2, thrust_n: 47160.0, fuel_flow_kg_s: 0.54017064}
+      - {altitude_m: 0.0, mach: 0.0, throttle: 0.6, thrust_n: 141480.0, fuel_flow_kg_s: 1.47959784}
+      - {altitude_m: 0.0, mach: 0.0, throttle: 1.0, thrust_n: 235800.0, fuel_flow_kg_s: 2.348568}
+      - {altitude_m: 10668.0, mach: 0.78, throttle: 0.2, thrust_n: 8680.0, fuel_flow_kg_s: 0.16699886}
+      - {altitude_m: 10668.0, mach: 0.78, throttle: 0.6, thrust_n: 26040.0, fuel_flow_kg_s: 0.45743166}
+      - {altitude_m: 10668.0, mach: 0.78, throttle: 1.0, thrust_n: 43400.0, fuel_flow_kg_s: 0.726082}
+
+mission_model:
+  maximum_takeoff_mass_kg: 77000.0
+  required_payload_kg: 13608.0
+  cruise_altitude_m: 10668.0
+  cruise_mach: 0.78
+  cruise_lod: 17.5
+  airborne_overhead_s: 780.0
+  taxi_out_s: 540.0
+  taxi_in_s: 300.0
+  taxi_throttle: 0.2
+  integration_step_s: 30.0
+  notes:
+    - Cruise altitude is FL350, the published engine bucket condition.
+    - Airborne overhead covers net climb/descent time not represented by range divided by cruise speed.
+    - The mission model does not consume any committed block-fuel or block-time truth value.
+
+missions:
+  - id: study_500
+    range_nm: 500.0
+    payload_kg: 13608.0
+    takeoff_mass_kg: 62089.0
+  - id: design_2750
+    range_nm: 2750.0
+    payload_kg: 13608.0
+    takeoff_mass_kg: 74102.0
+  - id: mtow_2500
+    range_nm: 2500.0
+    payload_kg: 17000.0
+    takeoff_mass_kg: 76999.0
+
+schema_bound_relaxation_study:
+  status: implemented-with-scale-guards
+  reference_geometry:
+    wing_span_m: 34.07
+    wing_area_m2: 122.41
+    wing_mac_m: 4.18
+    equivalent_trapezoid_taper: 0.17636198300988576
+    equivalent_trapezoid_root_chord_m: 6.108488762310252
+    fuselage_length_m: 37.49
+    horizontal_tail_span_m: 12.46
+    vertical_tail_span_m: 6.86
+  resolved_blockers:
+    - "Transport geometry schema bounds now admit the 34.07 m wing and published tail dimensions."
+    - "Reproduction treatment freezes source geometry and mass instead of applying UAV-scale MDO bounds."
+    - "Reference operating-empty mass/CG avoids extrapolating the UAV component mass regression."
+    - "External nacelles no longer consume fuselage packing volume and use area-scaled drag."
+    - "OpenVSP mesh attachment slices scale with transport fuselage tessellation spacing."
+  minimum_schema_only_changes:
+    wing_span_upper_m: 40.0
+    wing_root_chord_upper_m: 8.0
+    htail_span_upper_m: 15.0
+    vtail_span_upper_m: 10.0
+  remaining_limits:
+    - "The single equivalent trapezoid preserves span, area, and MAC but not the CSR-01 kinked planform."
+    - "OAS wingbox, VSPAERO hybrid stability, and sparse-deck cruise remain conceptual class-C models."
+    - "This diagnostic does not broaden the production small-UAV validation envelope."
+  decision: Permit source-locked reproduction only with explicit scale guards and evidence limits.
+
+optional_second_blind_run:
+  status: enabled
+  design_input: designs/ceras-csr01/design.yaml
+  result_artifacts: results/ceras-csr01
+  evidence_boundary: >-
+    Full-aircraft internal gates are a source-locked class-C reproduction
+    diagnostic. The nine mission observables remain the only frozen CSR-01
+    scorecard evidence and are evaluated independently by this runner.

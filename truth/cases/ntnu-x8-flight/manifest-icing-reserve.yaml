@@ -1,0 +1,76 @@
+id: ntnu-x8-icing-reserve
+title: NTNU Skywalker X8 independent clean-flight reserve
+truth_class: A
+role: validation
+status: deferred
+intended_uses:
+  - Independent re-attempt for low-Re tailless UAV control-response prediction
+  - Reserve Class-A evidence after a failed primary Skywalker X8 holdout
+runner: ntnu-x8-model
+truth_loader: ntnu-x8-flight
+scorer_generates_predictions: true
+source:
+  organization: NTNU UAV Lab / DataverseNO
+  dataset: Skywalker X8 UAV icing-detection campaign
+  revision: DataverseNO version 1.0, published 2026-05-18
+  license: CC0-1.0
+  reference_url: https://doi.org/10.18710/NNHVBP
+  redistribution: CC0; selected clean maneuvers remain external and sealed by protocol
+  downloads:
+    - url: https://dataverse.no/api/access/datafile/275241
+      sha256: d31da2226fe8cee0443ad0a14e4ad3641958c9498331450088a96dc69857bcb1
+      filename: clean/lat_121_01_15_ID_6.csv
+      location: external-holdout
+    - url: https://dataverse.no/api/access/datafile/275364
+      sha256: 4d784f8b4fbf4c9c09a3d199b3041336fc6199fc81c2f9428231a4c300bdcb06
+      filename: clean/lat_db_01_15_ID_6.csv
+      location: external-holdout
+    - url: https://dataverse.no/api/access/datafile/275205
+      sha256: 63b5d11c3b0aeb1616778dd0d11eb17cd9f0da80398b76dc329f61df9b9f01bd
+      filename: clean/lon_3211_02_12_ID_6.csv
+      location: external-holdout
+    - url: https://dataverse.no/api/access/datafile/275169
+      sha256: 91212f9304c71834fb43f1e6f1e0a4ca6528ec7d0b34657f83c7ae923fe35e18
+      filename: clean/lon_db_03_12_ID_6.csv
+      location: external-holdout
+observables:
+  - id: pitch_rate_peak_gain_doublet
+    units: 1/s
+    description: Peak pitch-rate response per collective-elevon amplitude
+  - id: pitch_rate_rms_gain_doublet
+    units: 1/s
+    description: RMS pitch-rate response per collective-elevon RMS
+  - id: pitch_rate_peak_gain_3211
+    units: 1/s
+    description: Peak pitch-rate response per collective-elevon amplitude, 3-2-1-1
+  - id: pitch_rate_rms_gain_3211
+    units: 1/s
+    description: RMS pitch-rate response per collective-elevon RMS, 3-2-1-1
+  - id: roll_rate_peak_gain_doublet
+    units: 1/s
+    description: Peak roll-rate response per differential-elevon amplitude
+  - id: roll_rate_rms_gain_doublet
+    units: 1/s
+    description: RMS roll-rate response per differential-elevon RMS
+  - id: roll_rate_peak_gain_121
+    units: 1/s
+    description: Peak roll-rate response per differential-elevon amplitude, 1-2-1
+  - id: roll_rate_rms_gain_121
+    units: 1/s
+    description: RMS roll-rate response per differential-elevon RMS, 1-2-1
+  - id: trim_alpha_rad
+    units: rad
+    description: Median pre-excitation estimated angle of attack
+  - id: trim_normal_force_cl
+    units: "1"
+    description: Median pre-excitation normal-force lift coefficient
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.25
+  min_fraction_within_2sigma: 1.0
+  provisional: false
+stages: [geometry, aero, flightdyn, structures, validation, report]
+notes:
+  - This case is deliberately deferred and must not be opened unless the primary holdout fails.
+  - Four excitation-balanced maneuvers were selected without reading file contents from the campaign's 53-file clean subset.
+  - Its attempt must be separately authorized and access-logged; no result from the primary holdout may alter its bands.

@@ -1,0 +1,9 @@
+sections:
+  - airfoil: "0012"
+    reynolds: [6000000]
+  - airfoil: "2412"
+    reynolds: [3000000, 6000000, 9000000]
+  - airfoil: "4412"
+    reynolds: [3000000, 6000000, 9000000]
+cl_max_assumption: 1.2
+prediction_metrics: [cl_alpha_per_deg, alpha_l0_deg, cm_ac, cd0, cl_max]

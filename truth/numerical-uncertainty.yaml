@@ -1,0 +1,14 @@
+version: 1
+method: production n_spanwise=9 compared with n_spanwise=21 on an AR-16 rectangular wing
+source_test: tests/analytical/test_code_verification.py::test_default_vlm_mesh_has_bounded_numerical_uncertainty
+solver: OpenAeroStruct VLM
+observables:
+  CL:
+    fractional_bound: 0.025
+  CDi:
+    fractional_bound: 0.035
+  CL_alpha:
+    fractional_bound: 0.025
+notes:
+  - These are deterministic discretization bounds for the current production mesh, not experimental standard deviations.
+  - Truth evaluators may combine them with experimental and input uncertainty only after documenting the interpretation.

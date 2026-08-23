@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; connect-src 'self'; img-src data: blob:; style-src 'unsafe-inline'; script-src 'unsafe-inline'">
+  <title>open-air Design Studio</title>
+  <style>
+__OPENAIR_STUDIO_CSS__
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>open-air Design Studio</h1>
+      <p id="concept-label">Schema-driven concept input</p>
+    </div>
+    <div class="top-actions">
+      <button id="reset-design" type="button">Reset</button>
+      <button id="undo-design" type="button" title="Undo (Ctrl/Cmd-Z)" disabled>Undo</button>
+      <button id="redo-design" type="button" title="Redo (Ctrl/Cmd-Shift-Z)" disabled>Redo</button>
+      <button id="preview-yaml" type="button">YAML preview</button>
+      <button id="import-yaml" type="button">Import YAML</button>
+      <button id="edit-openvsp" type="button" hidden>Advanced: OpenVSP</button>
+      <button id="save-concept" class="primary" type="button" hidden>
+        <span id="save-label">Save concept</span>
+        <span id="unsaved-count" class="change-badge" hidden>0</span>
+      </button>
+      <button id="export-yaml" class="primary" type="button">Export design.yaml</button>
+      <input id="yaml-file" type="file" accept=".yaml,.yml,text/yaml" hidden>
+    </div>
+  </header>
+
+  <div class="shell">
+    <aside>
+      <div class="intro">
+        <strong>One source of truth.</strong> Inputs and bounds come directly
+        from <code>VehicleSpec</code>. Drag orange and green handles in the
+        views, or enter exact values here. Exported YAML includes a measured
+        <code>sketch:</code> envelope for MDO and shape gates.
+      </div>
+      <details class="section" id="diff-panel" open>
+        <summary>
+          <span>Parameter changes</span>
+          <span id="diff-count" class="change-badge">0</span>
+        </summary>
+        <div id="parameter-diff" class="parameter-diff">
+          <p>No changes from the starting design.</p>
+        </div>
+      </details>
+      <details class="section" id="brief-panel" open>
+        <summary>Brief and requirements</summary>
+        <div class="brief-wrap">
+          <textarea id="brief-editor" class="brief-editor" spellcheck="true"></textarea>
+          <div class="brief-actions">
+            <button id="download-brief" type="button">Download brief.md</button>
+            <span>The measured sketch worksheet is refreshed when saving or downloading.</span>
+          </div>
+        </div>
+      </details>
+      <form id="schema-form" novalidate></form>
+    </aside>
+
+    <main>
+      <div class="workspace-head">
+        <div>
+          <h2>Parametric three-view</h2>
+          <p>Same trapezoid and fuselage-station equations used by the pipeline.</p>
+        </div>
+      </div>
+
+      <section class="trace-toolbar" aria-label="Sketch tracing controls">
+        <label>Underlay
+          <select id="trace-view">
+            <option value="top">Top</option>
+            <option value="side">Side</option>
+            <option value="front">Front</option>
+          </select>
+        </label>
+        <button id="load-sketch" type="button">Load photo</button>
+        <input id="sketch-file" type="file" accept="image/*" hidden>
+        <button id="rectify-sketch" type="button">Pick 4 grid corners</button>
+        <button id="reset-sketch" type="button">Clear underlay</button>
+        <button id="download-sketch" type="button">Rectified PNG</button>
+        <label>Opacity <input id="sketch-opacity" type="range" min="0" max="1" step=".05" value=".42"></label>
+        <label>Fuselage grid squares <input id="grid-squares" type="number" min="1" step=".5" value="24.5"></label>
+        <span id="trace-status">Drop a top or side sketch onto its view to begin.</span>
+      </section>
+
+      <div class="view-grid">
+        <section class="view-card">
+          <div class="view-title"><strong>Top</strong><span>planform · bays · body width</span></div>
+          <div class="viewport" data-view="top">
+            <canvas id="top-underlay" width="1000" height="420"></canvas>
+            <svg id="top-view" viewBox="0 0 1000 420" aria-label="Top view"></svg>
+          </div>
+        </section>
+        <section class="view-card">
+          <div class="view-title"><strong>Side</strong><span>stations · dorsal profile · fin</span></div>
+          <div class="viewport" data-view="side">
+            <canvas id="side-underlay" width="1000" height="420"></canvas>
+            <svg id="side-view" viewBox="0 0 1000 420" aria-label="Side view"></svg>
+          </div>
+        </section>
+        <section class="view-card">
+          <div class="view-title"><strong>Front</strong><span>span · dihedral · cant</span></div>
+          <div class="viewport" data-view="front">
+            <canvas id="front-underlay" width="1000" height="420"></canvas>
+            <svg id="front-view" viewBox="0 0 1000 420" aria-label="Front view"></svg>
+          </div>
+        </section>
+        <section class="view-card">
+          <div class="view-title">
+            <strong>3D confirmation</strong>
+            <label class="wireframe-control">
+              <input id="toggle-wireframe" type="checkbox" checked>
+              wireframe
+            </label>
+          </div>
+          <div class="viewport viewport-3d">
+            <canvas id="three-canvas" width="1000" height="420" aria-label="Interactive 3D confirmation view"></canvas>
+            <div id="viewport3d-notice" class="viewport3d-notice" hidden></div>
+          </div>
+        </section>
+      </div>
+
+      <section id="derived" class="derived" aria-label="Derived design values"></section>
+      <p class="footer-note">
+        Instant values are conceptual checks, not solver verdicts. Static margin
+        uses the repository's closed-form mass stations and calibrated neutral
+        point; final acceptance still requires the full pipeline and AERO QA gates.
+        Served workspace mode saves underlays with the concept; file mode keeps
+        them in this browser session unless you download them.
+      </p>
+    </main>
+  </div>
+
+  <div id="yaml-modal" class="modal" role="dialog" aria-modal="true" aria-label="YAML preview">
+    <div class="modal-card">
+      <div class="modal-head"><strong>design.yaml preview</strong><button id="close-modal" type="button">Close</button></div>
+      <textarea id="yaml-preview" spellcheck="false"></textarea>
+      <div class="modal-actions">
+        <button id="apply-preview" type="button">Apply edited YAML</button>
+        <button id="download-preview" class="primary" type="button">Download</button>
+      </div>
+    </div>
+  </div>
+  <div id="toast" role="status"></div>
+  <pre id="smoke-yaml" hidden></pre>
+  <pre id="smoke-brief" hidden></pre>
+  <pre id="smoke-preview" hidden></pre>
+  <pre id="smoke-handles" hidden></pre>
+
+  <script id="openair-studio-data" type="application/json">__OPENAIR_STUDIO_PAYLOAD__</script>
+  <script>__OPENAIR_THREE_VENDOR__</script>
+  <script>__OPENAIR_STUDIO_HANDLES__</script>
+  <script>__OPENAIR_STUDIO_PREVIEW_MESH__</script>
+  <script>__OPENAIR_STUDIO_VIEWPORT3D__</script>
+  <script>
+__OPENAIR_STUDIO_CORE__
+  </script>
+</body>
+</html>

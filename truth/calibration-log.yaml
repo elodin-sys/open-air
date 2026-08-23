@@ -1,0 +1,199 @@
+version: 1
+policy:
+  - Calibration entries identify the case, exact observables viewed, parameter changed, rationale, and validation holdout.
+  - A case with manifest role validation may not appear as a calibration source.
+  - Frozen validation truth and acceptance bands are never changed to make a model pass.
+entries:
+  - id: 2026-08-22-naca-section-visible-calibration
+    case_id: naca-tr824-4digit
+    source_role: calibration
+    observables_viewed:
+      - "all 35 manifest observables"
+    changes:
+      - "Author the four-digit section evaluator and residual regression tests with the measured polars visible."
+      - "Expose fixed CLmax as an assumption rather than a nonlinear prediction."
+      - "Select and ratify the current tolerance bands after inspecting baseline residuals."
+    rationale: >-
+      The physical rows are valuable visible calibration and regression data, but
+      their residuals and bands participated in implementation. They cannot be an
+      independent qualification holdout for the current model revision.
+    untouched_validation_holdout: null
+    evidence_boundary: >-
+      Use for section-model calibration and known-limit regression only. A future
+      claim requires an unseen complete airfoil family from a separate campaign.
+  - id: 2026-08-22-uiuc-lowre-visible-calibration
+    case_id: uiuc-lsat-lowre
+    source_role: calibration
+    observables_viewed:
+      - "all 20 manifest observables"
+    changes:
+      - "Introduce the low-Re unsupported-domain threshold and domain flags."
+      - "Author residual-direction and magnitude regressions with the UIUC rows visible."
+      - "Select and ratify the current tolerance bands after inspecting baseline residuals."
+    rationale: >-
+      The UIUC data defines the present low-Re domain characterization and was not
+      held back from model development.
+    untouched_validation_holdout: null
+    evidence_boundary: >-
+      Use for calibration and domain-refusal regression only, never as an
+      independent low-Re validation claim.
+  - id: 2026-08-22-crm-visible-calibration
+    case_id: nasa-crm-wingbody
+    source_role: calibration
+    observables_viewed:
+      - cl_alpha_per_deg
+      - neutral_point_mac
+    changes:
+      - "Enable OAS compressibility after the CRM residual exposed the incompressible execution path."
+      - "Convert schema leading-edge sweep to OAS post-taper x shear after the CRM residual exposed the representation mismatch."
+      - "Retain equivalent-trapezoid lift and neutral-point agreement as consumed regression diagnostics."
+    rationale: >-
+      The measured class-B source remains strong evidence, but this exact campaign
+      was consumed when its score drove an implementation correction.
+    untouched_validation_holdout: null
+    evidence_boundary: >-
+      Use as a visible transonic calibration/stretch benchmark. It is also outside
+      the declared Mach <= 0.7 design envelope and cannot qualify that envelope.
+  - id: 2026-08-22-gtm-posthoc-repair-cycle
+    case_id: gtm-t2
+    source_role: verification
+    observables_viewed:
+      - cl_alpha_per_deg
+      - neutral_point_mac
+      - cm_alpha_sign_correct
+      - trim_alpha_deg
+      - cruise_lod
+      - stall_speed_mps
+      - mtow_kg
+      - span_m
+      - wing_area_m2
+      - mac_m
+      - fuselage_length_m
+      - geometry_requirement_ok
+    changes:
+      - "Freeze reference geometry, fuel, and mass/CG in reproduction mode."
+      - "Normalize multi-surface OAS coefficients by main-wing reference area."
+      - "Model and artifact-check each external nacelle."
+      - "Declare section-to-aircraft CLmax conversion explicitly."
+      - "Use same-run VSPAERO wing/body/nacelle evidence in the hybrid component stability model."
+      - "Apply a 0.82 horizontal-tail lift-effectiveness factor from the separate class-B NASA 14x22 tail-damage trend (NASA 20100002211 Fig. 5) and same-run VSPAERO wing/body NP."
+      - "Close OAS structural load cases to requested nW and enforce the declared CLmax domain."
+    rationale: >-
+      The initial blind score failed and its residuals triggered an investigation.
+      Each retained correction has an independent analytic, artifact, source, or
+      regression test, but reviewing the target residuals permanently consumes
+      the holdout.
+    untouched_validation_holdout: null
+    evidence_boundary: >-
+      Final GTM scores are post-hoc verification only. No truth value,
+      uncertainty, or acceptance threshold was changed. A fresh untouched case
+      is required for a validation claim.
+  - id: 2026-08-22-csr01-mission-reference-build
+    case_id: ceras-csr01-mission
+    source_role: verification
+    observables_viewed:
+      - study_500_block_fuel_kg
+      - study_500_block_time_h
+      - study_500_requirement_met
+      - design_2750_block_fuel_kg
+      - design_2750_block_time_h
+      - design_2750_requirement_met
+      - mtow_2500_block_fuel_kg
+      - mtow_2500_block_time_h
+      - mtow_2500_requirement_met
+    changes:
+      - "Add a typed sparse equivalent two-engine V2527-A5 performance deck."
+      - "Add the constant-condition CSR-01 block-mission adapter."
+      - "Declare part-throttle, L/D, taxi, and airborne-overhead assumptions."
+      - "Use the published mission-row mass identity to freeze 42,092 kg operating-empty mass and 18,402 kg fuel in the full-aircraft reconstruction."
+    rationale: >-
+      The public CeRAS mission rows were available while the sparse-deck mission
+      adapter was authored. Frozen uncertainty bands prevent threshold fitting,
+      but do not make the resulting comparison independent.
+    untouched_validation_holdout: null
+    evidence_boundary: >-
+      CSR-01 mission scores and the truth-conditioned full-aircraft
+      reconstruction are class-C post-hoc diagnostics. The transport
+      structural stage is explicitly unsupported and they are not physical
+      validation.
+  - id: 2026-08-22-ntnu-x8-training-flightdyn-v1
+    case_id: ntnu-x8-training
+    source_role: calibration
+    observables_viewed:
+      - pitch_rate_peak_gain_doublet
+      - pitch_rate_rms_gain_doublet
+      - pitch_rate_peak_gain_3211
+      - pitch_rate_rms_gain_3211
+      - roll_rate_peak_gain_doublet
+      - roll_rate_rms_gain_doublet
+      - roll_rate_peak_gain_121
+      - roll_rate_rms_gain_121
+      - trim_alpha_rad
+      - trim_normal_force_cl
+    changes:
+      - "Scale VSPAERO collective elevon effectiveness by 0.75."
+      - "Scale VSPAERO differential elevon effectiveness by 0.70."
+      - "Scale VSPAERO Cm_q and Cl_p damping derivatives by 1.20."
+      - "Freeze repeatability/model-form/numerical allowances and the 0.01 s replay timestep from training-only studies."
+      - "Drop attitude-integral and dynamic pseudo-lift-slope candidates before holdout use because training exposed wind/autopilot and unsteady-force confounding."
+    rationale: >-
+      Four scalar factors fit eight control-normalized p/q training responses,
+      while two static trim observables remain uncalibrated checks. The factors
+      are explicit, configuration-bounded, and selected by calibration ID;
+      no published identified aerodynamic coefficient was imported.
+    untouched_validation_holdout: ntnu-x8-flight
+    evidence_boundary: >-
+      Only the 13 publisher-designated training maneuvers were parsed. The four
+      publisher-designated validation CSVs remain external, checksum-pinned,
+      unparsed, and require one-shot scorer authorization.
+  - id: 2026-08-22-diana2-visible-ground-modal-v1
+    case_id: diana2-ground
+    source_role: calibration
+    observables_viewed:
+      - first_symmetric_wing_bending_frequency_hz
+      - strain_channel_mapping_count
+      - "all 15 public load-to-strain slopes"
+    changes:
+      - "Add the spanwise EI/GJ/mass overlay and uncoupled beam eigensolver."
+      - "Scale the visible EI distribution to close the 7.42 Hz first symmetric wing-bending mode."
+      - "Map the six three-axis wing gauges and three-axis tail gauge with the public load-to-strain channel convention."
+    rationale: >-
+      Public GVT and sensor-calibration evidence is intentionally visible L1
+      calibration. It identifies an aircraft-specific overlay and verifies
+      channel/unit plumbing before any flight payload is opened.
+    untouched_validation_holdout: diana2-flight
+    evidence_boundary: >-
+      The overlay is not a first-principles stiffness prediction and does not
+      qualify T-tail modes, certification flutter margin, or another aircraft.
+      FT06 and FT12 remain externally sealed under the pre-payload split.
+  - id: 2026-08-22-diana2-training-aeroelastic-v1
+    case_id: diana2-training
+    source_role: calibration
+    observables_viewed:
+      - outer_to_ro_strain_bending_frequency_hz
+      - outer_to_ro_strain_bending_damping_fraction
+      - outer_to_ro_strain_peak_gain
+      - outer_to_ro_accel_bending_frequency_hz
+      - outer_to_ro_accel_bending_damping_fraction
+      - outer_to_ro_accel_gain_at_mode
+      - outer_to_rm_accel_bending_frequency_hz
+      - outer_to_rm_accel_gain_at_mode
+    changes:
+      - "Replace nominal 0.20/0.50/0.80 sensor stations with the public workbook's 0.1638/0.3452/0.6612 semi-span locations."
+      - "Disable the quasi-steady aerodynamic velocity scale after its uncalibrated value over-damped the first bending mode."
+      - "Group the outer and middle surfaces into the published aileron command at gains 1.0 and 0.70 after the fresh design reconstruction exposed the pre-holdout command-name ambiguity."
+      - "Apply one 0.55 grouped-aileron generalized-force scale jointly to strain and two distributed acceleration channels."
+      - "Freeze the acceleration-order-corrected H1/half-power estimator and training-dispersion/input/numerical allowances."
+    rationale: >-
+      Six preselected training flights put the first bending resonance near
+      7.3--7.4 Hz while the initial quasi-steady velocity term predicted about
+      0.39 damping. Retaining the independent GVT structural damping and
+      removing that unsupported term restored resonance shape. The fresh
+      design-input-only reconstruction correctly represented the published
+      physical aileron mixing before authorization. One shared grouped-command
+      force factor compromises between strain and acceleration gains without
+      any output-specific fit.
+    untouched_validation_holdout: diana2-flight
+    evidence_boundary: >-
+      Only FT05, FT07, FT08, FT10, FT11, and FT13 were parsed. FT06 and FT12
+      remain external and unopened; FT09 remains a separately deferred reserve.

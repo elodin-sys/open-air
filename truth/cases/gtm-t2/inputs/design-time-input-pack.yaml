@@ -1,0 +1,161 @@
+case: nasa-gtm-t2
+aircraft: NASA AirSTAR Generic Transport Model T-2
+designer_boundary:
+  purpose: Reproduce the known airframe with the canonical open-air pipeline.
+  allowed:
+    - dimensions and arrangement visible in NASA descriptions and three-view imagery
+    - operating mass, fuel capacity, propulsion, and mission requirements
+    - the documented conceptual-model abstractions below
+  held_out:
+    - NASA-released sampled polynomial aerodynamic coefficient tables
+    - derived lift and moment slopes
+    - neutral point, trim angle, and lift-to-drag ratio
+    - truth observations and scorecard margins
+
+identity:
+  configuration: conventional swept-wing transport
+  scale: 0.055
+  engines: 2
+  vertical_tails: 1
+  landing_gear: retractable_tricycle
+  source_notes:
+    - NASA describes the T-2 as a flown, dynamically scaled twin-turbine transport.
+    - Use sketch.treatment=reproduction; freeze source geometry and mass, then close trim only.
+
+geometry:
+  fuselage:
+    length_m: 2.5908
+    max_width_m: 0.25
+    max_height_m: 0.30
+    note: Width and height are three-view estimates; length is the published 8.5 ft.
+  wing:
+    reference_area_m2: 0.548295161472
+    span_m: 2.08751424
+    mac_m: 0.27898344
+    equivalent_trapezoid:
+      root_chord_m: 0.376085409793
+      tip_chord_m: 0.149223736334
+      taper: 0.396781508797
+      leading_edge_sweep_deg: 25.0
+      root_le_x_from_nose_m: 0.955234950997
+    placement:
+      type: low_wing
+      root_z_m: -0.08
+    section_surrogate:
+      openair_airfoil: "2412"
+      reason: The exact GTM transport section is not represented by the NACA4-only conceptual schema.
+      model_form_uncertainty: Treat section camber and thickness as an abstraction, not calibration.
+  horizontal_tail:
+    span_m: 0.88
+    root_chord_m: 0.28
+    taper: 0.45
+    leading_edge_sweep_deg: 30.0
+    root_le_x_m: 2.20
+    z_m: 0.10
+    note: Bounded estimate from NASA configuration imagery; incidence is a trim design variable.
+  vertical_tail:
+    count: 1
+    span_m: 0.40
+    root_chord_m: 0.42
+    taper: 0.45
+    leading_edge_sweep_deg: 38.0
+    root_le_x_m: 2.10
+    root_y_m: 0.0
+    root_z_m: 0.13
+    cant_deg: 0.0
+    note: Bounded estimate from NASA configuration imagery.
+
+mass_properties:
+  takeoff_mass_kg: 26.1949593675
+  initial_fuel_mass_kg: 5.2253841024
+  zero_fuel_mass_kg: 20.9695752651
+  initial_cg_mac_fraction: 0.2199
+  initial_cg_x_from_nose_m: 1.225
+  operating_empty_mass_kg: 20.9695752651
+  operating_empty_cg_derivation:
+    value_m: 1.2180642122340803
+    method: Solve the takeoff-CG moment balance using initial fuel mass and the declared wing-fuel centroid.
+  gear_up_inertia_kg_m2:
+    ixx: 1.65545371491
+    iyy: 6.31133254948
+    izz: 7.57495487733
+    ixz: 0.371494117843
+  payload_kg: 0.0
+  modeling_note: Onboard research equipment is part of systems/avionics mass, not removable payload.
+
+equivalent_engine:
+  name: 2x JetCat P70 equivalent
+  abstraction: Sum thrust, fuel flow, and dry mass; preserve one-engine length and equal-area diameter.
+  max_thrust_sea_level_n: 136.251202024
+  max_fuel_flow_kg_s: 0.007410599682
+  dry_mass_kg: 2.4
+  diameter_m: 0.1372
+  length_m: 0.315
+  fuel_density_kg_m3: 800.0
+  physical_installation:
+    count: 2
+    x_from_nose_m: 1.097
+    lateral_offset_m: 0.3607
+    z_from_nose_axis_m: -0.15
+    z_note: Three-view estimate; the pods are below the low wing.
+  model_abstraction: Preserve total propulsion properties while rendering two equal-area external pods.
+
+mission:
+  endurance_s: 960.0
+  endurance_provenance: AirSTARsim initial countdown/design requirement; not measured endurance and not scored.
+  cruise_altitude_m: 304.8
+  dash_altitude_m: 304.8
+  nominal_speed_mps: 38.6
+  nominal_mach: 0.113
+  limit_positive_g: 4.0
+  limit_negative_g: -2.0
+  safety_factor: 1.5
+  static_margin_range: [0.25, 0.40]
+  reserve_fuel_fraction: 0.08
+  conceptual_section_cl_max: 1.20
+  stall_speed_requirement_mps: 31.0
+
+posthoc_solver_calibration:
+  horizontal_tail_lift_effectiveness_factor: 0.82
+  source: NASA 20100002211, Frink et al. (2010), Figure 5
+  derivation: >-
+    The class-B 14x22 wind-tunnel horizontal-tail damage trend gives about
+    29% MAC baseline static margin. Combining that independent physical anchor
+    with the same-run VSPAERO wing/body neutral point scales the default
+    low-order tail contribution by 0.82.
+  boundary: >-
+    Added after the initial blind GTM run failed. This input is a declared
+    post-hoc calibration and cannot support an untouched validation claim; it
+    does not use the released polynomial score target.
+
+requirement_envelope:
+  span_over_length:
+    target: 0.805741176
+    tolerance: 0.010
+  root_chord_over_length:
+    target: 0.145163813
+    tolerance: 0.008
+  wing_le_sweep_deg:
+    target: 25.0
+    tolerance: 2.0
+  wing_taper:
+    target: 0.396781509
+    tolerance: 0.03
+  wing_root_le_over_length:
+    target: 0.368702698
+    tolerance: 0.012
+  fin:
+    span_m: [0.37, 0.43]
+    root_chord_m: [0.38, 0.46]
+    leading_edge_sweep_deg: [33.0, 43.0]
+    root_le_x_m: [2.05, 2.15]
+
+sources:
+  - reference: nasa/GTM_DesignSim
+    revision: 9717143270144aca1f5d38d7c24c0fce678d1589
+    files:
+      - gtm_design/config/AC_baseparams_T2.m
+      - gtm_design/config/AC_calcparams_T2.m
+  - reference: NASA NTRS 20120014564
+    url: https://ntrs.nasa.gov/citations/20120014564
+    use: Published 6.8 ft span, 8.5 ft length, 58 lb takeoff mass, twin 16 lb turbines.

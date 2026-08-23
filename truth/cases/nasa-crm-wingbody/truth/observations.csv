@@ -1,0 +1,3 @@
+observable,value,units,u_exp,u_input,u_num
+cl_alpha_per_deg,0.121621186158,1/deg,0.0015,0.0120,0.0015
+neutral_point_mac,0.318703956593,MAC,0.0100,0.0600,0.0100

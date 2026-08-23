@@ -1,0 +1,160 @@
+version: 1
+state: frozen-pre-holdout
+dataset_axes:
+  sample_rate_hz: 200.0
+  acceleration: publisher-aligned local IMU axes; Az is normal acceleration
+  strain: publisher *_calib channels, already corrected for bias and temperature
+  control: >-
+    publisher encoder angle_nd converted to radians with the pre-payload
+    small-signal half-range, then left/right mixed according to the design
+channel_map:
+  time_s: Diana2.time
+  airspeed_m_s: Diana2.AERO.V_ms
+  encoder.outer_right_norm: Diana2.RO_angle.angle_nd
+  encoder.outer_left_norm: Diana2.LO_angle.angle_nd
+  strain.RO_ADS_z: Diana2.RO_ADS.z_calib
+  imu.RO.normal_accel_m_s2: Diana2.RO_IMU.Az
+  imu.RM.normal_accel_m_s2: Diana2.RM_IMU.Az
+derived_channels:
+  control.outer_aileron_rad:
+    - {source: encoder.outer_right_norm, gain: 0.13962634015954636}
+    - {source: encoder.outer_left_norm, gain: -0.13962634015954636}
+temperature_compensation:
+  source_already_compensated: true
+  source: >-
+    Publisher README and FT_plotting.m identify *_calib as bias- and
+    temperature-corrected microstrain; open-air must not correct it twice.
+estimator_defaults: &estimator_defaults
+  control: control.outer_aileron_rad
+  model_control: aileron
+  frequency_band_hz: [6.5, 8.5]
+  nperseg: 4096
+  coherence_minimum: 0.25
+  minimum_successful_flights: 1
+  flight_condition:
+    signal: airspeed_m_s
+    minimum: 17.0
+    maximum: 27.0
+  window_duration_s: 40.0
+  minimum_condition_fraction: 0.90
+  selection_frequency_band_hz: [6.5, 8.5]
+  window_candidate_count: 40
+  window_candidate_stride_s: 2.0
+metrics:
+  outer_to_ro_strain_bending_frequency_hz:
+    <<: *estimator_defaults
+    signal: strain.RO_ADS_z
+    model_response_group: gauge_microstrain_per_rad
+    model_response: RO_ADS_z
+    output: frequency_hz
+    units: Hz
+  outer_to_ro_strain_bending_damping_fraction:
+    <<: *estimator_defaults
+    signal: strain.RO_ADS_z
+    model_response_group: gauge_microstrain_per_rad
+    model_response: RO_ADS_z
+    output: damping_ratio
+    units: "1"
+  outer_to_ro_strain_peak_gain:
+    <<: *estimator_defaults
+    signal: strain.RO_ADS_z
+    model_response_group: gauge_microstrain_per_rad
+    model_response: RO_ADS_z
+    output: peak_magnitude
+    units: microstrain/rad
+  outer_to_ro_accel_bending_frequency_hz:
+    <<: *estimator_defaults
+    signal: imu.RO.normal_accel_m_s2
+    model_response_group: station_acceleration_m_s2_per_rad
+    model_response: RO_normal_accel
+    response_derivative_order: 2
+    output: frequency_hz
+    units: Hz
+  outer_to_ro_accel_bending_damping_fraction:
+    <<: *estimator_defaults
+    signal: imu.RO.normal_accel_m_s2
+    model_response_group: station_acceleration_m_s2_per_rad
+    model_response: RO_normal_accel
+    response_derivative_order: 2
+    output: damping_ratio
+    units: "1"
+  outer_to_ro_accel_gain_at_mode:
+    <<: *estimator_defaults
+    signal: imu.RO.normal_accel_m_s2
+    model_response_group: station_acceleration_m_s2_per_rad
+    model_response: RO_normal_accel
+    response_derivative_order: 2
+    output: raw_magnitude_at_mode
+    units: m/s2/rad
+  outer_to_rm_accel_bending_frequency_hz:
+    <<: *estimator_defaults
+    signal: imu.RM.normal_accel_m_s2
+    model_response_group: station_acceleration_m_s2_per_rad
+    model_response: RM_normal_accel
+    response_derivative_order: 2
+    output: frequency_hz
+    units: Hz
+  outer_to_rm_accel_gain_at_mode:
+    <<: *estimator_defaults
+    signal: imu.RM.normal_accel_m_s2
+    model_response_group: station_acceleration_m_s2_per_rad
+    model_response: RM_normal_accel
+    response_derivative_order: 2
+    output: raw_magnitude_at_mode
+    units: m/s2/rad
+uncertainties:
+  outer_to_ro_strain_bending_frequency_hz:
+    {u_exp: 0.25, u_input: 0.50, u_num: 0.05}
+  outer_to_ro_strain_bending_damping_fraction:
+    {u_exp: 0.008, u_input: 0.025, u_num: 0.003}
+  outer_to_ro_strain_peak_gain:
+    {u_exp: 3000.0, u_input: 2500.0, u_num: 500.0}
+  outer_to_ro_accel_bending_frequency_hz:
+    {u_exp: 0.20, u_input: 0.50, u_num: 0.05}
+  outer_to_ro_accel_bending_damping_fraction:
+    {u_exp: 0.008, u_input: 0.025, u_num: 0.003}
+  outer_to_ro_accel_gain_at_mode:
+    {u_exp: 1200.0, u_input: 1200.0, u_num: 300.0}
+  outer_to_rm_accel_bending_frequency_hz:
+    {u_exp: 0.20, u_input: 0.50, u_num: 0.05}
+  outer_to_rm_accel_gain_at_mode:
+    {u_exp: 500.0, u_input: 500.0, u_num: 150.0}
+calibration:
+  id: diana2-training-aeroelastic-v1
+  training_flights: [FT05, FT07, FT08, FT10, FT11, FT13]
+  fitted_parameters:
+    aerodynamic_damping_scale: 0.0
+    grouped_aileron_force_scale: 0.55
+  rationale: >-
+    The unscaled quasi-steady velocity term over-damped the first bending mode
+    (model damping about 0.39 versus a training H1 median below 0.01).
+    Retaining measured ground-test structural damping and disabling that term
+    gives the correct resonance shape. A single 0.55 generalized-force scale
+    acts on the physical aileron command (outer gain 1.0 plus middle gain 0.70)
+    and compromises between the independent RO strain and RO/RM acceleration
+    gains; no output-specific scale is used.
+  frozen_at: '2026-08-22T20:58:39+00:00'
+  frozen_model_source_sha256: 52e12a3ce477f8df5ac8a1b403421bc88ea04563fabf82db5591927fa7132305
+  training_baseline:
+    status: provisional
+    count: 8
+    mean_abs_normalized_residual: 0.6641963080893313
+    max_abs_normalized_residual: 1.2639652908789503
+    fraction_within_2u: 1.0
+    note: >-
+      Six preselected training flights only. The scorecard was generated
+      before protocol freeze and is rerun after this immutable block is added.
+  numerical_study: numerical-study.yaml
+uncertainty_policy:
+  u_exp: >-
+    Rounded above training-flight median absolute dispersion and the frozen
+    H1 frequency resolution. Frequency and damping floors are materially
+    tighter, in relative terms, than the prior X8 maneuver-response case.
+  u_input: >-
+    Covers equivalent-trapezoid/proprietary-airfoil abstraction, L1-derived
+    stiffness and mass distributions, encoder normalization, uncoupled
+    symmetric wing mode shapes, and excluded T-tail coupling.
+  u_num: >-
+    Covers frequency-grid, strip-count, and modal-truncation studies recorded
+    before authorization.
+  prohibition: no component may change after holdout authorization

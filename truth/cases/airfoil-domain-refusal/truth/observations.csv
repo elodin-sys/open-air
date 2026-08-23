@@ -1,0 +1,3 @@
+observable,value,units,u_exp,u_input,u_num
+unsupported_airfoil_refused,1.0,boolean,0.01,0,0
+refusal_is_actionable,1.0,boolean,0.01,0,0

@@ -1,0 +1,95 @@
+id: uiuc-lsat-lowre
+title: UIUC LSAT NACA 2415 low-Reynolds-number section anchor
+truth_class: B
+role: calibration
+status: active
+intended_uses:
+  - Calibrate and characterize four-digit section-model behavior at tail and tip Reynolds numbers.
+  - Verify that laminar-separation-bubble conditions are explicitly flagged as extrapolative.
+runner: naca4-section-model
+source:
+  organization: University of Illinois at Urbana-Champaign
+  dataset: UIUC Low-Speed Airfoil Tests Volume 2, NACA 2415 clean
+  revision: "NACA2415.LFT/DRG created 1997-09-12"
+  license: GPL-2.0-only
+  reference_url: https://m-selig.ae.illinois.edu/pd.html
+  redistribution: Original polar files remain fetchable from UIUC under GPL-2.0; this case commits only derived scalar experimental facts with attribution.
+  downloads:
+    - url: https://m-selig.ae.illinois.edu/pd/pub/lsat/vol2/NACA2415.LFT
+      sha256: ff4a16c19581b8bb8eeaac8161d6dc60551515761882b25ab87dda7b6c19458d
+      filename: NACA2415.LFT
+    - url: https://m-selig.ae.illinois.edu/pd/pub/lsat/vol2/NACA2415.DRG
+      sha256: b499cccc2eb097fbb778e75f7e7e3b2be93ff457a08e695650e396e52424e19f
+      filename: NACA2415.DRG
+observables:
+  - id: naca2415_re60000_cl_alpha_per_deg
+    units: 1/deg
+    description: Central linear lift-curve slope near Re 60 thousand
+  - id: naca2415_re60000_alpha_l0_deg
+    units: deg
+    description: Central-fit zero-lift angle near Re 60 thousand
+  - id: naca2415_re60000_cd0
+    units: "1"
+    description: Drag coefficient interpolated at zero lift near Re 60 thousand
+  - id: naca2415_re60000_cl_max
+    units: "1"
+    description: Increasing-alpha maximum lift near Re 60 thousand
+  - id: naca2415_re60000_domain_flagged
+    units: boolean
+    description: Low-Re transition and laminar-bubble regime is flagged
+  - id: naca2415_re100000_cl_alpha_per_deg
+    units: 1/deg
+    description: Central linear lift-curve slope near Re 100 thousand
+  - id: naca2415_re100000_alpha_l0_deg
+    units: deg
+    description: Central-fit zero-lift angle near Re 100 thousand
+  - id: naca2415_re100000_cd0
+    units: "1"
+    description: Drag coefficient interpolated at zero lift near Re 100 thousand
+  - id: naca2415_re100000_cl_max
+    units: "1"
+    description: Increasing-alpha maximum lift near Re 100 thousand
+  - id: naca2415_re100000_domain_flagged
+    units: boolean
+    description: Low-Re transition and laminar-bubble regime is flagged
+  - id: naca2415_re200000_cl_alpha_per_deg
+    units: 1/deg
+    description: Central linear lift-curve slope near Re 200 thousand
+  - id: naca2415_re200000_alpha_l0_deg
+    units: deg
+    description: Central-fit zero-lift angle near Re 200 thousand
+  - id: naca2415_re200000_cd0
+    units: "1"
+    description: Drag coefficient interpolated at zero lift near Re 200 thousand
+  - id: naca2415_re200000_cl_max
+    units: "1"
+    description: Increasing-alpha maximum lift near Re 200 thousand
+  - id: naca2415_re200000_domain_flagged
+    units: boolean
+    description: Low-Re transition and laminar-bubble regime is flagged
+  - id: naca2415_re300000_cl_alpha_per_deg
+    units: 1/deg
+    description: Central linear lift-curve slope near Re 300 thousand
+  - id: naca2415_re300000_alpha_l0_deg
+    units: deg
+    description: Central-fit zero-lift angle near Re 300 thousand
+  - id: naca2415_re300000_cd0
+    units: "1"
+    description: Drag coefficient interpolated at zero lift near Re 300 thousand
+  - id: naca2415_re300000_cl_max
+    units: "1"
+    description: Increasing-alpha maximum lift near Re 300 thousand
+  - id: naca2415_re300000_domain_flagged
+    units: boolean
+    description: Low-Re transition and laminar-bubble regime is flagged
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.5
+  min_fraction_within_2sigma: 0.68
+  provisional: false
+stages: [aero]
+notes:
+  - Lift slope and zero-lift angle use a least-squares fit over -4 to +4 degrees on the increasing-alpha branch.
+  - The Volume 2 files do not provide measured pitching moment; their repeated representative Cm is intentionally not scored.
+  - Failed drag or zero-lift residuals characterize missing transition and laminar-bubble physics.
+  - This dataset was visible while the low-Re domain threshold and residual regressions were authored; it is a consumed calibration/domain-characterization case, not an independent holdout.

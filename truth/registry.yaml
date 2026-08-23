@@ -1,0 +1,100 @@
+version: 1
+cases:
+  - id: synthetic-self
+    manifest: cases/synthetic-self/manifest.yaml
+    status: active
+    truth_sha256:
+      truth/observations.csv: 9b7a1f99dd058d6428f8f6ad8ec2fa8ecd27f7ceb6503e8f0fd5f8e0a059e374
+  - id: naca-tr824-4digit
+    manifest: cases/naca-tr824-4digit/manifest.yaml
+    status: active
+    truth_sha256:
+      truth/observations.csv: c0c44e19c1c9ba5ffcbfb9767c2dfef462a8f0b5f79d303d9f1bbb892ded6322
+      truth/polar_points.csv: 8a64367c01fdf4bbdbd518408225cb24143f202fc82e72ad961ee931530903da
+      truth/README.md: 0c83a123abdda371279cfcc8881347846e544e824d9f81b1f094bf49559f7c59
+  - id: uiuc-lsat-lowre
+    manifest: cases/uiuc-lsat-lowre/manifest.yaml
+    status: active
+    truth_sha256:
+      truth/observations.csv: 1503b5c4ff3459b39a3e19b049e044eade25f53f0349d64c295ac7f2a7b85c06
+  - id: airfoil-domain-refusal
+    manifest: cases/airfoil-domain-refusal/manifest.yaml
+    status: active
+    truth_sha256:
+      truth/observations.csv: 4ac75ff94a098a8299585c8eee4126417ba772545bff830001b1ee9cae86b5c3
+  - id: gtm-t2
+    manifest: cases/gtm-t2/manifest.yaml
+    status: active
+    truth_sha256:
+      truth/observations.csv: f1a20600392ae823cd08b46e44966a971e636f22ea3940f7d86ab416e04d1020
+      truth/static_longitudinal.csv: bcf9e0a280f3813117fcf16b3dab1a79bd6ca2c6d09a43865aa9dadbdf2a6c33
+      truth/README.md: 9e0f136a5e50717a3be69c6d2783e949aa1a9c1ce3e2dd6c5a9d5ff9df350227
+  - id: nasa-crm-wingbody
+    manifest: cases/nasa-crm-wingbody/manifest.yaml
+    status: active
+    truth_sha256:
+      truth/observations.csv: 06c5dd04d57fa4583bf2793c35c8710316934e6f18e61d7c43b0455ab2e3669f
+      truth/static_polar.csv: 411daf5f42edf21057da77bfe15d36a1d7b4267f3a6151a1cf617f95704cbb79
+      truth/README.md: 829f80e4b7b41dd8d26980e49a8cca12d219ed070a4fbe4a0ef09151e0ab6030
+  - id: ceras-csr01-mission
+    manifest: cases/ceras-csr01-mission/manifest.yaml
+    status: active
+    truth_sha256:
+      truth/observations.csv: 7abbf78dab29cec7456943bf151f528e7561868c99adb3675c72a594139f4b66
+      truth/mission_results.csv: 096398abc40fec64b1f91e84f768af79514e2f05ba2fc2d21f2fbbf82e720d21
+      truth/README.md: 416c457ba98be6136b4a0d780460b4a1b6970a316785554a3e7bcee1d56648d8
+  - id: diana2-ground
+    manifest: cases/diana2-ground/manifest.yaml
+    status: active
+    truth_sha256:
+      truth/observations.csv: 253fa544b38151ef3cb6b428e830a7320e2e7fe78b012cdf79e86784c25a81bb
+  - id: diana2-training
+    manifest: cases/diana2-flight/manifest-training.yaml
+    status: active
+    truth_sha256:
+      truth/00_README.txt: a4ba7549f534c21aab53c63653d670d5e974ad66233228e19429fda70c04af51
+  - id: diana2-flight
+    manifest: cases/diana2-flight/manifest.yaml
+    status: active
+    holdout_sha256:
+      FT06.mat: 528ecbcf5536d24c9f4eaeea4eb750012095ff460eea57b2b67b0fd5c5fc0c4a
+      FT12.mat: 10900fa598edd94377607499f65a824213eee6b8193950108ffacf77a89fd485
+  - id: diana2-reserve
+    manifest: cases/diana2-flight/manifest-reserve.yaml
+    status: deferred
+    holdout_sha256:
+      FT09.mat: 922c5f177adff9aa1965992c78f4b23d3acaa5d0513a04d9edbfcc19426e6db3
+  - id: ntnu-x8-training
+    manifest: cases/ntnu-x8-flight/manifest-training.yaml
+    status: active
+    truth_sha256:
+      truth/00_README.txt: 23d837cf4ce570f45e42e85bc90a045d529fab3000a8ec304e5a325e31aaca95
+      truth/training/lateral_121_1.csv: 5110c3278c0e1710583397fb0742987a5734a3468d13fa940f372ad47138d5cd
+      truth/training/lateral_121_2.csv: b9d9cb2fd2c68a83562d057ee11e899c95f917cb542b1ec541e87f39c4e22678
+      truth/training/lateral_121_3.csv: 9ca0354d3ce97a7b39158304dce06d1d63f5bed3aeb8178fccfb210bcb99b475
+      truth/training/lateral_doublet_1.csv: 4c341ff3ca911cf961b72c22a5ee6e561a04b7978b3b286522ad7789273ef610
+      truth/training/lateral_doublet_2.csv: 838e08b6e972994f3ca8c3339a9286857ce4596fff4c3f490ed8903fd7172441
+      truth/training/lateral_doublet_3.csv: e66eacf6f5cc4119a91730c2541645485f6a6efda15e190b2d15bb587454a783
+      truth/training/longitudinal_3211_1.csv: 7e97fa2508977b2de78f64acf6b9a241e6308cb4f42b5a5849f8ce841780871e
+      truth/training/longitudinal_3211_2.csv: 24cfe9056bb991d633c107213981b2432b94926c9ff9b69d0c44dc786f1438d2
+      truth/training/longitudinal_3211_3.csv: 72821abb3a8f6975aec275e5531e0601cc8ec986904e812e98c91853982dd883
+      truth/training/longitudinal_3211_4.csv: 41be754ee1b88975042c6466301d9fc6f052d9a813a33b1f2140bc20179bbc80
+      truth/training/longitudinal_doublet_1.csv: 263a87a857753ea57d105a7d70e3ee420007c2daba53e3c412cbe59c821c7a4e
+      truth/training/longitudinal_doublet_2.csv: bec1966dd95917fe9d4d93b1557107036624307f31081c8d4710dc75d8cfae81
+      truth/training/longitudinal_doublet_3.csv: 96fe35b0bc3cbe0969ec0f1ba7cc06c446637b68e08dba10d1d4c8073bb44879
+  - id: ntnu-x8-flight
+    manifest: cases/ntnu-x8-flight/manifest.yaml
+    status: active
+    holdout_sha256:
+      validation/lateral_121_4.csv: 4755ebaf04ec3f3dd68fad11a730617495191783149a120b8c2350120ee9d916
+      validation/lateral_doublet_4.csv: cd1329d642f7b34afe4c227e7dbea40cee6985f1877d4366072d0b1158a25da2
+      validation/longitudinal_3211_5.csv: 36674dd64dcfa407b5420f90d15ee93fec5b352c823fc2ee7fb78d3f98573daf
+      validation/longitudinal_doublet_4.csv: 5fac85cc4027b94509242ba95da85ace9398edd677f416d6f39be8f8070c4c87
+  - id: ntnu-x8-icing-reserve
+    manifest: cases/ntnu-x8-flight/manifest-icing-reserve.yaml
+    status: deferred
+    holdout_sha256:
+      clean/lat_121_01_15_ID_6.csv: d31da2226fe8cee0443ad0a14e4ad3641958c9498331450088a96dc69857bcb1
+      clean/lat_db_01_15_ID_6.csv: 4d784f8b4fbf4c9c09a3d199b3041336fc6199fc81c2f9428231a4c300bdcb06
+      clean/lon_3211_02_12_ID_6.csv: 63b5d11c3b0aeb1616778dd0d11eb17cd9f0da80398b76dc329f61df9b9f01bd
+      clean/lon_db_03_12_ID_6.csv: 91212f9304c71834fb43f1e6f1e0a4ca6528ec7d0b34657f83c7ae923fe35e18

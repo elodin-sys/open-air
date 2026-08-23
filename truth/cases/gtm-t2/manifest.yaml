@@ -1,0 +1,79 @@
+id: gtm-t2
+title: NASA AirSTAR GTM T-2 post-hoc system-model verification
+truth_class: C
+role: verification
+status: active
+intended_uses:
+  - Verify post-hoc attached-flow lift slope and longitudinal-stability predictions against NASA's released GTM polynomial simulation database.
+  - Test trim, drag, stall, mass, and geometry closure from design-time inputs only.
+  - Exercise a design-input-only approximately 2 m span twin-turbine reproduction without claiming an untouched holdout, raw wind-tunnel, or flight validation.
+runner: gtm-capstone-results
+source:
+  organization: NASA Langley Research Center
+  dataset: GTM_DesignSim T-2 configuration and sampled polynomial aerodynamic simulation database v0.2
+  revision: 9717143270144aca1f5d38d7c24c0fce678d1589
+  license: NASA-Open-Source-Agreement-1.3
+  reference_url: https://github.com/nasa/GTM_DesignSim
+  redistribution: Derived factual rows are committed with attribution; upstream software remains under NOSA 1.3.
+  downloads:
+    - url: https://raw.githubusercontent.com/nasa/GTM_DesignSim/9717143270144aca1f5d38d7c24c0fce678d1589/gtm_design/config/T2_polynomial_aerodatabase.mat
+      sha256: 7f34845a54bcecdd788f91226b6be6b386612b3cb691a42538854b4c49466f5c
+      filename: T2_polynomial_aerodatabase.mat
+    - url: https://raw.githubusercontent.com/nasa/GTM_DesignSim/9717143270144aca1f5d38d7c24c0fce678d1589/gtm_design/config/AC_baseparams_T2.m
+      sha256: e7d4c93447085f023e83863aa9b49b3e964fc850ec0d62beafc06bc818541ba0
+      filename: AC_baseparams_T2.m
+    - url: https://raw.githubusercontent.com/nasa/GTM_DesignSim/9717143270144aca1f5d38d7c24c0fce678d1589/gtm_design/config/AC_calcparams_T2.m
+      sha256: b13ebdea9ce53b32dd37051619de3be754c5bb0babe276b51a6d760ee150a30b
+      filename: AC_calcparams_T2.m
+observables:
+  - id: cl_alpha_per_deg
+    units: 1/deg
+    description: Baseline zero-sideslip whole-aircraft lift slope over 0 to 6 degrees
+  - id: neutral_point_mac
+    units: MAC
+    description: Neutral-point station aft of wing MAC leading edge
+  - id: cm_alpha_sign_correct
+    units: boolean
+    description: Delivered aircraft has statically stable negative pitching-moment slope
+  - id: trim_alpha_deg
+    units: deg
+    description: Baseline no-control pitching-moment zero crossing
+  - id: cruise_lod
+    units: "1"
+    description: Baseline lift-to-drag ratio at the pitching-moment zero crossing
+  - id: stall_speed_mps
+    units: m/s
+    description: Clean one-g stall speed scaled to initial operating weight
+  - id: mtow_kg
+    units: kg
+    description: Initial flight gross mass
+  - id: span_m
+    units: m
+    description: Reference wing span
+  - id: wing_area_m2
+    units: m^2
+    description: Reference wing planform area
+  - id: mac_m
+    units: m
+    description: Reference mean aerodynamic chord
+  - id: fuselage_length_m
+    units: m
+    description: Published overall aircraft length
+  - id: geometry_requirement_ok
+    units: boolean
+    description: Every requirement-treatment geometry prior remains inside its hard bound
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.5
+  min_fraction_within_2sigma: 0.85
+  provisional: false
+stages: [sizing, geometry, aero, mdo, reporting]
+notes:
+  - "Margins were frozen before the initial blind pipeline run: 10% CL-alpha, 4% MAC neutral point, sign-correct Cm-alpha, 1.5 degree trim, 15% L/D, and 10% stall and mass."
+  - "The initial run was blind and failed. Subsequent implementation work was informed by its residuals, so the final pass is post-hoc verification and this case is no longer an untouched validation holdout."
+  - "The declared 0.82 horizontal-tail lift-effectiveness factor comes from separate class-B NASA 14x22 tail-damage/static-margin evidence (NASA 20100002211, Fig. 5) combined with same-run VSPAERO wing/body evidence; it is calibration, not a predicted validation observable."
+  - "The released coefficient tables are sampled polynomial approximations derived from a restricted wind-tunnel database, not raw measurements with experimental uncertainty; the complete case is therefore class C."
+  - "The 960-second AirSTARsim timer is a design-time operational/countdown input, not measured endurance, and is intentionally not scored."
+  - "The equivalent-engine, NACA4-section, and Reynolds-number abstractions are represented in u_input; the exposed GTM case is post-hoc verification, not validation."
+  - "Hybrid constants are hash-bound to the same-phase VSP3. The delivered component-model versus full-VSPAERO neutral-point spread is 0.197 MAC (lifting-surface OAS versus full VSPAERO: 0.097 MAC); both are disclosed diagnostics, not passing independent stability checks."
+  - "Stretch solvers are calibration-only and do not affect this case's verdict."

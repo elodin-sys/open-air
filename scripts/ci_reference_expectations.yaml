@@ -1,0 +1,43 @@
+version: 1
+designs:
+  gtm-t2:
+    path: designs/gtm-t2
+    passed: 12
+    total: 12
+    failed_gate_ids: []
+  ntnu-x8:
+    path: designs/ntnu-x8
+    passed: 12
+    total: 12
+    failed_gate_ids: []
+  ceras-csr01:
+    path: designs/ceras-csr01
+    passed: 11
+    total: 12
+    failed_gate_ids: [structures]
+  diana2:
+    path: designs/diana2
+    passed: 12
+    total: 12
+    failed_gate_ids: []
+truth_cases:
+  synthetic-self: {action: rerun, expected_status: pass}
+  naca-tr824-4digit: {action: rerun, expected_status: fail}
+  uiuc-lsat-lowre: {action: rerun, expected_status: fail}
+  airfoil-domain-refusal: {action: rerun, expected_status: pass}
+  gtm-t2: {action: rerun, expected_status: pass}
+  nasa-crm-wingbody: {action: rerun, expected_status: pass}
+  ceras-csr01-mission: {action: rerun, expected_status: pass}
+  diana2-ground: {action: rerun, expected_status: pass}
+  diana2-training:
+    action: rerun
+    expected_status: provisional
+    requires_local_path: truth/cases/diana2-flight/truth/training/FT05.mat
+  diana2-flight: {action: frozen, expected_status: pass}
+  diana2-reserve: {action: deferred}
+  ntnu-x8-training: {action: rerun, expected_status: provisional}
+  ntnu-x8-flight: {action: frozen, expected_status: pass}
+  ntnu-x8-icing-reserve: {action: deferred}
+frozen_class_a_claims:
+  - ntnu-x8-flight
+  - diana2-flight

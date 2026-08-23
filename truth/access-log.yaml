@@ -1,0 +1,58 @@
+version: 1
+attempts:
+- id: ntnu-x8-primary-20260822-v1
+  case_id: ntnu-x8-flight
+  status: consumed
+  authorized_at: '2026-08-22T17:27:39+00:00'
+  consumed_at: '2026-08-22T17:28:11+00:00'
+  execution_provenance:
+    manifest_sha256: fb7f16785cbe6626618ba6a810107e5996be0760df07a4bc693e7b5498bc84b5
+    registry_entry_sha256: dada38413d4769a14acb32f83531f4bf9a52a87968e8cd66491a32aa92e87b4c
+    public_inputs_sha256: fb5484496ed40f8c7c82b0f8cf55427a7e9d96e1b97ef8561454349ef0fec337
+    model_source_sha256: 8537a2fe7334a2f9c98b755ee84af0182bd9b6d09732e947d9c467090a3357ee
+    project_config_sha256: 05c65c0052df39926e88534e242315653d321642154f5873c1c8e1e92cef2ba8
+    runtime_sha256: 260fccd5f803fd98d4237ae09e9ac2f66213cee2f7e6e71969f3f7eb0021fbb9
+  holdout_sha256:
+    validation/lateral_121_4.csv: 4755ebaf04ec3f3dd68fad11a730617495191783149a120b8c2350120ee9d916
+    validation/lateral_doublet_4.csv: cd1329d642f7b34afe4c227e7dbea40cee6985f1877d4366072d0b1158a25da2
+    validation/longitudinal_3211_5.csv: 36674dd64dcfa407b5420f90d15ee93fec5b352c823fc2ee7fb78d3f98573daf
+    validation/longitudinal_doublet_4.csv: 5fac85cc4027b94509242ba95da85ace9398edd677f416d6f39be8f8070c4c87
+  prediction_sha256: 9439995cb30f98237e2ccdc30664fe4e6bc92433c1e52d707db70a9288af29f6
+  artifact_sha256:
+    design: 7e3093b2d7daab1886cd7979aa3f8a52d9252fa827c4d0ff8d83c4e6e514e816
+    geometry: 5c2ea25afbd800bc4a18b2369bb7ffdd3443dbb6a892ee87625ea27b9e82f00b
+    aero: ffba1cca85890e2a8396c66e82d09a0d2d09e60fdba4766e987a2eb11f15e992
+    flightdyn: ded63eafe3dfedcd18543ff1890888397b74d3075d28de4608c6497c339372c9
+    structures: 1455b108e7b150545ba026250022c43a524fcaa622ce21404487630b975de157
+    validation: 160947c8f28d307a646bd94e8541d811f71f2a8b9b436a918d1d62b6d1f9f356
+    report: 9d139c7bbf34a059736472bd1e2d00a597f01e65ee59a9fd209ec474501390eb
+    gate_feedback: 6f0f9cdaaaed799b50705e42d08ca2cd17641d02bb3a779cfb611640e3066229
+  scorecard_path: frozen-claims/ntnu-x8-flight--ntnu-x8-primary-20260822-v1.json
+  scorecard_sha256: c3ddc103020b8221d85f6bc59be0bb4b03a6236c0a25454b570641e742c85ca8
+- id: diana2-primary-20260822-v1
+  case_id: diana2-flight
+  status: consumed
+  authorized_at: '2026-08-22T21:03:05+00:00'
+  consumed_at: '2026-08-22T21:03:39+00:00'
+  execution_provenance:
+    manifest_sha256: 6c2d2b70fa3bcf9427c55b838dc895a0e4ccb09319e294e973d83355ca27d406
+    registry_entry_sha256: 7c47a1ee90accf20f846d365b33d7495679652e8f65c7003a83faf37b5275a08
+    public_inputs_sha256: 3bd6b1127a3ee4e905ba12d320b6a3d6b2f0e5678e7bf36684d5b4b27f799482
+    model_source_sha256: 52e12a3ce477f8df5ac8a1b403421bc88ea04563fabf82db5591927fa7132305
+    project_config_sha256: 5d96aa4b6f9b1f6ce0cdd2ac86cb2d29765a22b0d72d47151332be529b361618
+    runtime_sha256: 260fccd5f803fd98d4237ae09e9ac2f66213cee2f7e6e71969f3f7eb0021fbb9
+  holdout_sha256:
+    FT06.mat: 528ecbcf5536d24c9f4eaeea4eb750012095ff460eea57b2b67b0fd5c5fc0c4a
+    FT12.mat: 10900fa598edd94377607499f65a824213eee6b8193950108ffacf77a89fd485
+  prediction_sha256: 31dc95b2532b2235f695d183f9236adaee9dffb5b90dfc2ff4afc14576336723
+  artifact_sha256:
+    design: 94ccdf0595af1cffcd0e7d366d04d3fa9e2a646e9d7ec6dac3d5b8e91168b9e8
+    geometry: 2ce843ac54ec3cfaa47b63ff387d38cc33e6f87765615247487ffbe06210b0a1
+    aero: 0166e2e8d33c4a21d86f643b453232ebc65aa54c8c33b0b45ad94605500b62a5
+    flightdyn: 624339c8afdff52d73cfc4a27f384a4cb4c14da54b5aa4deef247171e56e1855
+    structures: 77c3e3b72b0b382729da6628b18c382e3ca2155392cb4be4b13741d139133218
+    validation: 782906d3a8a36733d6d168723f41b8aba7f04731cfd581fbc7cdf7bf01010a85
+    report: d03a1ed5ee893f36dd39a123fe6eb7a73ca13b0fbdeeb3376b4db748a2ed82f5
+    gate_feedback: 90381c793de5092549db69da86f4139d1f714fea884732a199ce3e08ff692e96
+  scorecard_path: frozen-claims/diana2-flight--diana2-primary-20260822-v1.json
+  scorecard_sha256: e99c97e432956ec06740dceab53c15eb7adb3dc339b19ad1c486c74327f7b5df

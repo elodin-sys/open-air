@@ -1,0 +1,59 @@
+id: ceras-csr01-mission
+title: CeRAS CSR-01 block mission and sparse engine-deck cross-check
+truth_class: C
+role: verification
+status: active
+intended_uses:
+  - Verify block fuel and time for transport-aircraft range missions with a sparse typed engine deck.
+  - Check requirement calls at the 500 NM study, 2750 NM design, and 2500 NM maximum-takeoff mission points.
+  - Exercise the truth-conditioned CSR-01 full-aircraft pipeline as a separate class-C diagnostic with explicit transport-structures refusal.
+runner: ceras-csr01-mission
+source:
+  organization: RWTH Aachen CeRAS
+  dataset: CSR-01 propulsion and in-flight performance reference pages
+  revision: CeRAS-public-pages-2026-08-21
+  license: CeRAS-public-reference-terms-unspecified
+  reference_url: https://ceras.ilr.rwth-aachen.de/tiki/tiki-index.php?page=CSR-01&structure=CeRAS
+  redistribution: Factual result rows are committed with source attribution; no upstream report or CPACS file is redistributed.
+  downloads: []
+observables:
+  - id: study_500_block_fuel_kg
+    units: kg
+    description: Published block fuel for the 150-passenger 500 NM mission
+  - id: study_500_block_time_h
+    units: h
+    description: Published block time for the 150-passenger 500 NM mission
+  - id: study_500_requirement_met
+    units: boolean
+    description: Payload, takeoff-mass, and cruise-thrust requirements are met
+  - id: design_2750_block_fuel_kg
+    units: kg
+    description: Published block fuel for the 150-passenger 2750 NM mission
+  - id: design_2750_block_time_h
+    units: h
+    description: Published block time for the 150-passenger 2750 NM mission
+  - id: design_2750_requirement_met
+    units: boolean
+    description: Payload, takeoff-mass, and cruise-thrust requirements are met
+  - id: mtow_2500_block_fuel_kg
+    units: kg
+    description: Published block fuel for the 17 t payload 2500 NM mission
+  - id: mtow_2500_block_time_h
+    units: h
+    description: Published block time for the 17 t payload 2500 NM mission
+  - id: mtow_2500_requirement_met
+    units: boolean
+    description: Payload, takeoff-mass, and cruise-thrust requirements are met
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.5
+  min_fraction_within_2sigma: 1.0
+  provisional: false
+stages: [mission]
+notes:
+  - "This is class-C engineered-reference evidence; a pass is verification and plausibility evidence, not independent physical validation."
+  - "The sparse engine-deck overlay and low-order mission model were authored with the published mission results available; this case is therefore post-hoc verification, not an untouched holdout."
+  - "Only the two full-power CeRAS conditions are sourced; part-throttle deck points are declared engineering interpolants covered by u_input."
+  - "A follow-on full-aircraft pipeline is a truth-conditioned reconstruction: its 42,092 kg operating-empty mass and 18,402 kg fuel are derived from the published mission rows. Geometry and aero diagnostics execute, but the small-aircraft OAS wingbox stage refuses this transport-scale domain; this is not a source-only aircraft prediction."
+  - "The full-aircraft hybrid constants are hash-bound to the same-phase VSP3. Component-model versus full-VSPAERO neutral-point spread is 0.095 MAC, while lifting-surface OAS versus full VSPAERO differs by 0.220 MAC; these are disclosed diagnostics, not mission scorecard observables or independent physical validation."
+  - "Official report and CPACS downloads returned HTTP 401; public HTML tables remained accessible and supplied the committed rows."

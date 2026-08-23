@@ -1,0 +1,4 @@
+mission_id,range_nm,payload_kg,takeoff_mass_kg,mission_fuel_kg,block_fuel_kg,trip_fuel_kg,reserve_fuel_kg,taxi_out_fuel_kg,taxi_in_fuel_kg,landing_mass_kg,block_time_h,flight_time_h
+study_500,500,13608,62089,6665,3765,3337,2900,276,153,58753,1.55,1.31
+design_2750,2750,13608,74102,18678,15420,14992,3258,276,153,59111,6.57,6.34
+mtow_2500,2500,17000,76999,18183,14789,14360,3394,276,153,62639,6.01,5.78

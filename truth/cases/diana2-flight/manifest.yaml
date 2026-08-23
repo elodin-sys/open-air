@@ -1,0 +1,50 @@
+id: diana2-flight
+title: TU Delft/NLR Diana 2 sealed aeroelastic flight validation
+truth_class: A
+role: validation
+status: active
+intended_uses:
+  - First flexible-wing bending frequency and damping in engine-off UAV flight
+  - Encoder-forced outer-aileron to distributed wing acceleration and strain FRFs
+  - Aircraft-specific quasi-steady L2 aeroelastic response near the tested envelope
+runner: diana2-model
+truth_loader: diana2-flight
+scorer_generates_predictions: true
+source:
+  organization: TU Delft / Royal NLR / 4TU.ResearchData
+  dataset: Flexible Diana 2 Scaled Glider UAV - Aeroelastic Flight Test Measurements
+  revision: Version 1, published 2026-05-20; frozen FT06 and FT12 split
+  license: CC-BY-4.0
+  reference_url: https://doi.org/10.4121/0c3fcef0-5b63-480c-ae40-3ff726c657e9.v1
+  redistribution: >-
+    CC BY 4.0 permits redistribution with attribution; validation MAT payloads
+    remain repository-external to preserve the one-shot protocol.
+  downloads:
+    - url: https://data.4tu.nl/file/0c3fcef0-5b63-480c-ae40-3ff726c657e9/ca3846ca-d3dd-4ce2-8dc6-ebe4f358fc06
+      sha256: 528ecbcf5536d24c9f4eaeea4eb750012095ff460eea57b2b67b0fd5c5fc0c4a
+      filename: FT06.mat
+      location: external-holdout
+    - url: https://data.4tu.nl/file/0c3fcef0-5b63-480c-ae40-3ff726c657e9/ca3846ca-d3dd-4ce2-8dc6-ebe4f358fc06
+      sha256: 10900fa598edd94377607499f65a824213eee6b8193950108ffacf77a89fd485
+      filename: FT12.mat
+      location: external-holdout
+observables:
+  - {id: outer_to_ro_strain_bending_frequency_hz, units: Hz, description: RO bending-strain H1 first-mode frequency under measured differential outer-aileron forcing}
+  - {id: outer_to_ro_strain_bending_damping_fraction, units: "1", description: RO bending-strain H1 half-power damping fraction}
+  - {id: outer_to_ro_strain_peak_gain, units: microstrain/rad, description: RO calibrated bending-strain FRF peak gain}
+  - {id: outer_to_ro_accel_bending_frequency_hz, units: Hz, description: RO acceleration H1 first-mode frequency after acceleration-order correction}
+  - {id: outer_to_ro_accel_bending_damping_fraction, units: "1", description: RO acceleration H1 half-power damping after acceleration-order correction}
+  - {id: outer_to_ro_accel_gain_at_mode, units: m/s2/rad, description: Raw RO normal-acceleration FRF magnitude at the identified mode}
+  - {id: outer_to_rm_accel_bending_frequency_hz, units: Hz, description: RM acceleration H1 first-mode frequency after acceleration-order correction}
+  - {id: outer_to_rm_accel_gain_at_mode, units: m/s2/rad, description: Raw RM normal-acceleration FRF magnitude at the identified mode}
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.25
+  min_fraction_within_2sigma: 1.0
+  provisional: false
+stages: [geometry, aero, flightdyn, structures, validation, report]
+notes:
+  - FT06 and FT12 were selected by committed salted hashes before any flight payload was downloaded.
+  - The scorer opens both files only after authorization has bound model artifacts and source/runtime provenance.
+  - The model was calibrated only on FT05, FT07, FT08, FT10, FT11, and FT13 plus visible L1 ground evidence.
+  - The claim excludes T-tail coupling, higher modes, flutter clearance, nonlinear response, and cross-aircraft generality.

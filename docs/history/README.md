@@ -1,0 +1,79 @@
+# open-air project history
+
+This directory is the curated chronological record of how open-air was built.
+Entries consolidate the former loose plans, reviews, reports, and worklog into
+short accounts of the problem, the work, the outcome, and the lesson. Git
+retains the full original documents and implementation diffs.
+
+The [validation envelope](../validation-envelope.md) remains outside this
+directory because it is a generated, living statement of current evidence.
+The [AERO QA guidebook](../guidebook/README.md) remains the canonical operating
+procedure.
+
+## Entry format
+
+Files are named `YYYY-MM-DD-HHMM-<slug>.md` using the close-out commit time, so
+ordinary filename sorting is chronological. A work stream that crossed a date
+boundary records its full span in `Window`.
+
+Each entry uses this shape:
+
+```markdown
+# YYYY-MM-DD — Title
+
+- Type: milestone | review | plan | capstone | report
+- Window: <start> – <end>  # only when useful
+- Commits: <short hashes>
+- Replaces: <former document>  # only when applicable
+
+<Why the work happened and what changed>
+
+## What we did
+## Outcome
+## Lessons and follow-ups  # optional
+```
+
+Preserve evidence boundaries when condensing validation work: retain the truth
+class, role, intended use, frozen attempt identity, result, and explicit
+non-claims. Do not turn calibration or post-hoc agreement into validation.
+
+## Timeline
+
+### 2026-08-19 — Pipeline and QA foundations
+
+- [15:49 — Pipeline bootstrap](2026-08-19-1549-pipeline-bootstrap.md): assembled the solver environment and first end-to-end K-450 design pipeline.
+- [21:02 — QA audit and guidebook](2026-08-19-2102-qa-audit-and-guidebook.md): corrected F1–F13 flight-worthiness and reporting failures and made the review process canonical.
+- [21:49 — Mesh-truth geometry QA](2026-08-19-2149-mesh-truth-geometry-qa.md): fixed broken exported fins and began gating the artifact rather than trusting parameters.
+- [22:28 — Concept workspaces and KingTech report](2026-08-19-2228-concept-workspaces-and-kingtech-report.md): established concept-scoped orchestration and the first self-contained engineering report.
+
+### 2026-08-20 — Sketch fidelity and Design Studio
+
+- [09:23 — Forward-swept one-shot review](2026-08-20-0923-fwd-swept-oneshot-review.md): traced a failed mass gate and poor sketch fidelity to inconsistent models and weak authoring inputs.
+- [09:38 — Gauge-aware mass and gate feedback](2026-08-20-0938-gauge-aware-mass-and-gate-feedback.md): closed the mass-model mismatch and made every gate actionable.
+- [09:47 — Fuselage stations](2026-08-20-0947-fuselage-stations.md): replaced the generic spindle with sketch-driven body stations.
+- [10:03 — Offline Design Studio](2026-08-20-1003-design-studio.md): turned schema inputs and photographed sketches into an offline visual authoring workflow.
+- [13:13 — OpenVSP round-trip](2026-08-20-1313-openvsp-roundtrip.md): added a restricted, temporary GUI round-trip while keeping YAML authoritative.
+- [16:50 — Schema-native Studio](2026-08-20-1650-schema-native-studio.md): unified visual handles, schema patches, history, and 3D confirmation.
+- [19:42 — Super-ellipse and parameter audit](2026-08-20-1942-super-ellipse-and-parameter-audit.md): expanded body section shape and defined the admission rule for future parameters.
+- [21:25 — Initialize-aero bootstrap](2026-08-20-2125-initialize-aero-bootstrap.md): made station-first, evidence-recorded geometry initialization a bounded workflow.
+
+### 2026-08-21 — Autonomy and external truth
+
+- [07:30 — Merlin and the autonomous loop](2026-08-21-0730-merlin-and-autonomous-loop.md): exercised source-driven concept creation, automatic correction, and optimization before retiring the experimental prototypes.
+- [23:12 — Truth-validation plan](2026-08-21-2312-truth-validation-plan.md): designed the corpus, scorer, governance, and phased external-evidence program.
+
+### 2026-08-22 — Verification and Class-A capstones
+
+- [03:29 — GTM T-2 capstone](2026-08-22-0329-gtm-t2-capstone.md): recorded a post-hoc Class-C NASA system-model verification pass and its limitations.
+- [07:58 — Truth corpus and calibration](2026-08-22-0758-truth-corpus-and-calibration.md): implemented the corpus and exposed both useful agreement and model-domain failures.
+- [10:34 — X8 Class-A capstone](2026-08-22-1034-x8-classA-capstone.md): passed the first sealed low-Re flight-response holdout.
+- [12:58 — Diana 2 Class-A plan](2026-08-22-1258-diana2-classA-plan.md): scoped and froze the second capstone around aircraft-specific flexible response.
+- [14:38 — Diana 2 Class-A capstone](2026-08-22-1438-diana2-classA-capstone.md): passed the sealed aeroelastic holdout and closed the reference regression contract.
+
+## Adding an entry
+
+Create one file at the time the work closes. Prefer one durable decision or
+milestone per entry, cite the implementing commits, record quantitative
+outcomes only when they trace to same-phase artifacts, and link current
+generated evidence rather than copying it. Update this index in the same
+change.

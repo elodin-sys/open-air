@@ -1,0 +1,173 @@
+version: 1
+state: frozen-pre-holdout
+frozen_at: "2026-08-22T17:20:13Z"
+replay_timestep_s: 0.01
+dataset_axes:
+  body: x forward, y right, z down
+  angular_rates: p right-wing-down, q nose-up, r nose-right
+  control_mapping:
+    collective_elevon_rad: publisher elevator
+    differential_elevon_rad: publisher aileron
+  airspeed: publisher IndicatedSpeed, including the documented vertical-wind estimate
+baseline_duration_s: 1.0
+metrics:
+  pitch_rate_peak_gain_doublet:
+    kind: control_response
+    maneuver_glob: longitudinal_doublet_*.csv
+    signal: q_rad_s
+    control: collective_elevon_rad
+    output: peak_gain
+    baseline_duration_s: 1.0
+    units: 1/s
+  pitch_rate_rms_gain_doublet:
+    kind: control_response
+    maneuver_glob: longitudinal_doublet_*.csv
+    signal: q_rad_s
+    control: collective_elevon_rad
+    output: rms_gain
+    baseline_duration_s: 1.0
+    units: 1/s
+  pitch_rate_peak_gain_3211:
+    kind: control_response
+    maneuver_glob: longitudinal_3211_*.csv
+    signal: q_rad_s
+    control: collective_elevon_rad
+    output: peak_gain
+    baseline_duration_s: 1.0
+    units: 1/s
+  pitch_rate_rms_gain_3211:
+    kind: control_response
+    maneuver_glob: longitudinal_3211_*.csv
+    signal: q_rad_s
+    control: collective_elevon_rad
+    output: rms_gain
+    baseline_duration_s: 1.0
+    units: 1/s
+  roll_rate_peak_gain_doublet:
+    kind: control_response
+    maneuver_glob: lateral_doublet_*.csv
+    signal: p_rad_s
+    control: differential_elevon_rad
+    output: peak_gain
+    baseline_duration_s: 1.0
+    units: 1/s
+  roll_rate_rms_gain_doublet:
+    kind: control_response
+    maneuver_glob: lateral_doublet_*.csv
+    signal: p_rad_s
+    control: differential_elevon_rad
+    output: rms_gain
+    baseline_duration_s: 1.0
+    units: 1/s
+  roll_rate_peak_gain_121:
+    kind: control_response
+    maneuver_glob: lateral_121_*.csv
+    signal: p_rad_s
+    control: differential_elevon_rad
+    output: peak_gain
+    baseline_duration_s: 1.0
+    units: 1/s
+  roll_rate_rms_gain_121:
+    kind: control_response
+    maneuver_glob: lateral_121_*.csv
+    signal: p_rad_s
+    control: differential_elevon_rad
+    output: rms_gain
+    baseline_duration_s: 1.0
+    units: 1/s
+  trim_alpha_rad:
+    kind: baseline_median
+    maneuver_glob: "*.csv"
+    signal: alpha_rad
+    output: median
+    baseline_duration_s: 1.0
+    units: rad
+  trim_normal_force_cl:
+    kind: baseline_median
+    maneuver_glob: "*.csv"
+    signal: cl
+    output: median
+    baseline_duration_s: 1.0
+    units: "1"
+uncertainties:
+  pitch_rate_peak_gain_doublet:
+    {u_exp: 0.50, u_input: 0.95, u_num: 0.12}
+  pitch_rate_rms_gain_doublet:
+    {u_exp: 0.35, u_input: 0.95, u_num: 0.12}
+  pitch_rate_peak_gain_3211:
+    {u_exp: 0.40, u_input: 0.95, u_num: 0.12}
+  pitch_rate_rms_gain_3211:
+    {u_exp: 0.35, u_input: 0.95, u_num: 0.12}
+  roll_rate_peak_gain_doublet:
+    {u_exp: 0.75, u_input: 0.95, u_num: 0.12}
+  roll_rate_rms_gain_doublet:
+    {u_exp: 0.50, u_input: 0.95, u_num: 0.12}
+  roll_rate_peak_gain_121:
+    {u_exp: 0.25, u_input: 0.95, u_num: 0.12}
+  roll_rate_rms_gain_121:
+    {u_exp: 0.20, u_input: 0.95, u_num: 0.12}
+  trim_alpha_rad:
+    {u_exp: 0.025, u_input: 0.075, u_num: 0.002}
+  trim_normal_force_cl:
+    {u_exp: 0.025, u_input: 0.040, u_num: 0.005}
+training_baseline:
+  measured:
+    pitch_rate_peak_gain_doublet: 7.0098411350
+    pitch_rate_rms_gain_doublet: 6.5761928696
+    pitch_rate_peak_gain_3211: 8.1835357182
+    pitch_rate_rms_gain_3211: 7.2040351633
+    roll_rate_peak_gain_doublet: 6.5073988023
+    roll_rate_rms_gain_doublet: 6.7884612157
+    roll_rate_peak_gain_121: 5.9299545496
+    roll_rate_rms_gain_121: 6.8701646815
+    trim_alpha_rad: 0.1470277803
+    trim_normal_force_cl: 0.2245975827
+  measured_median_absolute_deviation:
+    pitch_rate_peak_gain_doublet: 0.4758926430
+    pitch_rate_rms_gain_doublet: 0.1104710760
+    pitch_rate_peak_gain_3211: 0.2441667425
+    pitch_rate_rms_gain_3211: 0.1509764243
+    roll_rate_peak_gain_doublet: 0.4173477485
+    roll_rate_rms_gain_doublet: 0.3050727682
+    roll_rate_peak_gain_121: 0.2397004006
+    roll_rate_rms_gain_121: 0.0801099858
+    trim_alpha_rad: 0.0147334858
+    trim_normal_force_cl: 0.0146454009
+  calibrated_replay:
+    pitch_rate_peak_gain_doublet: 6.9870763874
+    pitch_rate_rms_gain_doublet: 7.5527057741
+    pitch_rate_peak_gain_3211: 7.0958929630
+    pitch_rate_rms_gain_3211: 7.3447151247
+    roll_rate_peak_gain_doublet: 5.2730028363
+    roll_rate_rms_gain_doublet: 5.4319412341
+    roll_rate_peak_gain_121: 6.0487070578
+    roll_rate_rms_gain_121: 5.9766953160
+    trim_alpha_rad: 0.0470635778
+    trim_normal_force_cl: 0.2253269298
+  numerical_study:
+    timesteps_s: [0.01, 0.005]
+    maximum_dynamic_metric_change: 0.0877999423
+    maximum_static_metric_change: 0.0002660861
+    per_metric_absolute_change:
+      pitch_rate_peak_gain_doublet: 0.0615492574
+      pitch_rate_rms_gain_doublet: 0.0591958812
+      pitch_rate_peak_gain_3211: 0.0794640875
+      pitch_rate_rms_gain_3211: 0.0548563394
+      roll_rate_peak_gain_doublet: 0.0439868073
+      roll_rate_rms_gain_doublet: 0.0429901992
+      roll_rate_peak_gain_121: 0.0744240850
+      roll_rate_rms_gain_121: 0.0877999423
+      trim_alpha_rad: 0.0002660861
+      trim_normal_force_cl: 0.0000203283
+uncertainty_policy:
+  u_exp: >-
+    Rounded above the robust training-repeat dispersion, with IMU/EKF and
+    manual stream-synchronization floors.
+  u_input: >-
+    Frozen allowance for equivalent planform, unknown molded airfoil,
+    low-Re VSPAERO, strong three-dimensional wind, actuator omission, and
+    Elodin's declared diagonal-inertia approximation.
+  u_num: >-
+    Rounded above the observed 0.01 versus 0.005 second replay difference;
+    static terms additionally cover coefficient/mesh discretization.
+  prohibition: no component may be changed after holdout authorization

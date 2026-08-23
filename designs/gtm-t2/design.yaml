@@ -1,0 +1,160 @@
+name: gtm-t2
+notes: >-
+  Post-hoc reproduction of the NASA AirSTAR Generic Transport Model T-2.
+  Geometry, mass targets, equivalent twin-engine totals, mission, and
+  requirement envelopes come from the GTM T-2 input pack. The
+  single centerline fin and conventional horizontal tail are source-locked.
+  NACA 2412 is the documented conceptual section surrogate, not a calibration.
+  Tail lift effectiveness is explicitly calibrated from separate class-B NASA
+  tail-damage evidence; no polynomial score target is embedded here.
+
+sketch:
+  treatment: reproduction
+  span_over_length: 0.805741176
+  span_over_length_tol: 0.010
+  root_over_length: 0.145163813
+  root_over_length_tol: 0.008
+  le_sweep_deg: 25.0
+  le_sweep_tol_deg: 2.0
+  taper: 0.396781509
+  taper_tol: 0.03
+  x_le_root_over_length: 0.368702698
+  x_le_root_over_length_tol: 0.012
+  fin_span_m: 0.40
+  fin_span_tol_m: 0.03
+  fin_root_chord_m: 0.42
+  fin_root_chord_tol_m: 0.04
+  fin_le_sweep_deg: 38.0
+  fin_le_sweep_tol_deg: 5.0
+  fin_x_le_m: 2.10
+  fin_x_le_tol_m: 0.05
+
+engine:
+  name: "2x JetCat P70 equivalent"
+  diameter_m: 0.1372
+  length_m: 0.315
+  dry_mass_kg: 2.4
+  installation: external
+  installation_count: 2
+  x_m: 1.097
+  lateral_offset_m: 0.3607
+  z_m: -0.15
+  max_thrust_sl_n: 136.251202024
+  fuel_flow_max_kg_s: 0.007410599682
+  thrust_lapse_k_mach: 0.35
+  thrust_lapse_floor: 0.08
+  tsfc_part_a: 0.80
+  tsfc_part_b: 0.20
+  tsfc_mach_k: 0.15
+  min_throttle: 0.18
+  fuel_density_kg_m3: 800.0
+
+wing:
+  span_m: 2.08751424
+  root_chord_m: 0.376085409793
+  taper: 0.396781508797
+  le_sweep_deg: 25.0
+  dihedral_deg: 0.0
+  twist_root_deg: 0.0
+  twist_tip_deg: 0.0
+  t_over_c: 0.12
+  airfoil: "2412"
+  x_le_root_m: 0.955234950997
+  z_root_m: -0.08
+
+fuselage:
+  length_m: 2.5908
+  max_width_m: 0.25
+  max_height_m: 0.30
+  nose_fine_ratio: 0.22
+  tail_fine_ratio: 0.28
+  payload_bay_length_m: 0.0
+  payload_bay_width_m: 0.0
+  payload_bay_height_m: 0.0
+  payload_bay_x_m: 1.225
+  fuel_tank_x_m: 1.225
+
+vtail:
+  count: 1
+  span_m: 0.40
+  root_chord_m: 0.42
+  taper: 0.45
+  le_sweep_deg: 38.0
+  cant_deg: 0.0
+  t_over_c: 0.10
+  x_le_m: 2.10
+  y_root_m: 0.0
+  z_root_m: 0.13
+
+htail:
+  span_m: 0.88
+  root_chord_m: 0.28
+  taper: 0.45
+  le_sweep_deg: 30.0
+  t_over_c: 0.10
+  x_le_m: 2.20
+  z_m: 0.10
+  incidence_deg: 0.0
+
+mission:
+  endurance_s: 960.0
+  payload_kg: 0.0
+  cruise_altitude_m: 304.8
+  dash_altitude_m: 304.8
+  cruise_mach: 0.113
+  cruise_cl: 0.5286830076410565
+  dash_mach_cap: 0.70
+  limit_positive_g: 4.0
+  limit_negative_g: -2.0
+  safety_factor: 1.5
+  static_margin_min: 0.25
+  static_margin_max: 0.40
+  reserve_fuel_fraction: 0.08
+  cl_max: 1.20
+  cl_max_basis: section
+  stall_speed_max_mps: 31.0
+
+structures:
+  fem_model_type: wingbox
+  spar_thickness_m: 0.0025
+  skin_thickness_m: 0.0018
+  tube_radius_m: 0.018
+  tube_thickness_m: 0.0025
+  wing_weight_ratio: 1.35
+  n_spanwise: 9
+  n_chordwise: 3
+  material:
+    name: Al7050-T7451
+    E_pa: 7.17e10
+    nu: 0.33
+    yield_pa: 4.70e8
+    density_kg_m3: 2830.0
+
+mass:
+  fuel_mass_kg: 5.2253841024
+  fuel_mass_mode: fixed
+  operating_empty_mass_kg: 20.9695752651
+  # Derived only from allowed takeoff CG and the declared wing-fuel centroid.
+  operating_empty_cg_x_m: 1.2180642122340803
+  systems_kg: 3.202370158813779
+  landing_gear_fraction: 0.035
+  avionics_kg: 0.0
+  contingency_fraction: 0.08
+
+solver:
+  oas_with_viscous: true
+  oas_with_wave: true
+  optimize_maxiter: 35
+  optimize_tol: 1.0e-5
+  fd_step: 1.0e-3
+  vspaero_wake_iters: 20
+  su2_maxiter: 200
+  gmsh_lc_m: 0.08
+  np_shift_mac: 0.15
+  cm_washout_per_deg: 0.0042
+  tail_incidence_offset_deg: 0.0
+  stability_method: hybrid_component
+  tail_lift_effectiveness_factor: 0.82
+  tail_lift_effectiveness_source: >-
+    NASA 14x22 GTM horizontal-tail damage, Frink et al. 2010,
+    NASA 20100002211 Fig. 5; combined with same-run VSPAERO wing/body NP

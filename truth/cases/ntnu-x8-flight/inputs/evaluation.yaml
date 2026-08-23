@@ -1,0 +1,9 @@
+results_concept: ntnu-x8
+phase: optimized
+protocol: evaluation-protocol.yaml
+required_internal_gates: 12
+scorer_completes_predictions: true
+notes:
+  - The public runner validates and freezes the design-only model artifacts.
+  - Raw maneuver controls are opened only by the scorer, after attempt consumption.
+  - The scorer applies the same frozen metric protocol to measured and replay series.

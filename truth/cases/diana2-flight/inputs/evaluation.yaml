@@ -1,0 +1,9 @@
+results_concept: diana2
+phase: optimized
+protocol: evaluation-protocol.yaml
+required_internal_gates: 12
+scorer_completes_predictions: true
+notes:
+  - The public runner freezes only the gates-passing design and model artifacts.
+  - The scorer opens MAT payloads only after the relevant split boundary permits it.
+  - Measured encoder deflections force both measured and modeled H1 estimators.

@@ -1,0 +1,187 @@
+# Copy this directory to designs/<concept>/, then replace every starting value
+# with evidence from the concept brief. SI units are required throughout.
+name: new-aero-concept
+notes: >
+  Replace this text with the configuration intent, source references, and the
+  assumptions that must remain visible during optimization.
+
+# Coherent starter envelope for the geometry below. Replace these values with
+# measurements from the concept's rectified sketch; MDO bounds and the shape
+# gate use this block directly.
+sketch:
+  span_over_length: 1.551020
+  span_over_length_tol: 0.10
+  root_over_length: 0.469388
+  root_over_length_tol: 0.05
+  le_sweep_deg: 32.0
+  le_sweep_tol_deg: 4.0
+  taper: 0.32
+  taper_tol: 0.06
+  x_le_root_over_length: 0.326531
+  x_le_root_over_length_tol: 0.05
+  payload_bay_x_lo_m: 0.90
+  payload_bay_x_hi_m: 1.34
+  fuel_tank_x_lo_m: 1.30
+  fuel_tank_x_hi_m: 1.80
+  twist_tip_lo_deg: -8.0
+  twist_tip_hi_deg: 0.0
+
+engine:
+  name: KingTech K-450G5
+  diameter_m: 0.1526
+  length_m: 0.374
+  dry_mass_kg: 4.0
+  max_thrust_sl_n: 441.299
+  fuel_flow_max_kg_s: 0.018333333
+  thrust_lapse_k_mach: 0.35
+  thrust_lapse_floor: 0.08
+  tsfc_part_a: 0.80
+  tsfc_part_b: 0.20
+  tsfc_mach_k: 0.15
+  min_throttle: 0.18
+  fuel_density_kg_m3: 800.0
+
+wing:
+  span_m: 3.80
+  root_chord_m: 1.15
+  taper: 0.32
+  le_sweep_deg: 32.0
+  dihedral_deg: 2.0
+  twist_root_deg: 1.0
+  twist_tip_deg: -6.0
+  t_over_c: 0.12
+  airfoil: "0012"
+  x_le_root_m: 0.80
+  z_root_m: 0.00
+
+fuselage:
+  length_m: 2.45
+  max_width_m: 0.32
+  max_height_m: 0.28
+  nose_fine_ratio: 0.22
+  tail_fine_ratio: 0.28
+  payload_bay_length_m: 0.50
+  payload_bay_width_m: 0.28
+  payload_bay_height_m: 0.18
+  payload_bay_x_m: 1.32
+  fuel_tank_x_m: 1.62
+  # Explicit stations are the normal authoring mode. Powers of 2.0 are
+  # ellipses; see the 2026-08-20 parameter audit in docs/history/ for
+  # blade/bubble/flat-belly presets and the parameter admission rule.
+  stations:
+    - x_over_length: 0.0
+      width_m: 0.0
+      height_m: 0.0
+      z_offset_m: 0.0
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.18
+      width_m: 0.22
+      height_m: 0.18
+      z_offset_m: 0.01
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.42
+      width_m: 0.32
+      height_m: 0.28
+      z_offset_m: 0.02
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.68
+      width_m: 0.31
+      height_m: 0.27
+      z_offset_m: 0.025
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.84
+      width_m: 0.20
+      height_m: 0.17
+      z_offset_m: 0.04
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 1.0
+      width_m: 0.08
+      height_m: 0.07
+      z_offset_m: 0.07
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+
+vtail:
+  count: 2
+  span_m: 0.50
+  root_chord_m: 0.48
+  taper: 0.55
+  le_sweep_deg: 35.0
+  cant_deg: 15.0
+  t_over_c: 0.10
+  x_le_m: 1.94
+  y_root_m: 0.14
+  z_root_m: 0.08
+
+htail:
+  span_m: 0.0
+  root_chord_m: 0.30
+  taper: 0.50
+  le_sweep_deg: 20.0
+  t_over_c: 0.10
+  x_le_m: 2.10
+  z_m: 0.12
+  incidence_deg: -2.0
+
+mission:
+  endurance_s: 7200.0
+  payload_kg: 22.7
+  cruise_altitude_m: 1500.0
+  dash_altitude_m: 300.0
+  cruise_mach: 0.18
+  cruise_cl: 0.35
+  dash_mach_cap: 0.70
+  limit_positive_g: 4.0
+  limit_negative_g: -2.0
+  safety_factor: 1.5
+  static_margin_min: 0.03
+  static_margin_max: 0.10
+  reserve_fuel_fraction: 0.08
+  cl_max: 1.2
+  stall_speed_max_mps: 30.0
+
+structures:
+  fem_model_type: wingbox
+  spar_thickness_m: 0.0025
+  skin_thickness_m: 0.0018
+  tube_radius_m: 0.018
+  tube_thickness_m: 0.0025
+  wing_weight_ratio: 1.35
+  n_spanwise: 9
+  n_chordwise: 3
+  material:
+    name: Al7050-T7451
+    E_pa: 7.17e10
+    nu: 0.33
+    yield_pa: 4.70e8
+    density_kg_m3: 2830.0
+
+mass:
+  fuel_mass_kg: 18.0
+  systems_kg: 6.5
+  landing_gear_fraction: 0.035
+  avionics_kg: 3.0
+  contingency_fraction: 0.08
+
+solver:
+  oas_with_viscous: true
+  oas_with_wave: true
+  optimize_maxiter: 25
+  optimize_tol: 1.0e-4
+  fd_step: 1.0e-3
+  vspaero_wake_iters: 3
+  su2_maxiter: 200
+  gmsh_lc_m: 0.10
+  np_shift_mac: 0.04305
+  cm_washout_per_deg: 0.00362

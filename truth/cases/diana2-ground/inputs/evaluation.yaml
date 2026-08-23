@@ -1,0 +1,25 @@
+design: designs/diana2/design.yaml
+modal_observable:
+  id: first_symmetric_wing_bending_frequency_hz
+  family: bending
+  order: 1
+calibration_archive:
+  filename: Sensor calibration.zip
+  sha256: 633af9ccc877ce09fd51c3a473abc96fa759d706885c003b7ea1fca84d6b4026
+  fit: publisher-provided through-origin coefficient
+load_to_strain:
+  ri_bending_nm_per_microstrain: 0.38546452431857475
+  ri_torque_nm_per_microstrain: -0.09002686877786151
+  rm_bending_nm_per_microstrain: 0.2693476207560058
+  rm_torque_nm_per_microstrain: -0.04067385109600917
+  ro_bending_nm_per_microstrain: 0.06633852201911977
+  ro_torque_nm_per_microstrain: -0.024876065957769346
+  li_bending_nm_per_microstrain: 0.34502467909387385
+  li_torque_nm_per_microstrain: 0.06498640946039985
+  lm_bending_nm_per_microstrain: 0.24416269746557678
+  lm_torque_nm_per_microstrain: 0.06434989614685566
+  lo_bending_nm_per_microstrain: 0.06279093191543374
+  lo_torque_nm_per_microstrain: 0.028558932006529827
+  tail_lift_n_per_microstrain: 0.12142690945370142
+  tail_side_n_per_microstrain: -0.16516771948993494
+  tail_torque_nm_per_microstrain: 0.02919386994787272

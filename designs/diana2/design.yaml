@@ -1,0 +1,319 @@
+name: diana2
+notes: >-
+  Source-locked reconstruction of the as-flown 1:3 Baudismodel Diana 2 from
+  diana2-design-input-v1 only. Public geometry and measured mass properties
+  are frozen in reproduction mode. The proprietary wing section is represented
+  by NACA 0012, detailed body lofting and electric-installation dimensions are
+  unscored geometry assumptions, and the visible L1 spanwise overlay carries
+  aircraft-specific structural calibration without a first-principles claim.
+  The declared quasi-isotropic CFRP equivalent is used only for internal OAS
+  static-stress feasibility and is not an as-built laminate or certification claim.
+  The broad conventional-tail static-margin band is a source-reproduction
+  representability screen only; rigid-body handling quality is not claimed.
+
+sketch:
+  treatment: reproduction
+  hard_scale: 1.0
+  fidelity_weight: 1.0
+  span_over_length: 2.145922746781116
+  span_over_length_tol: 0.01
+  root_over_length: 0.09585121602288985
+  root_over_length_tol: 0.005
+  le_sweep_deg: 0.198595
+  le_sweep_tol_deg: 0.5
+  taper: 0.8447761194029852
+  taper_tol: 0.01
+  x_le_root_over_length: 0.2811158798283262
+  x_le_root_over_length_tol: 0.015021459227467812
+  payload_bay_x_lo_m: 0.45
+  payload_bay_x_hi_m: 0.55
+  fuel_tank_x_lo_m: 0.70
+  fuel_tank_x_hi_m: 0.78
+  twist_tip_lo_deg: -2.0
+  twist_tip_hi_deg: 0.0
+  fin_span_m: 0.34
+  fin_span_tol_m: 0.02
+  fin_root_chord_m: 0.32
+  fin_root_chord_tol_m: 0.02
+  fin_le_sweep_deg: 32.0
+  fin_le_sweep_tol_deg: 3.0
+  fin_cant_deg: 0.0
+  fin_cant_tol_deg: 1.0
+  fin_x_le_m: 1.96
+  fin_x_le_tol_m: 0.04
+
+engine:
+  name: Diana 2 nose electric folding-prop installation
+  energy_source: electric
+  diameter_m: 0.10
+  length_m: 0.20
+  dry_mass_kg: 1.0
+  installation: internal
+  installation_count: 1
+  lateral_offset_m: 0.0
+  z_m: 0.0
+  max_thrust_sl_n: 70.0
+  fuel_flow_max_kg_s: 0.0
+  thrust_lapse_k_mach: 0.35
+  thrust_lapse_floor: 0.08
+  tsfc_part_a: 0.80
+  tsfc_part_b: 0.20
+  tsfc_mach_k: 0.15
+  min_throttle: 0.18
+  fuel_density_kg_m3: 800.0
+
+wing:
+  span_m: 5.0
+  root_chord_m: 0.22333333333333333
+  taper: 0.8447761194029852
+  le_sweep_deg: 0.198595
+  dihedral_deg: 0.0
+  twist_root_deg: 0.0
+  twist_tip_deg: -1.0
+  t_over_c: 0.12
+  airfoil: "0012"
+  x_le_root_m: 0.655
+  z_root_m: 0.0
+
+fuselage:
+  length_m: 2.33
+  max_width_m: 0.18
+  max_height_m: 0.22
+  nose_fine_ratio: 0.22
+  tail_fine_ratio: 0.28
+  payload_bay_length_m: 0.25
+  payload_bay_width_m: 0.12
+  payload_bay_height_m: 0.12
+  payload_bay_x_m: 0.50
+  fuel_tank_x_m: 0.74
+
+vtail:
+  count: 1
+  span_m: 0.34
+  root_chord_m: 0.32
+  taper: 0.40
+  le_sweep_deg: 32.0
+  cant_deg: 0.0
+  t_over_c: 0.10
+  x_le_m: 1.96
+  y_root_m: 0.0
+  z_root_m: 0.11
+
+htail:
+  span_m: 0.82
+  root_chord_m: 0.205
+  taper: 0.45
+  le_sweep_deg: 18.0
+  t_over_c: 0.10
+  x_le_m: 2.03
+  z_m: 0.37
+  incidence_deg: -2.5
+
+mission:
+  endurance_s: 7200.0
+  endurance_required: false
+  payload_kg: 0.0
+  cruise_altitude_m: 175.0
+  dash_altitude_m: 175.0
+  cruise_mach: 0.066
+  cruise_cl: 0.335
+  dash_mach_cap: 0.11
+  limit_positive_g: 4.0
+  limit_negative_g: -2.0
+  safety_factor: 1.5
+  static_margin_min: 0.05
+  static_margin_max: 0.40
+  reserve_fuel_fraction: 0.0
+  cl_max: 1.2
+  cl_max_basis: aircraft
+  stall_speed_max_mps: 20.0
+
+structures:
+  fem_model_type: wingbox
+  spar_thickness_m: 0.0015
+  skin_thickness_m: 0.0010
+  tube_radius_m: 0.018
+  tube_thickness_m: 0.0025
+  wing_weight_ratio: 1.35
+  n_spanwise: 13
+  n_chordwise: 3
+  material:
+    name: L1-calibrated quasi-isotropic CFRP equivalent
+    E_pa: 3.5e10
+    nu: 0.30
+    yield_pa: 2.5e8
+    density_kg_m3: 1600.0
+  spanwise:
+    - eta: 0.0
+      ei_bend_n_m2: 4550.0
+      gj_n_m2: 500.0
+      mass_per_span_kg_m: 1.10
+      polar_mass_moment_per_span_kg_m: 0.0040
+      section_modulus_m3: 4.5e-6
+    - eta: 0.2
+      ei_bend_n_m2: 3600.0
+      gj_n_m2: 410.0
+      mass_per_span_kg_m: 0.95
+      polar_mass_moment_per_span_kg_m: 0.0035
+      section_modulus_m3: 4.0e-6
+    - eta: 0.4
+      ei_bend_n_m2: 2650.0
+      gj_n_m2: 320.0
+      mass_per_span_kg_m: 0.82
+      polar_mass_moment_per_span_kg_m: 0.0029
+      section_modulus_m3: 3.4e-6
+    - eta: 0.6
+      ei_bend_n_m2: 1780.0
+      gj_n_m2: 220.0
+      mass_per_span_kg_m: 0.68
+      polar_mass_moment_per_span_kg_m: 0.0023
+      section_modulus_m3: 2.8e-6
+    - eta: 0.8
+      ei_bend_n_m2: 985.0
+      gj_n_m2: 120.0
+      mass_per_span_kg_m: 0.52
+      polar_mass_moment_per_span_kg_m: 0.0017
+      section_modulus_m3: 2.1e-6
+    - eta: 1.0
+      ei_bend_n_m2: 303.0
+      gj_n_m2: 35.0
+      mass_per_span_kg_m: 0.35
+      polar_mass_moment_per_span_kg_m: 0.0010
+      section_modulus_m3: 1.2e-6
+  modal_calibration:
+    - id: first_symmetric_wing_bending
+      family: bending
+      order: 1
+      frequency_hz: 7.42
+      damping_fraction: 0.0288
+      source: diana2-design-input-v1 visible ground mode 1
+  sensor_stations:
+    - id: I
+      eta: 0.1638
+      source: Diana2_sensor_locations.xlsx
+    - id: M
+      eta: 0.3452
+      source: Diana2_sensor_locations.xlsx
+    - id: O
+      eta: 0.6612
+      source: Diana2_sensor_locations.xlsx
+
+drag:
+  interference_fraction: 0.08
+  protuberance_cd0: 0.004
+
+mass:
+  fuel_mass_kg: 0.0
+  fuel_mass_mode: fixed
+  operating_empty_mass_kg: 10.7
+  operating_empty_cg_x_m: 0.74
+  systems_kg: 0.0
+  landing_gear_fraction: 0.0
+  avionics_kg: 0.0
+  contingency_fraction: 0.0
+
+flight_dynamics:
+  enabled: true
+  reference_airspeed_mps: 22.5
+  reference_altitude_m: 175.0
+  inertia:
+    ixx_kg_m2: 4.445
+    iyy_kg_m2: 1.642
+    izz_kg_m2: 6.897
+    ixy_kg_m2: 0.0
+    ixz_kg_m2: 0.332
+    iyz_kg_m2: 0.0
+    source: diana2-design-input-v1 published pendulum and rotational testing
+  control_surfaces:
+    - id: outer_aileron
+      host: wing
+      span_start_fraction: 0.62
+      span_end_fraction: 0.97
+      chord_fraction: 0.22
+      max_up_deg: 20.0
+      max_down_deg: 12.0
+      source: diana2-design-input-v1 public control inventory and image abstraction
+      mixing:
+        - id: aileron
+          mode: differential
+          axis: roll
+          gain: 1.0
+    - id: middle_aileron
+      host: wing
+      span_start_fraction: 0.34
+      span_end_fraction: 0.62
+      chord_fraction: 0.22
+      max_up_deg: 14.0
+      max_down_deg: 10.0
+      source: diana2-design-input-v1 public control inventory and image abstraction
+      mixing:
+        - id: aileron
+          mode: differential
+          axis: roll
+          gain: 0.70
+    - id: flap
+      host: wing
+      span_start_fraction: 0.10
+      span_end_fraction: 0.34
+      chord_fraction: 0.22
+      max_up_deg: 8.0
+      max_down_deg: 20.0
+      source: diana2-design-input-v1 public control inventory and image abstraction
+      mixing:
+        - id: flap
+          mode: collective
+          axis: lift
+          gain: 1.0
+    - id: elevator
+      host: htail
+      span_start_fraction: 0.08
+      span_end_fraction: 0.96
+      chord_fraction: 0.30
+      max_up_deg: 20.0
+      max_down_deg: 20.0
+      source: diana2-design-input-v1 public control inventory and image abstraction
+      mixing:
+        - id: elevator
+          mode: collective
+          axis: pitch
+          gain: 1.0
+    - id: rudder
+      host: vtail
+      span_start_fraction: 0.12
+      span_end_fraction: 0.95
+      chord_fraction: 0.32
+      max_up_deg: 25.0
+      max_down_deg: 25.0
+      source: diana2-design-input-v1 public control inventory and image abstraction
+      mixing:
+        - id: rudder
+          mode: single
+          axis: yaw
+          gain: 1.0
+  aeroelastic:
+    enabled: true
+    strip_count: 64
+    modes_per_family: 1
+    frequency_min_hz: 0.5
+    frequency_max_hz: 30.0
+    frequency_points: 1000
+    maximum_reduced_frequency: 0.30
+    elastic_axis_fraction_chord: 0.40
+    calibration_id: diana2-training-aeroelastic-v1
+  allow_diagonal_inertia_approximation: true
+  calibration_id: none
+
+solver:
+  oas_with_viscous: true
+  oas_with_wave: true
+  optimize_maxiter: 35
+  optimize_tol: 1.0e-5
+  fd_step: 1.0e-3
+  vspaero_wake_iters: 5
+  su2_maxiter: 200
+  gmsh_lc_m: 0.08
+  stability_method: lifting_surface
+  np_shift_mac: 0.0
+  cm_washout_per_deg: 0.00362
+  tail_incidence_offset_deg: 0.0
+  tail_lift_effectiveness_factor: 1.0

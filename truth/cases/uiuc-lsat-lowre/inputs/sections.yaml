@@ -1,0 +1,5 @@
+sections:
+  - airfoil: "2415"
+    reynolds: [60000, 100000, 200000, 300000]
+cl_max_assumption: 1.2
+prediction_metrics: [cl_alpha_per_deg, alpha_l0_deg, cd0, cl_max, domain_flagged]

@@ -1,0 +1,35 @@
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+scratch/
+truth/downloads/
+truth/cases/diana2-flight/truth/training/*.mat
+
+# Downloaded solvers and extracted .deb contents
+tools/
+*.deb
+
+# Run artifacts
+results/
+design-studio.html
+*.db
+*.n2.html
+*.out
+*.log
+*.env
+
+# OpenMDAO default reports dirs
+*_out/
+reports/
+.vscode/
+*.swp
+
+# OpenVSP scratch outputs from unnamed models
+Unnamed_*
+.vsptime

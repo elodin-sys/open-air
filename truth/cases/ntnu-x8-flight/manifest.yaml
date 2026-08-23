@@ -1,0 +1,78 @@
+id: ntnu-x8-flight
+title: NTNU Skywalker X8 sealed flight-response validation
+truth_class: A
+role: validation
+status: active
+intended_uses:
+  - Low-Re tailless UAV trim and control-response prediction
+  - VSPAERO stability derivatives coupled to deterministic Elodin 6-DOF replay
+runner: ntnu-x8-model
+truth_loader: ntnu-x8-flight
+scorer_generates_predictions: true
+source:
+  organization: NTNU UAV Lab / DataverseNO
+  dataset: System identification campaign - Skywalker X8 UAV
+  revision: DataverseNO version 1.0, published 2024-11-26
+  license: CC0-1.0
+  reference_url: https://doi.org/10.18710/U4TLYV
+  redistribution: CC0 permits committed training evidence; validation files remain external by protocol
+  downloads:
+    - url: https://dataverse.no/api/access/datafile/233061
+      sha256: 4755ebaf04ec3f3dd68fad11a730617495191783149a120b8c2350120ee9d916
+      filename: validation/lateral_121_4.csv
+      location: external-holdout
+    - url: https://dataverse.no/api/access/datafile/233069
+      sha256: cd1329d642f7b34afe4c227e7dbea40cee6985f1877d4366072d0b1158a25da2
+      filename: validation/lateral_doublet_4.csv
+      location: external-holdout
+    - url: https://dataverse.no/api/access/datafile/233056
+      sha256: 36674dd64dcfa407b5420f90d15ee93fec5b352c823fc2ee7fb78d3f98573daf
+      filename: validation/longitudinal_3211_5.csv
+      location: external-holdout
+    - url: https://dataverse.no/api/access/datafile/233084
+      sha256: 5fac85cc4027b94509242ba95da85ace9398edd677f416d6f39be8f8070c4c87
+      filename: validation/longitudinal_doublet_4.csv
+      location: external-holdout
+observables:
+  - id: pitch_rate_peak_gain_doublet
+    units: 1/s
+    description: Median peak pitch-rate response per collective-elevon amplitude
+  - id: pitch_rate_rms_gain_doublet
+    units: 1/s
+    description: Median RMS pitch-rate response per collective-elevon RMS, doublets
+  - id: pitch_rate_peak_gain_3211
+    units: 1/s
+    description: Peak pitch-rate response per collective-elevon amplitude, 3-2-1-1
+  - id: pitch_rate_rms_gain_3211
+    units: 1/s
+    description: RMS pitch-rate response per collective-elevon RMS, 3-2-1-1
+  - id: roll_rate_peak_gain_doublet
+    units: 1/s
+    description: Median peak roll-rate response per differential-elevon amplitude
+  - id: roll_rate_rms_gain_doublet
+    units: 1/s
+    description: Median RMS roll-rate response per differential-elevon RMS, doublets
+  - id: roll_rate_peak_gain_121
+    units: 1/s
+    description: Peak roll-rate response per differential-elevon amplitude, 1-2-1
+  - id: roll_rate_rms_gain_121
+    units: 1/s
+    description: RMS roll-rate response per differential-elevon RMS, 1-2-1
+  - id: trim_alpha_rad
+    units: rad
+    description: Median pre-excitation estimated angle of attack
+  - id: trim_normal_force_cl
+    units: "1"
+    description: Median pre-excitation normal-force lift coefficient
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.25
+  min_fraction_within_2sigma: 1.0
+  provisional: false
+stages: [geometry, aero, flightdyn, structures, validation, report]
+notes:
+  - The four publisher-designated validation maneuvers are checksum-pinned outside the repository and may be opened only by an authorized scorer attempt.
+  - The 13 training maneuvers are a separate calibration-role registry entry even though both manifests share this source directory.
+  - Recorded controls and indicated airspeed force both measured and simulated estimators; temporary scorer replays are destroyed.
+  - Strong three-dimensional wind, unknown molded airfoil, low Reynolds number, and diagonalized Ixz are frozen u_input allowances.
+  - Published identified aerodynamic coefficients and modal poles were not copied into the model; public availability remains a disclosed blindness limitation.

@@ -1,0 +1,54 @@
+id: ntnu-x8-training
+title: NTNU Skywalker X8 flight-response training calibration
+truth_class: A
+role: calibration
+status: active
+intended_uses:
+  - Freeze low-Re elevon effectiveness and damping calibration before validation
+  - Quantify repeatability, estimator, and replay-timestep allowances
+runner: ntnu-x8-model
+truth_loader: ntnu-x8-flight
+scorer_generates_predictions: true
+source:
+  organization: NTNU UAV Lab / DataverseNO
+  dataset: System identification campaign - Skywalker X8 UAV, training split
+  revision: DataverseNO version 1.0, published 2024-11-26
+  license: CC0-1.0
+  reference_url: https://doi.org/10.18710/U4TLYV
+  redistribution: CC0 permits committed training evidence
+  downloads:
+    - {url: https://dataverse.no/api/access/datafile/233052, sha256: 23d837cf4ce570f45e42e85bc90a045d529fab3000a8ec304e5a325e31aaca95, filename: 00_README.txt, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233075, sha256: 5110c3278c0e1710583397fb0742987a5734a3468d13fa940f372ad47138d5cd, filename: training/lateral_121_1.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233078, sha256: b9d9cb2fd2c68a83562d057ee11e899c95f917cb542b1ec541e87f39c4e22678, filename: training/lateral_121_2.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233064, sha256: 9ca0354d3ce97a7b39158304dce06d1d63f5bed3aeb8178fccfb210bcb99b475, filename: training/lateral_121_3.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233067, sha256: 4c341ff3ca911cf961b72c22a5ee6e561a04b7978b3b286522ad7789273ef610, filename: training/lateral_doublet_1.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233073, sha256: 838e08b6e972994f3ca8c3339a9286857ce4596fff4c3f490ed8903fd7172441, filename: training/lateral_doublet_2.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233054, sha256: e66eacf6f5cc4119a91730c2541645485f6a6efda15e190b2d15bb587454a783, filename: training/lateral_doublet_3.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233065, sha256: 7e97fa2508977b2de78f64acf6b9a241e6308cb4f42b5a5849f8ce841780871e, filename: training/longitudinal_3211_1.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233074, sha256: 24cfe9056bb991d633c107213981b2432b94926c9ff9b69d0c44dc786f1438d2, filename: training/longitudinal_3211_2.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233077, sha256: 72821abb3a8f6975aec275e5531e0601cc8ec986904e812e98c91853982dd883, filename: training/longitudinal_3211_3.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233072, sha256: 41be754ee1b88975042c6466301d9fc6f052d9a813a33b1f2140bc20179bbc80, filename: training/longitudinal_3211_4.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233059, sha256: 263a87a857753ea57d105a7d70e3ee420007c2daba53e3c412cbe59c821c7a4e, filename: training/longitudinal_doublet_1.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233082, sha256: bec1966dd95917fe9d4d93b1557107036624307f31081c8d4710dc75d8cfae81, filename: training/longitudinal_doublet_2.csv, location: case-truth}
+    - {url: https://dataverse.no/api/access/datafile/233068, sha256: 96fe35b0bc3cbe0969ec0f1ba7cc06c446637b68e08dba10d1d4c8073bb44879, filename: training/longitudinal_doublet_3.csv, location: case-truth}
+observables:
+  - {id: pitch_rate_peak_gain_doublet, units: 1/s, description: Peak pitch-rate response gain for longitudinal doublets}
+  - {id: pitch_rate_rms_gain_doublet, units: 1/s, description: RMS pitch-rate response gain for longitudinal doublets}
+  - {id: pitch_rate_peak_gain_3211, units: 1/s, description: Peak pitch-rate response gain for 3-2-1-1 inputs}
+  - {id: pitch_rate_rms_gain_3211, units: 1/s, description: RMS pitch-rate response gain for 3-2-1-1 inputs}
+  - {id: roll_rate_peak_gain_doublet, units: 1/s, description: Peak roll-rate response gain for lateral doublets}
+  - {id: roll_rate_rms_gain_doublet, units: 1/s, description: RMS roll-rate response gain for lateral doublets}
+  - {id: roll_rate_peak_gain_121, units: 1/s, description: Peak roll-rate response gain for 1-2-1 inputs}
+  - {id: roll_rate_rms_gain_121, units: 1/s, description: RMS roll-rate response gain for 1-2-1 inputs}
+  - {id: trim_alpha_rad, units: rad, description: Pre-excitation estimated angle of attack}
+  - {id: trim_normal_force_cl, units: "1", description: Pre-excitation normal-force lift coefficient}
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.25
+  min_fraction_within_2sigma: 1.0
+  provisional: true
+stages: [flightdyn]
+notes:
+  - This role, not the validation manifest, owns every committed training-file hash.
+  - Its residuals informed the four-factor low-Re calibration and frozen uncertainty budget.
+  - Passing this case is calibration evidence only and cannot establish a Class-A validation claim.

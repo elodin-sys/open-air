@@ -1,0 +1,650 @@
+"""Run the full validation suite and write a JSON report."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+from openair.aero.oas_backend import run_vlm
+from openair.aero.vspaero_backend import run_vspaero
+from openair.design_intent import fin_trailing_edge_overhang_m
+from openair.provenance import model_source_sha256
+from openair.schemas import VehicleSpec
+from openair.validation.analytical import (
+    breguet_round_trip,
+    cantilever_tip_deflection,
+    elliptical_induced_drag,
+    isa_sl_check,
+    k450_tsfc_hand_calc,
+)
+
+
+def _close(got: float, want: float, rel: float, abs_floor: float = 0.0) -> bool:
+    return abs(got - want) <= max(abs(want) * rel, abs_floor)
+
+
+def _directional_derivative_evidence(outdir: Path) -> dict[str, Any]:
+    """Read same-run VSPAERO yaw derivatives without trusting Vv alone."""
+    flightdyn_path = outdir / "flightdyn.json"
+    aero_path = outdir / "aero.json"
+    if not flightdyn_path.is_file() or not aero_path.is_file():
+        return {"ok": False, "reason": "same-phase flightdyn/aero artifacts missing"}
+    with open(flightdyn_path, encoding="utf-8") as stream:
+        flightdyn = json.load(stream)
+    with open(aero_path, encoding="utf-8") as stream:
+        aero = json.load(stream)
+    current_hash = model_source_sha256()
+    provenance_ok = bool(
+        flightdyn.get("model_source_sha256") == current_hash
+        and aero.get("model_source_sha256") == current_hash
+        and flightdyn.get("pipeline_run_id")
+        and flightdyn.get("pipeline_run_id") == aero.get("pipeline_run_id")
+    )
+    state = (flightdyn.get("derivatives") or {}).get("state") or {}
+    try:
+        cn_beta = float(state["Cn"]["beta"])
+        cn_r = float(state["Cn"]["r"])
+        cy_beta = float(state["CY"]["beta"])
+    except (KeyError, TypeError, ValueError):
+        return {
+            "ok": False,
+            "reason": "flightdyn directional derivatives are incomplete",
+            "provenance_ok": provenance_ok,
+        }
+    return {
+        "ok": bool(
+            flightdyn.get("ok")
+            and provenance_ok
+            and cn_beta > 0.0
+            and cn_r < 0.0
+            and cy_beta < 0.0
+        ),
+        "method": "same-run VSPAERO stability derivatives",
+        "provenance_ok": provenance_ok,
+        "Cn_beta_per_rad": cn_beta,
+        "Cn_r": cn_r,
+        "CY_beta_per_rad": cy_beta,
+    }
+
+
+def _lift_curve_slope_cross_check(
+    oas_lo: dict[str, Any],
+    oas_hi: dict[str, Any],
+    vsp_lo: dict[str, Any],
+    vsp_hi: dict[str, Any],
+    alpha_lo: float,
+    alpha_hi: float,
+) -> dict[str, Any]:
+    """Compare CL-alpha while preserving absolute CL as diagnostic evidence."""
+    values = (
+        oas_lo.get("CL"),
+        oas_hi.get("CL"),
+        vsp_lo.get("CL"),
+        vsp_hi.get("CL"),
+    )
+    if not all(isinstance(value, (int, float)) for value in values):
+        return {"ok": False, "reason": "missing CL point for slope comparison"}
+    alpha_delta = float(alpha_hi - alpha_lo)
+    if abs(alpha_delta) < 1e-12:
+        return {"ok": False, "reason": "zero alpha interval"}
+    oas_points = [float(values[0]), float(values[1])]
+    vsp_points = [float(values[2]), float(values[3])]
+    oas_slope = (oas_points[1] - oas_points[0]) / alpha_delta
+    vsp_slope = (vsp_points[1] - vsp_points[0]) / alpha_delta
+    if abs(oas_slope) < 1e-8:
+        return {"ok": False, "reason": "OAS lift-curve slope is near zero"}
+    ratio = vsp_slope / oas_slope
+    result = {
+        "ok": 0.75 < ratio < 1.25,
+        # Retain the old key for report/test fixture compatibility.
+        "CL_ratio_vspaero_over_oas": ratio,
+        "CL_alpha_ratio_vspaero_over_oas": ratio,
+        "comparison": "lift_curve_slope",
+        "alpha_range_deg": [alpha_lo, alpha_hi],
+        "oas_CL_points": oas_points,
+        "vspaero_CL_points": vsp_points,
+        "oas_CL_alpha_per_deg": oas_slope,
+        "vspaero_CL_alpha_per_deg": vsp_slope,
+    }
+    oas_cm_values = [oas_lo.get("CM"), oas_hi.get("CM")]
+    vsp_cm_values = [vsp_lo.get("CM"), vsp_hi.get("CM")]
+
+    def pitch_cm(value: Any) -> float | None:
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, list) and len(value) >= 2:
+            return float(value[1])
+        return None
+
+    oas_cm_points = [pitch_cm(value) for value in oas_cm_values]
+    vsp_cm_points = [pitch_cm(value) for value in vsp_cm_values]
+    if all(value is not None for value in (*oas_cm_points, *vsp_cm_points)):
+        oas_cm_slope = (float(oas_cm_points[1]) - float(oas_cm_points[0])) / alpha_delta
+        vsp_cm_slope = (float(vsp_cm_points[1]) - float(vsp_cm_points[0])) / alpha_delta
+        oas_np_mac = 0.25 - oas_cm_slope / oas_slope
+        vsp_np_mac = 0.25 - vsp_cm_slope / vsp_slope
+        result.update(
+            {
+                "moment_diagnostic_only": True,
+                "oas_CM_points": oas_cm_points,
+                "vspaero_CM_points": vsp_cm_points,
+                "oas_CM_alpha_per_deg": oas_cm_slope,
+                "vspaero_CM_alpha_per_deg": vsp_cm_slope,
+                "oas_full_vehicle_neutral_point_mac": oas_np_mac,
+                "vspaero_full_vehicle_neutral_point_mac": vsp_np_mac,
+                "full_vehicle_neutral_point_disagreement_mac": abs(
+                    vsp_np_mac - oas_np_mac
+                ),
+            }
+        )
+    return result
+
+
+def _wing_mass_consistency(
+    spec: VehicleSpec, structures: dict[str, Any] | None
+) -> dict[str, Any] | None:
+    """Compare OAS and buildup masses at the structures stage's actual MTOW."""
+    positive = (structures or {}).get("positive_g") or {}
+    oas_mass = positive.get("structural_mass_kg")
+    if oas_mass is None:
+        return None
+
+    mtow = (structures or {}).get("mtow_kg")
+    if mtow is None or float(mtow) <= 0:
+        return {
+            "name": "wing_mass_buildup_vs_oas",
+            "got": oas_mass,
+            "ok": False,
+            "note": "structures.json must record actual MTOW for the mass comparison",
+        }
+
+    from openair.mission.mass import breakdown, wing_mass_regression_kg
+
+    actual_mtow = float(mtow)
+    if spec.mass.operating_empty_mass_kg is not None:
+        empty = float(spec.mass.operating_empty_mass_kg)
+        return {
+            "name": "wing_mass_buildup_vs_oas",
+            "got": float(oas_mass),
+            "want": f"0 < wing structural mass < {empty:.6g} kg reference OE mass",
+            "ratio_to_operating_empty": float(oas_mass) / max(empty, 1e-9),
+            "mtow_kg": actual_mtow,
+            "ok": 0.0 < float(oas_mass) < empty,
+            "note": (
+                "reference/reproduction mass override: OAS wing mass is an "
+                "independent plausibility bound, not compared with a zeroed "
+                "component buildup"
+            ),
+        }
+    buildup = breakdown(spec, actual_mtow, spec.mass.fuel_mass_kg).wing_kg
+    regression = wing_mass_regression_kg(spec, actual_mtow)
+    ratio = float(oas_mass) / max(buildup, 1e-6)
+    return {
+        "name": "wing_mass_buildup_vs_oas",
+        "got": float(oas_mass),
+        "want": buildup,
+        "ratio": ratio,
+        "mtow_kg": actual_mtow,
+        "legacy_regression_kg": regression,
+        "panel_over_regression": buildup / max(regression, 1e-6),
+        "ok": 0.4 <= ratio <= 2.5,
+        "note": "gauge-aware panel vs OAS wingbox; legacy regression is context only",
+    }
+
+
+def run_validation_stage(
+    spec: VehicleSpec, outdir: Path, case_path: Path | None = None
+) -> dict[str, Any]:
+    checks = []
+    reproduction = bool(
+        spec.sketch is not None and spec.sketch.treatment == "reproduction"
+    )
+
+    tsfc = k450_tsfc_hand_calc()
+    checks.append(
+        {
+            "name": "k450_tsfc_kg_per_kgf_hr",
+            "got": tsfc["tsfc_kg_per_kgf_hr"],
+            "want": tsfc["expected_kg_per_kgf_hr"],
+            "ok": _close(
+                tsfc["tsfc_kg_per_kgf_hr"], tsfc["expected_kg_per_kgf_hr"], 0.01
+            ),
+        }
+    )
+
+    br = breguet_round_trip()
+    checks.append(
+        {
+            "name": "breguet_round_trip",
+            "got": br["endurance_s"],
+            "want": br["target_s"],
+            "ok": _close(br["endurance_s"], br["target_s"], 0.01, 5.0),
+        }
+    )
+
+    sl = isa_sl_check()
+    checks.append(
+        {
+            "name": "isa_T_sl",
+            "got": sl["T"],
+            "want": 288.15,
+            "ok": _close(sl["T"], 288.15, 0.0, 0.05),
+        }
+    )
+    checks.append(
+        {
+            "name": "isa_rho_sl",
+            "got": sl["rho"],
+            "want": 1.225,
+            "ok": _close(sl["rho"], 1.225, 0.0, 0.002),
+        }
+    )
+
+    # OAS induced drag vs elliptic theory on a high-AR unswept rectangle
+    rect = spec.model_copy(deep=True)
+    rect.wing.span_m = 8.0
+    rect.wing.root_chord_m = 0.5
+    rect.wing.taper = 1.0
+    rect.wing.le_sweep_deg = 0.0
+    rect.wing.twist_root_deg = 0.0
+    rect.wing.twist_tip_deg = 0.0
+    rect.htail.span_m = 0.0
+    rect.structures.n_spanwise = 11
+    rect.solver.oas_with_viscous = False
+    rect.solver.oas_with_wave = False
+    try:
+        vlm = run_vlm(rect, 0.0, 50.0, 4.0)
+        cdi_th = elliptical_induced_drag(vlm["CL"], rect.wing.aspect_ratio)
+        checks.append(
+            {
+                "name": "oas_induced_drag_vs_elliptic",
+                "got": vlm["CDi"],
+                "want": cdi_th,
+                "ok": _close(vlm["CDi"], cdi_th, 0.25, 0.002),
+                "note": "rectangular wing; 25% band vs elliptic (e=1)",
+                "CL": vlm["CL"],
+                "AR": rect.wing.aspect_ratio,
+            }
+        )
+    except Exception as exc:
+        checks.append(
+            {"name": "oas_induced_drag_vs_elliptic", "ok": False, "error": str(exc)}
+        )
+
+    # Beam deflection identity
+    delta = cantilever_tip_deflection(100.0, 2.0, 70e9, 1e-7)
+    want = 100.0 * 8.0 / (8.0 * 70e9 * 1e-7)
+    checks.append(
+        {
+            "name": "cantilever_deflection_identity",
+            "got": delta,
+            "want": want,
+            "ok": _close(delta, want, 1e-12, 0),
+        }
+    )
+
+    # Thin-airfoil section properties vs textbook values
+    from openair.mission.balance import balance_report, thin_airfoil_props
+
+    sect0012 = thin_airfoil_props("0012")
+    sect2412 = thin_airfoil_props("2412")
+    checks.append(
+        {
+            "name": "thin_airfoil_cm_ac",
+            "got": {"0012": sect0012["cm_ac"], "2412": sect2412["cm_ac"]},
+            "want": {"0012": 0.0, "2412": -0.047},
+            "ok": abs(sect0012["cm_ac"]) < 1e-6 and -0.065 < sect2412["cm_ac"] < -0.035,
+            "note": "thin-airfoil theory; 2412 experimental cm_ac ~ -0.047",
+        }
+    )
+
+    # Directional stability: fin volume coefficient in the class band
+    try:
+        from openair.mission.balance import VV_BAND, balance_report as _br
+        from openair.mission.mass import closed_mass_breakdown as _closed_mass
+
+        m0 = _closed_mass(spec, spec.mass.fuel_mass_kg)
+        b0 = _br(spec, m0.mtow_kg, spec.mass.fuel_mass_kg)
+        volume_ok = (
+            b0.vv >= VV_BAND[0] if reproduction else VV_BAND[0] <= b0.vv <= VV_BAND[1]
+        )
+        derivative_evidence = (
+            _directional_derivative_evidence(outdir)
+            if reproduction and spec.flight_dynamics.enabled
+            else {"ok": False, "reason": "flight-dynamics evidence not requested"}
+        )
+        fin_ok = bool(volume_ok or derivative_evidence.get("ok"))
+        checks.append(
+            {
+                "name": "fin_volume_coefficient",
+                "got": b0.vv,
+                "want": (
+                    f">= {VV_BAND[0]} or passing same-run directional derivatives "
+                    "(source-locked reproduction)"
+                    if reproduction
+                    else list(VV_BAND)
+                ),
+                "ok": fin_ok,
+                "volume_screen_ok": volume_ok,
+                "directional_derivative_evidence": derivative_evidence,
+                "note": (
+                    "Vv = count * Sv * lv * cos(cant) / (S b); "
+                    + (
+                        "source-locked reproductions retain the documented fin "
+                        "and may replace the generic minimum-volume screen with "
+                        "same-run restoring and damping derivatives"
+                        if reproduction
+                        else "conceptual-design yaw stiffness/oversizing band"
+                    )
+                ),
+            }
+        )
+    except Exception as exc:
+        checks.append(
+            {"name": "fin_volume_coefficient", "ok": False, "error": str(exc)}
+        )
+
+    fin_overhang = fin_trailing_edge_overhang_m(spec)
+    overhang_tolerance = 0.02 * spec.fuselage.length_m if reproduction else 1e-6
+    checks.append(
+        {
+            "name": "fin_te_within_body",
+            "got": fin_overhang,
+            "want": f"<= {overhang_tolerance:.6g} m",
+            "ok": fin_overhang <= overhang_tolerance,
+            "note": (
+                "body-mounted fins must remain inside the fuselage tail; "
+                "outboard fin roots must remain inside the local wing trailing edge"
+                + (
+                    " by more than the 2%-length drawing tolerance"
+                    if reproduction
+                    else ""
+                )
+            ),
+        }
+    )
+
+    # Stability-model traceability. Hybrid mode verifies that serialized
+    # wing/body constants came from converged same-run VSPAERO evidence; that
+    # is provenance, not an independent neutral-point validation. The pure
+    # lifting-surface OAS result remains a separately labeled diagnostic.
+    try:
+        from openair.aero.oas_backend import measure_neutral_point
+        from openair.mission.mass import closed_mass_breakdown as _closed_mass
+
+        effective_spec = spec
+        hybrid = None
+        if spec.solver.stability_method == "hybrid_component" and case_path is not None:
+            from openair.io import load_stage as _ls
+
+            aero_stage = _ls(case_path, "aero") or {}
+            hybrid = (aero_stage.get("stability") or {}).get("hybrid_component") or {}
+            if hybrid.get("ok"):
+                from openair.aero.vspaero_backend import verify_hybrid_artifact
+                from openair.paths import results_dir_for
+
+                phase_dir = results_dir_for(case_path)
+                hybrid = verify_hybrid_artifact(hybrid, phase_dir)
+            if hybrid.get("ok"):
+                effective_spec = spec.model_copy(deep=True)
+                effective_spec.solver.wing_body_np_mac = float(
+                    hybrid["neutral_point_mac"]
+                )
+                effective_spec.solver.wing_body_cl_alpha_per_deg = float(
+                    hybrid["cl_alpha_per_deg"]
+                )
+        masses = _closed_mass(effective_spec, effective_spec.mass.fuel_mass_kg)
+        bal = balance_report(
+            effective_spec,
+            masses.mtow_kg,
+            effective_spec.mass.fuel_mass_kg,
+        )
+        meas = measure_neutral_point(
+            spec, spec.mission.cruise_altitude_m, 60.0, bal.x_cg_full_m
+        )
+        if spec.solver.stability_method == "hybrid_component":
+            np_error = (
+                abs(
+                    float(hybrid["neutral_point_mac"])
+                    - float(effective_spec.solver.wing_body_np_mac)
+                )
+                if hybrid and hybrid.get("ok")
+                else float("inf")
+            )
+            cl_error = (
+                abs(
+                    float(hybrid["cl_alpha_per_deg"])
+                    - float(effective_spec.solver.wing_body_cl_alpha_per_deg)
+                )
+                if hybrid and hybrid.get("ok")
+                else float("inf")
+            )
+            check_ok = np_error <= 1e-6 and cl_error <= 1e-8
+            err_mac = np_error
+            note = (
+                "hybrid wing/body constants trace to same-run VSPAERO component "
+                "evidence; lifting-surface NP is retained as a diagnostic"
+            )
+        else:
+            err_mac = abs(meas["x_np_m"] - bal.x_np_m) / spec.wing.mac_m
+            cl_error = None
+            check_ok = err_mac <= 0.05
+            note = (
+                "closed-form calibrated wing"
+                + ("+tail" if spec.htail.span_m > 0.05 else "")
+                + " NP vs OAS dCM/dCL"
+            )
+        if spec.solver.stability_method == "hybrid_component":
+            checks.append(
+                {
+                    "name": "hybrid_component_provenance",
+                    "got": {
+                        "wing_body_np_mac": hybrid.get("neutral_point_mac")
+                        if hybrid
+                        else None,
+                        "wing_body_cl_alpha_per_deg": hybrid.get("cl_alpha_per_deg")
+                        if hybrid
+                        else None,
+                    },
+                    "want": "serialized constants trace to converged same-run VSPAERO",
+                    "np_trace_error_mac": err_mac,
+                    "cl_alpha_trace_error": cl_error,
+                    "lifting_surface_diagnostic_x_np_m": meas["x_np_m"],
+                    "independent_validation": False,
+                    "ok": check_ok,
+                    "note": note,
+                }
+            )
+        else:
+            checks.append(
+                {
+                    "name": "neutral_point_model_vs_oas",
+                    "got": meas["x_np_m"],
+                    "want": bal.x_np_m,
+                    "err_mac": err_mac,
+                    "cl_alpha_trace_error": cl_error,
+                    "ok": check_ok,
+                    "note": note,
+                }
+            )
+    except Exception as exc:
+        checks.append(
+            {
+                "name": (
+                    "hybrid_component_provenance"
+                    if spec.solver.stability_method == "hybrid_component"
+                    else "neutral_point_model_vs_oas"
+                ),
+                "ok": False,
+                "error": str(exc),
+            }
+        )
+
+    # Wing mass buildup vs OAS wingbox (same order of magnitude, factor band)
+    try:
+        struct_stage = None
+        if case_path is not None:
+            from openair.io import load_stage as _ls
+
+            struct_stage = _ls(case_path, "structures")
+        mass_check = _wing_mass_consistency(spec, struct_stage)
+        if mass_check is not None:
+            checks.append(mass_check)
+    except Exception as exc:
+        checks.append(
+            {"name": "wing_mass_buildup_vs_oas", "ok": False, "error": str(exc)}
+        )
+
+    # Tier-B modal consistency for designs that declare a calibrated spanwise
+    # structural overlay. This remains visible calibration evidence; it is
+    # carried by the cross-check gate rather than increasing the canonical
+    # twelve-gate count.
+    if spec.structures.spanwise is not None:
+        try:
+            struct_stage = None
+            if case_path is not None:
+                from openair.io import load_stage as _ls
+
+                struct_stage = _ls(case_path, "structures")
+            modal = (struct_stage or {}).get("modal") or {}
+            comparisons = modal.get("calibration_comparisons") or []
+            mapping = modal.get("strain_mapping") or {}
+            checks.append(
+                {
+                    "name": "modal_consistency",
+                    "got": comparisons,
+                    "want": (
+                        "all visible L1 frequency residuals <= 10% and exactly "
+                        "21 declared strain channels"
+                    ),
+                    "ok": bool(
+                        modal.get("ok")
+                        and comparisons
+                        and all(item.get("ok") for item in comparisons)
+                        and mapping.get("total_channel_count") == 21
+                    ),
+                    "role": "visible calibration, not independent validation",
+                    "method": modal.get("method"),
+                    "strain_channel_count": mapping.get("total_channel_count"),
+                }
+            )
+        except Exception as exc:
+            checks.append(
+                {"name": "modal_consistency", "ok": False, "error": str(exc)}
+            )
+
+    # VSPAERO vs OAS on the actual geometry if a .vsp3 exists. Compare
+    # lift-curve slope rather than one absolute CL: OpenVSP carries the NACA
+    # camber/zero-lift offset while the OAS VLM mesh is flat and carries
+    # section moment separately. The slope still cross-checks lifting-surface
+    # geometry, twist, reference area, and solver setup without conflating
+    # that known fidelity difference. CD/CDi remain non-comparable (F12).
+    vsp_cross = {"ok": False, "reason": "no vsp3"}
+    vsp3s = list(outdir.glob("*.vsp3"))
+    if vsp3s:
+        try:
+            alpha_lo, alpha_hi = 3.0, 7.0
+            oas_lo = run_vlm(spec, spec.mission.cruise_altitude_m, 50.0, alpha_lo)
+            oas_hi = run_vlm(spec, spec.mission.cruise_altitude_m, 50.0, alpha_hi)
+            vsp_lo = run_vspaero(
+                spec,
+                vsp3s[0],
+                spec.mission.cruise_altitude_m,
+                oas_lo["mach"],
+                alpha_lo,
+                outdir,
+            )
+            vsp_cross = run_vspaero(
+                spec,
+                vsp3s[0],
+                spec.mission.cruise_altitude_m,
+                oas_hi["mach"],
+                alpha_hi,
+                outdir,
+            )
+            for k in ("CD", "CDi"):
+                if k in vsp_cross:
+                    vsp_cross[f"{k}_not_comparable"] = vsp_cross.pop(k)
+            slope_check = _lift_curve_slope_cross_check(
+                oas_lo,
+                oas_hi,
+                vsp_lo,
+                vsp_cross,
+                alpha_lo,
+                alpha_hi,
+            )
+            if spec.solver.stability_method == "hybrid_component" and isinstance(
+                slope_check.get("vspaero_full_vehicle_neutral_point_mac"),
+                (int, float),
+            ):
+                from openair.mission.mass import closed_mass_breakdown as _closed_mass
+
+                masses = _closed_mass(spec, spec.mass.fuel_mass_kg)
+                component_balance = balance_report(
+                    spec,
+                    masses.mtow_kg,
+                    spec.mass.fuel_mass_kg,
+                )
+                component_np_mac = (
+                    component_balance.x_np_m - spec.wing.x_le_mac_m
+                ) / spec.wing.mac_m
+                slope_check.update(
+                    {
+                        "component_model_neutral_point_mac": component_np_mac,
+                        "component_vs_full_vspaero_np_disagreement_mac": abs(
+                            component_np_mac
+                            - float(
+                                slope_check["vspaero_full_vehicle_neutral_point_mac"]
+                            )
+                        ),
+                        "component_vs_full_vspaero_diagnostic_only": True,
+                    }
+                )
+            vsp_cross.update(slope_check)
+        except Exception as exc:
+            vsp_cross = {"ok": False, "reason": str(exc)}
+    checks.append({"name": "vspaero_vs_oas_CL", **vsp_cross})
+
+    # Stretch-stage honesty (non-fatal): if TACS/SU2 artifacts exist, their
+    # JSON must carry the fields QA relies on, and SU2 'ok' must not be
+    # conflated with convergence.
+    if case_path is not None:
+        from openair.io import load_stage as _ls
+
+        tacs = _ls(case_path, "tacs")
+        if tacs is not None:
+            ana = tacs.get("analysis") or {}
+            checks.append(
+                {
+                    "name": "tacs_artifact_schema",
+                    "ok": bool(ana.get("backend"))
+                    and ("maneuver_ks_vm" in ana or not tacs.get("ok")),
+                    "backend": ana.get("backend"),
+                    "note": "stretch; schema presence only",
+                }
+            )
+        su2 = _ls(case_path, "su2")
+        if su2 is not None:
+            pts = [su2.get("cruise") or {}, su2.get("dash") or {}]
+            has_conv_flag = all("converged" in p for p in pts if p)
+            checks.append(
+                {
+                    "name": "su2_convergence_reported_separately",
+                    "ok": has_conv_flag,
+                    "converged": [p.get("converged") for p in pts],
+                    "note": "stretch; 'ok' means ran+parsed, 'converged' is the residual verdict",
+                }
+            )
+
+    core = [c for c in checks if not str(c.get("note", "")).startswith("stretch")]
+    passed = sum(1 for c in checks if c.get("ok"))
+    core_passed = sum(1 for c in core if c.get("ok"))
+    return {
+        "ok": core_passed == len(core),
+        "passed": passed,
+        "total": len(checks),
+        "core_passed": core_passed,
+        "core_total": len(core),
+        "checks": checks,
+    }

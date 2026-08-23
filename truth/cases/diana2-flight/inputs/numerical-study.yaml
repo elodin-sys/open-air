@@ -1,0 +1,40 @@
+version: 1
+generated_at: '2026-08-22T20:58:39+00:00'
+purpose: Frozen pre-holdout resolution and modal-truncation allowance check
+baseline:
+  strip_count: 64
+  modes_per_family: 1
+  frequency_points: 1000
+variations:
+  - id: frequency_grid_500
+    change: {frequency_points: 500}
+    absolute_metric_changes:
+      bending_frequency_hz: 0.0
+      ro_strain_damping_fraction: 0.000321
+      ro_strain_gain_microstrain_per_rad: 40.08
+      ro_accel_damping_fraction: 0.000306
+      ro_accel_gain_m_s2_per_rad: 84.46
+      rm_accel_gain_m_s2_per_rad: 9.16
+  - id: strip_count_32
+    change: {strip_count: 32}
+    absolute_metric_changes:
+      bending_frequency_hz: 0.0
+      ro_strain_damping_fraction: 0.000000002
+      ro_strain_gain_microstrain_per_rad: 169.89
+      ro_accel_damping_fraction: 0.000000002
+      ro_accel_gain_m_s2_per_rad: 124.01
+      rm_accel_gain_m_s2_per_rad: 34.19
+  - id: two_modes_per_family
+    change: {modes_per_family: 2}
+    absolute_metric_changes:
+      bending_frequency_hz: 0.0
+      ro_strain_damping_fraction: 0.000011
+      ro_strain_gain_microstrain_per_rad: 9.67
+      ro_accel_damping_fraction: 0.000001
+      ro_accel_gain_m_s2_per_rad: 6.07
+      rm_accel_gain_m_s2_per_rad: 1.79
+conclusion: >-
+  The frozen u_num terms exceed every observed discretization or
+  modal-truncation change: 0.05 Hz frequency, 0.003 damping fraction,
+  500 microstrain/rad RO strain gain, 300 m/s2/rad RO acceleration gain,
+  and 150 m/s2/rad RM acceleration gain. No holdout payload was opened.

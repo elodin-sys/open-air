@@ -1,0 +1,39 @@
+id: synthetic-self
+title: Synthetic analytic self-case
+truth_class: C
+role: verification
+status: active
+intended_uses:
+  - Exercise fetch, run, score, report, unit, and uncertainty contracts in CI.
+runner: analytical-self
+source:
+  organization: open-air
+  dataset: Published textbook identities and standard-atmosphere constants
+  revision: "1"
+  license: CC0-1.0
+  reference_url: https://ntrs.nasa.gov/citations/19770009539
+  redistribution: Values are non-copyrightable physical constants and equations.
+  downloads: []
+observables:
+  - id: isa_temperature_sl_k
+    units: K
+    description: ISA sea-level temperature
+  - id: isa_density_sl_kg_m3
+    units: kg/m^3
+    description: ISA sea-level density
+  - id: naca2412_alpha_l0_deg
+    units: deg
+    description: NACA 2412 thin-airfoil zero-lift angle
+  - id: naca2412_cm_ac
+    units: "1"
+    description: NACA 2412 thin-airfoil quarter-chord moment coefficient
+  - id: breguet_endurance_s
+    units: s
+    description: Constant-L/D Breguet endurance
+acceptance:
+  max_abs_z: 2.0
+  max_mean_abs_z: 1.5
+  min_fraction_within_2sigma: 1.0
+  provisional: false
+notes:
+  - A self-case verifies software plumbing only and is not evidence of predictive validity.

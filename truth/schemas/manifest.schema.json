@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://open-air.local/truth/manifest.schema.json",
+  "title": "open-air truth case manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "truth_class",
+    "role",
+    "status",
+    "intended_uses",
+    "runner",
+    "source",
+    "observables"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "truth_class": {
+      "enum": ["A", "B", "C", "D", "E"]
+    },
+    "role": {
+      "enum": ["calibration", "validation", "verification"]
+    },
+    "status": {
+      "enum": ["active", "deferred", "blocked-data-access"]
+    },
+    "intended_uses": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      }
+    },
+    "runner": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "organization",
+        "dataset",
+        "revision",
+        "license",
+        "reference_url",
+        "redistribution",
+        "downloads"
+      ],
+      "properties": {
+        "organization": {"type": "string"},
+        "dataset": {"type": "string"},
+        "revision": {"type": "string"},
+        "license": {"type": "string"},
+        "reference_url": {"type": "string"},
+        "redistribution": {"type": "string"},
+        "downloads": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["url", "sha256", "filename"],
+            "properties": {
+              "url": {"type": "string"},
+              "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "filename": {"type": "string"},
+              "location": {
+                "enum": ["download", "case-truth", "external-holdout"],
+                "default": "download"
+              }
+            }
+          }
+        }
+      }
+    },
+    "observables": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "units", "description"],
+        "properties": {
+          "id": {"type": "string"},
+          "units": {"type": "string"},
+          "description": {"type": "string"},
+          "prediction_key": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_abs_z": {"type": "number", "exclusiveMinimum": 0},
+        "max_mean_abs_z": {"type": "number", "exclusiveMinimum": 0},
+        "min_fraction_within_2sigma": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "provisional": {"type": "boolean"}
+      }
+    },
+    "stages": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "notes": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "blocked_reason": {
+      "type": ["string", "null"]
+    },
+    "truth_loader": {
+      "type": "string",
+      "default": "observations-csv"
+    },
+    "scorer_generates_predictions": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

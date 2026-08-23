@@ -1,0 +1,13 @@
+observable,value,units,u_exp,u_input,u_num
+cl_alpha_per_deg,0.086454422478,1/deg,0.0020,0.0037,0.0010
+neutral_point_mac,0.572837565139,MAC,0.0080,0.0175,0.0050
+cm_alpha_sign_correct,1.0,boolean,0.0,0.25,0.0
+trim_alpha_deg,5.595519617725,deg,0.25,0.70,0.05
+cruise_lod,9.440187657661,1,0.30,0.63,0.12
+stall_speed_mps,28.643294220793,m/s,0.40,1.35,0.15
+mtow_kg,26.1949593675,kg,0.10,1.30,0.10
+span_m,2.08751424,m,0.003,0.012,0.002
+wing_area_m2,0.548295161472,m^2,0.002,0.0135,0.001
+mac_m,0.27898344,m,0.001,0.0068,0.0005
+fuselage_length_m,2.5908,m,0.01,0.023,0.002
+geometry_requirement_ok,1.0,boolean,0.0,0.25,0.0

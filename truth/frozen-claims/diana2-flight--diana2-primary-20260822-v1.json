@@ -1,0 +1,121 @@
+{
+  "case_id": "diana2-flight",
+  "truth_class": "A",
+  "role": "validation",
+  "status": "pass",
+  "generated_at": "2026-08-22T21:03:52+00:00",
+  "residuals": [
+    {
+      "observable": "outer_to_ro_strain_bending_frequency_hz",
+      "units": "Hz",
+      "predicted": 7.397460937506728,
+      "truth": 7.983398437507261,
+      "residual": -0.5859375000005329,
+      "uncertainty": 0.5612486080160912,
+      "z": -1.0439892262213573,
+      "within_2sigma": true
+    },
+    {
+      "observable": "outer_to_ro_strain_bending_damping_fraction",
+      "units": "1",
+      "predicted": 0.027448963740056266,
+      "truth": 0.002849471639761672,
+      "residual": 0.024599492100294593,
+      "uncertainty": 0.026419689627245817,
+      "z": 0.9311045075611293,
+      "within_2sigma": true
+    },
+    {
+      "observable": "outer_to_ro_strain_peak_gain",
+      "units": "microstrain/rad",
+      "predicted": 12702.206300709127,
+      "truth": 17030.16556429245,
+      "residual": -4327.959263583321,
+      "uncertainty": 3937.0039370059053,
+      "z": -1.0993027522534655,
+      "within_2sigma": true
+    },
+    {
+      "observable": "outer_to_ro_accel_bending_frequency_hz",
+      "units": "Hz",
+      "predicted": 7.42187500000675,
+      "truth": 7.519531250006839,
+      "residual": -0.09765625000008882,
+      "uncertainty": 0.5408326913195984,
+      "z": -0.18056647012556432,
+      "within_2sigma": true
+    },
+    {
+      "observable": "outer_to_ro_accel_bending_damping_fraction",
+      "units": "1",
+      "predicted": 0.028315187671251383,
+      "truth": 0.00525790918774596,
+      "residual": 0.023057278483505424,
+      "uncertainty": 0.026419689627245817,
+      "z": 0.872730861293963,
+      "within_2sigma": true
+    },
+    {
+      "observable": "outer_to_ro_accel_gain_at_mode",
+      "units": "m/s2/rad",
+      "predicted": 4402.748274549269,
+      "truth": 4724.389599313281,
+      "residual": -321.6413247640121,
+      "uncertainty": 1723.3687939614085,
+      "z": -0.18663522624468193,
+      "within_2sigma": true
+    },
+    {
+      "observable": "outer_to_rm_accel_bending_frequency_hz",
+      "units": "Hz",
+      "predicted": 7.42187500000675,
+      "truth": 7.543945312506861,
+      "residual": -0.12207031250011102,
+      "uncertainty": 0.5408326913195984,
+      "z": -0.22570808765695538,
+      "within_2sigma": true
+    },
+    {
+      "observable": "outer_to_rm_accel_gain_at_mode",
+      "units": "m/s2/rad",
+      "predicted": 1307.1790385208703,
+      "truth": 1545.959012789986,
+      "residual": -238.77997426911566,
+      "uncertainty": 722.841614740048,
+      "z": -0.33033512376703283,
+      "within_2sigma": true
+    }
+  ],
+  "summary": {
+    "count": 8,
+    "bias_z": -0.1578376896767456,
+    "mean_abs_z": 0.6087965318905186,
+    "rms_z": 0.7206331589712288,
+    "p95_abs_z": 1.0799430181422276,
+    "max_abs_z": 1.0993027522534655,
+    "fraction_within_2sigma": 1.0,
+    "meets_acceptance": true
+  },
+  "acceptance": {
+    "max_abs_z": 2.0,
+    "max_mean_abs_z": 1.25,
+    "min_fraction_within_2sigma": 1.0,
+    "provisional": false
+  },
+  "evidence": {
+    "holdout_attempt_id": "diana2-primary-20260822-v1",
+    "holdout_consumed_at": "2026-08-22T21:03:39+00:00",
+    "holdout:FT06.mat": "528ecbcf5536d24c9f4eaeea4eb750012095ff460eea57b2b67b0fd5c5fc0c4a",
+    "holdout:FT12.mat": "10900fa598edd94377607499f65a824213eee6b8193950108ffacf77a89fd485",
+    "evaluation_protocol_sha256": "9bb3189055f458d606f858335d225c390e6a17cd11dae7e5436ea7cab6401ac0",
+    "intake_record_sha256": "2a586984ee2c609dc49ac80d273cc366f8af9853ff6f65432acd63eb58ec1bc9",
+    "raw_mat:FT06.mat": "528ecbcf5536d24c9f4eaeea4eb750012095ff460eea57b2b67b0fd5c5fc0c4a",
+    "raw_mat:FT12.mat": "10900fa598edd94377607499f65a824213eee6b8193950108ffacf77a89fd485",
+    "execution:manifest_sha256": "6c2d2b70fa3bcf9427c55b838dc895a0e4ccb09319e294e973d83355ca27d406",
+    "execution:registry_entry_sha256": "7c47a1ee90accf20f846d365b33d7495679652e8f65c7003a83faf37b5275a08",
+    "execution:public_inputs_sha256": "3bd6b1127a3ee4e905ba12d320b6a3d6b2f0e5678e7bf36684d5b4b27f799482",
+    "execution:model_source_sha256": "52e12a3ce477f8df5ac8a1b403421bc88ea04563fabf82db5591927fa7132305",
+    "execution:project_config_sha256": "5d96aa4b6f9b1f6ce0cdd2ac86cb2d29765a22b0d72d47151332be529b361618",
+    "execution:runtime_sha256": "260fccd5f803fd98d4237ae09e9ac2f66213cee2f7e6e71969f3f7eb0021fbb9"
+  }
+}

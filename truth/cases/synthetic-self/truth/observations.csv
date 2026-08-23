@@ -1,0 +1,6 @@
+observable,value,units,u_exp,u_input,u_num,source_locator
+isa_temperature_sl_k,288.15,K,0.01,0.0,0.001,USSA 1976 sea-level table
+isa_density_sl_kg_m3,1.2250,kg/m^3,0.0005,0.0,0.00001,USSA 1976 sea-level table
+naca2412_alpha_l0_deg,-2.08,deg,0.05,0.0,0.002,thin-airfoil integration reference
+naca2412_cm_ac,-0.053,1,0.002,0.0,0.0001,thin-airfoil integration reference
+breguet_endurance_s,7200.0,s,3.0,0.0,0.1,independent constant-coefficient ODE integration

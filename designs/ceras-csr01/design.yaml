@@ -1,0 +1,183 @@
+name: ceras-csr01
+notes: >-
+  Post-hoc, truth-conditioned CeRAS CSR-01 reconstruction from public geometry,
+  propulsion, payload, and mission inputs. The 42,092 kg operating-empty mass
+  and 18,402 kg fuel load are algebraically derived from the same published
+  mission rows used by the verification case; they are frozen inputs, not
+  independent predictions. The equivalent trapezoid preserves published
+  wing span, area, and MAC. The sparse two-engine deck contains only the two
+  CeRAS rated conditions plus declared part-throttle engineering interpolants.
+  The NACA 2412 sections, equivalent-tail details, 14 m operating-empty CG,
+  payload/fuel-box locations, CLmax/stall screen, structural gauges, and
+  nacelle frontal-CD allowance are declared conceptual assumptions. The
+  small-aircraft OAS wingbox method explicitly refuses structural closure at
+  this transport scale.
+
+sketch:
+  treatment: reproduction
+  span_over_length: 0.9087756735
+  span_over_length_tol: 0.01
+  root_over_length: 0.1629367501
+  root_over_length_tol: 0.01
+  le_sweep_deg: 25.0
+  le_sweep_tol_deg: 2.0
+  taper: 0.1763619830
+  taper_tol: 0.02
+  x_le_root_over_length: 0.2667377967
+  x_le_root_over_length_tol: 0.02
+  fin_span_m: 6.86
+  fin_span_tol_m: 0.20
+  fin_root_chord_m: 5.60
+  fin_root_chord_tol_m: 0.30
+  fin_le_sweep_deg: 40.0
+  fin_le_sweep_tol_deg: 5.0
+  fin_x_le_m: 30.6
+  fin_x_le_tol_m: 0.4
+
+engine:
+  name: Equivalent 2 x V2527-A5 CeRAS rated deck
+  diameter_m: 1.61
+  length_m: 3.2
+  dry_mass_kg: 7362.0
+  installation: external
+  installation_count: 2
+  x_m: 11.41
+  lateral_offset_m: 5.20
+  z_m: -1.85
+  max_thrust_sl_n: 235800.0
+  fuel_flow_max_kg_s: 2.348568
+  min_throttle: 0.2
+  fuel_density_kg_m3: 800.0
+  nacelle_frontal_cd: 0.01
+  deck:
+    name: CSR-01 equivalent pair, CeRAS bucket points
+    interpolation: condition-idw
+    extrapolation: clamp
+    altitude_scale_m: 10668.0
+    mach_scale: 0.78
+    points:
+      - {altitude_m: 0.0, mach: 0.0, throttle: 0.2, thrust_n: 47160.0, fuel_flow_kg_s: 0.54017064}
+      - {altitude_m: 0.0, mach: 0.0, throttle: 0.6, thrust_n: 141480.0, fuel_flow_kg_s: 1.47959784}
+      - {altitude_m: 0.0, mach: 0.0, throttle: 1.0, thrust_n: 235800.0, fuel_flow_kg_s: 2.348568}
+      - {altitude_m: 10668.0, mach: 0.78, throttle: 0.2, thrust_n: 8680.0, fuel_flow_kg_s: 0.16699886}
+      - {altitude_m: 10668.0, mach: 0.78, throttle: 0.6, thrust_n: 26040.0, fuel_flow_kg_s: 0.45743166}
+      - {altitude_m: 10668.0, mach: 0.78, throttle: 1.0, thrust_n: 43400.0, fuel_flow_kg_s: 0.726082}
+
+wing:
+  span_m: 34.07
+  root_chord_m: 6.108488762310252
+  taper: 0.17636198300988576
+  le_sweep_deg: 25.0
+  dihedral_deg: 5.0
+  twist_root_deg: 2.0
+  twist_tip_deg: -2.0
+  t_over_c: 0.12
+  airfoil: "2412"
+  x_le_root_m: 10.0
+  z_root_m: -0.75
+
+fuselage:
+  length_m: 37.49
+  max_width_m: 3.95
+  max_height_m: 4.14
+  nose_fine_ratio: 0.20
+  tail_fine_ratio: 0.30
+  payload_bay_length_m: 19.0
+  payload_bay_width_m: 3.50
+  payload_bay_height_m: 2.20
+  payload_bay_x_m: 6.0
+  fuel_tank_x_m: 14.0
+  stations:
+    - {x_over_length: 0.0, width_m: 0.0, height_m: 0.0, z_offset_m: 0.0}
+    - {x_over_length: 0.08, width_m: 2.7, height_m: 3.1, z_offset_m: 0.0}
+    - {x_over_length: 0.20, width_m: 3.95, height_m: 4.14, z_offset_m: 0.0}
+    - {x_over_length: 0.68, width_m: 3.90, height_m: 4.05, z_offset_m: 0.0}
+    - {x_over_length: 0.90, width_m: 2.2, height_m: 2.8, z_offset_m: 0.35}
+    - {x_over_length: 1.0, width_m: 0.0, height_m: 0.0, z_offset_m: 0.55}
+
+vtail:
+  count: 1
+  span_m: 6.86
+  root_chord_m: 5.60
+  taper: 0.30
+  le_sweep_deg: 40.0
+  cant_deg: 0.0
+  t_over_c: 0.10
+  x_le_m: 30.6
+  y_root_m: 0.0
+  z_root_m: 1.75
+
+htail:
+  span_m: 12.46
+  root_chord_m: 4.15
+  taper: 0.32
+  le_sweep_deg: 30.0
+  t_over_c: 0.10
+  x_le_m: 31.3
+  z_m: 1.45
+  incidence_deg: 0.0
+
+mission:
+  # 2750 NM / Mach-0.78 cruise plus the declared 780 s airborne overhead.
+  endurance_s: 22800.0
+  payload_kg: 13608.0
+  cruise_altitude_m: 10668.0
+  dash_altitude_m: 10668.0
+  cruise_mach: 0.78
+  cruise_cl: 0.5846538405906798
+  # Stay inside the only declared high-altitude engine-deck condition.
+  dash_mach_cap: 0.78
+  limit_positive_g: 2.5
+  limit_negative_g: -1.0
+  safety_factor: 1.5
+  static_margin_min: 0.15
+  static_margin_max: 0.45
+  reserve_fuel_fraction: 0.05
+  cl_max: 1.80
+  cl_max_basis: aircraft
+  stall_speed_max_mps: 75.0
+
+structures:
+  fem_model_type: wingbox
+  spar_thickness_m: 0.040
+  skin_thickness_m: 0.025
+  tube_radius_m: 0.40
+  tube_thickness_m: 0.025
+  wing_weight_ratio: 1.35
+  n_spanwise: 9
+  n_chordwise: 3
+  material:
+    name: Al7050-T7451
+    E_pa: 7.17e10
+    nu: 0.33
+    yield_pa: 4.70e8
+    density_kg_m3: 2830.0
+
+drag:
+  interference_fraction: 0.08
+  protuberance_cd0: 0.0005
+
+mass:
+  # Truth-conditioned mission-row identity: 74,102 TOW - 42,092 OEW - 13,608 payload.
+  fuel_mass_kg: 18402.0
+  fuel_mass_mode: fixed
+  operating_empty_mass_kg: 42092.0
+  operating_empty_cg_x_m: 14.0
+  systems_kg: 0.0
+  landing_gear_fraction: 0.0
+  avionics_kg: 0.0
+  contingency_fraction: 0.0
+
+solver:
+  oas_with_viscous: true
+  oas_with_wave: true
+  optimize_maxiter: 20
+  optimize_tol: 1.0e-5
+  fd_step: 1.0e-3
+  vspaero_wake_iters: 12
+  su2_maxiter: 200
+  gmsh_lc_m: 1.0
+  stability_method: hybrid_component
+  np_shift_mac: 0.10
+  cm_washout_per_deg: 0.0042
+  tail_incidence_offset_deg: 0.0

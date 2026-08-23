@@ -1,0 +1,69 @@
+version: 1
+state: frozen-before-flight-payload
+dataset:
+  doi: https://doi.org/10.4121/0c3fcef0-5b63-480c-ae40-3ff726c657e9.v1
+  flight_archive_name: Flight testing.zip
+  publisher_md5: b8de0b9dd229deb0ac22098fa1439f4c
+  publisher_size_bytes: 2567506171
+  expected_flights: [FT05, FT06, FT07, FT08, FT09, FT10, FT11, FT12, FT13]
+
+selection_rule:
+  inputs_permitted_before_selection:
+    - publisher README statement that files FT05.mat through FT13.mat exist
+    - flight identifiers only
+  prohibited_inputs:
+    - FToverview.mat contents
+    - MAT headers, channels, maneuver windows, or response values
+    - any paper-to-flight mapping not published before this rule
+  salt: openair-diana2-v1-prepayload-split
+  hash: sha256("{salt}:{flight_id}")
+  strata:
+    - id: early
+      members: [FT05, FT06, FT07]
+      action: holdout-lowest-hash
+    - id: middle
+      members: [FT08, FT09, FT10]
+      action: reserve-lowest-hash
+    - id: late
+      members: [FT11, FT12, FT13]
+      action: holdout-lowest-hash
+  rationale: >-
+    Sequential strata spread the sealed flights across the campaign without
+    reading response metadata. A salted deterministic hash removes subjective
+    selection within each stratum.
+
+partition:
+  training: [FT05, FT07, FT08, FT10, FT11, FT13]
+  validation_holdout: [FT06, FT12]
+  reserve: [FT09]
+
+post_intake:
+  checks:
+    - every expected flight appears exactly once in the partition
+    - each selected MAT member has the expected FT identifier and a unique SHA-256
+    - the two holdout flights collectively contain at least two excitation families
+    - at least one holdout flight contains a frequency-sweep maneuver
+    - training contains every observable channel required by the frozen protocol
+    - reserve remains unopened unless the primary attempt is invalidated by a predeclared non-model failure
+  on_failed_coverage: >-
+    Do not change the split. Narrow or defer the L2 claim and record the failed
+    coverage check; payload-informed reselection would destroy the blind split.
+
+attempt_policy:
+  primary_case: diana2-flight
+  reserve_case: diana2-reserve
+  failed_primary: >-
+    A scored model disagreement makes the primary case post-hoc verification.
+    It does not authorize tuning followed by another primary score.
+  reserve_use: >-
+    At most one separately frozen attempt may use FT09 after the primary result
+    and only under the protocol documented before opening FT09.
+
+audit:
+  flight_payload_access_count_at_freeze: 0
+  downloaded_before_freeze:
+    - README.md
+    - Sensor calibration.zip
+    - GVT dataset README.md
+  explicitly_not_downloaded:
+    - Flight testing.zip

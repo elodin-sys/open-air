@@ -1,0 +1,56 @@
+name: test-tailless-trim-infeasible
+notes: Synthetic fixture whose narrow twist prior forces the htail repair branch.
+
+sketch:
+  treatment: inspiration
+  hard_scale: 3.0
+  fidelity_weight: 1.0
+  span_over_length: 1.55102
+  span_over_length_tol: 0.10
+  root_over_length: 0.469388
+  root_over_length_tol: 0.05
+  le_sweep_deg: 32.0
+  le_sweep_tol_deg: 4.0
+  taper: 0.32
+  taper_tol: 0.06
+  x_le_root_over_length: 0.346939
+  x_le_root_over_length_tol: 0.04
+  twist_tip_lo_deg: -0.1
+  twist_tip_hi_deg: 0.1
+  fin_span_m: 0.38
+  fin_span_tol_m: 0.08
+  fin_root_chord_m: 0.42
+  fin_root_chord_tol_m: 0.08
+  fin_le_sweep_deg: 35.0
+  fin_le_sweep_tol_deg: 8.0
+  fin_cant_deg: 15.0
+  fin_cant_tol_deg: 10.0
+  fin_x_le_m: 1.95
+  fin_x_le_tol_m: 0.08
+
+wing:
+  span_m: 3.80
+  root_chord_m: 1.15
+  taper: 0.32
+  le_sweep_deg: 32.0
+  dihedral_deg: 2.0
+  twist_root_deg: 0.0
+  twist_tip_deg: 0.0
+  t_over_c: 0.12
+  airfoil: "0012"
+  x_le_root_m: 0.85
+  z_root_m: 0.0
+
+htail:
+  span_m: 0.0
+  x_le_m: 2.10
+
+mission:
+  static_margin_min: 0.08
+  static_margin_max: 0.12
+
+solver:
+  optimize_maxiter: 8
+  optimize_tol: 1.0e-4
+  np_shift_mac: 0.15
+  cm_washout_per_deg: 0.0002
