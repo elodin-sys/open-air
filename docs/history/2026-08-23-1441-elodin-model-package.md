@@ -1,7 +1,7 @@
 # 2026-08-23 — Elodin model package export
 
 - Type: milestone
-- Commits: `cb6b385`
+- Commits: `cb6b385`, `dad6df9`
 
 The BDX handoff exposed a second source-of-truth problem: Elodin's `rc-jet`
 example copied aircraft constants into Python while open-air published
@@ -29,6 +29,9 @@ validate before world creation.
   `python -m openair.flightdyn.package run <design>` regenerator.
 - Structured manufacturer mass-bracket and fuel-capacity evidence in the BDX
   source design so the package does not recover those facts from prose.
+- Used final aero balance as the optimized-phase stall source because
+  optimized passes intentionally omit `sizing.json`; both section CLmax input
+  and derived aircraft-effective CLmax remain explicit.
 - Rewrote the Elodin engineering guide with the file contract, rejection
   rules, low-/high-fidelity consumption paths, GLB use, scenario separation,
   and package-driven acceptance tests.
@@ -42,7 +45,7 @@ CLα 4.784/rad, Cmα -0.9749/rad, CD0 0.03333, and k 0.05380. Manifest,
 phase-mixing, schema round-trip, derivative-tier, GLB-bbox, and propulsion-map
 tests pass.
 
-Final verification passed Ruff and all 243 non-stretch tests (three tests
+Final verification passed Ruff and all 244 non-stretch tests (three tests
 deselected by the repository marker configuration). Generated `results/`
 packages remain uncommitted by policy.
 
