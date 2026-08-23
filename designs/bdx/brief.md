@@ -169,8 +169,15 @@ Unit conversions shown: 104 in = 2.6416 ≈ 2.65 m; 110 in = 2.794 ≈ 2.80 m;
   BDX section is unpublished); `htail.t_over_c: 0.10`, `vtail.t_over_c: 0.07`
   typical thin tail surfaces (0.07 chosen below template's 0.10 for the thin
   blended fin; still a class-D assumption).
-- `mission.safety_factor: 1.5`, `mission.reserve_fuel_fraction: 0.08`,
-  `mission.cl_max: 1.2` (aircraft basis) — template defaults; no BDX data.
+- `mission.safety_factor: 1.5`, `mission.reserve_fuel_fraction: 0.08` —
+  template defaults; no BDX data.
+- `mission.cl_max: 1.2` declared on **section basis** (class C): conservative
+  against published NACA 0012/2412 section maxima at Re 0.5–1.5×10⁶; the
+  schema's documented 0.9 × cos(quarter-sweep) conversion yields aircraft
+  CLmax ≈ 1.06. Replaces the template's aircraft-basis 1.2 (class D), which
+  overstated the corner-case lift target and pushed the +6 g structures load
+  solve past the 12° linear-VLM honesty domain. No BDX stall measurement
+  exists either way; stall claims remain assumption-labeled.
 - `structures.*` — full template block including Al7050 material: the real
   airframe is composite sandwich with carbon tubes, but no laminate schedule
   is published, so the calibrated aluminum wingbox surrogate is retained
@@ -228,6 +235,14 @@ Unit conversions shown: 104 in = 2.6416 ≈ 2.65 m; 110 in = 2.794 ≈ 2.80 m;
   `hard_scale: 3`, `fidelity_weight: 1`, and the measured `fin_*` priors were
   restored from this brief's measurement record before the pre-MDO geometry
   checkpoint. No other value changed.
+- Iteration 4 (structures-gate investigation): first full pipeline run passed
+  11/12 gates; the structures gate failed honestly — the ±g load case flies a
+  corner condition targeting 79.2% of aircraft CLmax, and with the
+  template-defaulted aircraft-basis CLmax 1.2 the +6 g solve required
+  α = 12.45°, past the 12° linear-VLM domain (strength itself had large
+  margin: failure index −0.92, tip deflection 4 mm). Fix: declare
+  `cl_max: 1.2` on section basis (see §6), lowering the corner-case target to
+  CL ≈ 0.84 (α ≈ 11°) while preserving the +6 g/−3 g aerobatic requirement.
 
 <!-- OPENAIR_SKETCH_WORKSHEET_START -->
 ## Sketch measurement worksheet

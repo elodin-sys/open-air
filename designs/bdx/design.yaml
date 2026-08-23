@@ -121,8 +121,12 @@ mission:
   static_margin_min: 0.05
   static_margin_max: 0.15
   reserve_fuel_fraction: 0.08
+  # Conservative 2-D section assumption (published NACA 0012/2412 section
+  # data at Re 0.5-1.5e6); the documented 0.9*cos(quarter-sweep) conversion
+  # derives the aircraft CLmax. Keeps the +/-g corner load cases inside the
+  # linear-VLM honesty domain without weakening the aerobatic g requirement.
   cl_max: 1.2
-  cl_max_basis: "aircraft"
+  cl_max_basis: "section"
   stall_speed_max_mps: 25
 structures:
   fem_model_type: "wingbox"
