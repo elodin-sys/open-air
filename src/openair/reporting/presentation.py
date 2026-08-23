@@ -182,6 +182,225 @@ def _performance(
     return base, opt
 
 
+def _trim_setting(aero: dict[str, Any]) -> tuple[str, float | None]:
+    trim = aero.get("trim") or {}
+    control = str(trim.get("control") or "none")
+    if control == "tail_incidence":
+        value = trim.get("tail_incidence_trim_deg")
+    else:
+        value = trim.get("twist_tip_trim_deg")
+    return control, (float(value) if value is not None else None)
+
+
+def _baseline_findings(
+    spec: VehicleSpec,
+    sizing: dict[str, Any],
+    aero: dict[str, Any],
+    structures: dict[str, Any],
+) -> list[str]:
+    """Summarize what the as-drawn aircraft did, from baseline artifacts only."""
+    findings: list[str] = []
+    stability = aero.get("stability") or {}
+    sm = stability.get("sm_full")
+    band = stability.get("band") or []
+    if sm is not None and len(band) == 2:
+        position = (
+            "inside"
+            if band[0] <= float(sm) <= band[1]
+            else ("above" if float(sm) > band[1] else "below")
+        )
+        neutral_point = stability.get("x_np_measured_m") or stability.get("x_np_m")
+        findings.append(
+            f"Static margin {float(sm):.3f} MAC sits {position} the "
+            f"{band[0]:.2f}–{band[1]:.2f} design band"
+            + (
+                f" (measured NP {float(neutral_point):.3f} m)"
+                if neutral_point is not None
+                else ""
+            )
+            + "."
+        )
+    control, trim_value = _trim_setting(aero)
+    trim = aero.get("trim") or {}
+    if trim_value is not None:
+        spec_value = trim.get(f"{control}_spec_deg")
+        findings.append(
+            f"Pitch trim closes with {control.replace('_', ' ')} at "
+            f"{trim_value:+.2f}°"
+            + (
+                f" against a {float(spec_value):+.2f}° spec setting"
+                if spec_value is not None
+                else ""
+            )
+            + ("." if trim.get("converged") else " (not converged).")
+        )
+    balance = aero.get("balance") or sizing.get("balance") or {}
+    vstall = balance.get("vstall_mps")
+    if vstall is not None:
+        findings.append(
+            f"Stall {float(vstall):.1f} m/s against the "
+            f"{spec.mission.stall_speed_max_mps:.0f} m/s requirement, from "
+            f"effective CLmax {float(balance.get('cl_max_effective') or spec.mission.cl_max):.2f}."
+        )
+    dash = sizing.get("dash") or aero.get("dash") or {}
+    if dash.get("tas_mps") is not None:
+        mach = dash.get("mach")
+        findings.append(
+            f"Thrust-limited dash {float(dash['tas_mps']):.1f} m/s"
+            + (f" (M {float(mach):.2f}" if mach is not None else "(")
+            + f" vs cap {spec.mission.dash_mach_cap:.2f})."
+        )
+    if spec.mission.endurance_required and sizing.get("endurance_s") is not None:
+        achieved = float(sizing["endurance_s"])
+        target = float(spec.mission.endurance_s)
+        findings.append(
+            f"Endurance {achieved:.0f} s against the {target:.0f} s target "
+            f"({'met' if achieved >= target else 'short'})."
+        )
+    positive = structures.get("positive_g") or {}
+    negative = structures.get("negative_g") or {}
+    if positive.get("failure") is not None and negative.get("failure") is not None:
+        findings.append(
+            f"Wingbox at ±limit load: +g KS {float(positive['failure']):.2f}, "
+            f"−g KS {float(negative['failure']):.2f} "
+            "(negative values are margin)."
+        )
+    return findings
+
+
+def _evolution_rows(
+    baseline_spec: VehicleSpec,
+    optimized_spec: VehicleSpec,
+    base_metrics: dict[str, float],
+    opt_metrics: dict[str, float],
+    baseline_aero: dict[str, Any],
+    optimized_aero: dict[str, Any],
+    endurance_applicable: bool,
+) -> list[list[str]]:
+    rows: list[list[str]] = []
+
+    def numeric(
+        label: str,
+        base: Any,
+        opt: Any,
+        unit: str = "",
+        digits: int = 3,
+        percent: bool = True,
+    ) -> None:
+        if base is None or opt is None:
+            return
+        base_f, opt_f = float(base), float(opt)
+        suffix = f" {unit}" if unit else ""
+        delta = opt_f - base_f
+        change = f"{delta:+.{digits}f}{suffix}"
+        if percent and abs(base_f) > 1e-9:
+            change += f" ({delta / base_f * 100.0:+.1f}%)"
+        rows.append(
+            [
+                label,
+                f"{base_f:.{digits}f}{suffix}",
+                f"{opt_f:.{digits}f}{suffix}",
+                change if abs(delta) > 10.0 ** (-digits) / 2 else "unchanged",
+            ]
+        )
+
+    numeric("Wing span", baseline_spec.wing.span_m, optimized_spec.wing.span_m, "m")
+    numeric("Wing area", baseline_spec.wing.area_m2, optimized_spec.wing.area_m2, "m²")
+    numeric(
+        "Aspect ratio",
+        baseline_spec.wing.aspect_ratio,
+        optimized_spec.wing.aspect_ratio,
+        digits=2,
+    )
+    numeric(
+        "Taper",
+        baseline_spec.wing.taper,
+        optimized_spec.wing.taper,
+        digits=3,
+        percent=False,
+    )
+    numeric(
+        "LE sweep",
+        baseline_spec.wing.le_sweep_deg,
+        optimized_spec.wing.le_sweep_deg,
+        "deg",
+        digits=1,
+        percent=False,
+    )
+    rows.append(
+        [
+            "Airfoil",
+            f"NACA {baseline_spec.wing.airfoil}",
+            f"NACA {optimized_spec.wing.airfoil}",
+            (
+                "changed"
+                if baseline_spec.wing.airfoil != optimized_spec.wing.airfoil
+                else "unchanged"
+            ),
+        ]
+    )
+    numeric(
+        "Thickness t/c",
+        baseline_spec.wing.t_over_c,
+        optimized_spec.wing.t_over_c,
+        digits=3,
+        percent=False,
+    )
+    numeric(
+        "Tip twist",
+        baseline_spec.wing.twist_tip_deg,
+        optimized_spec.wing.twist_tip_deg,
+        "deg",
+        digits=2,
+        percent=False,
+    )
+    numeric("MTOW", base_metrics.get("mtow_kg"), opt_metrics.get("mtow_kg"), "kg", 2)
+    numeric("Fuel", base_metrics.get("fuel_kg"), opt_metrics.get("fuel_kg"), "kg", 2)
+    numeric(
+        "Dash speed",
+        base_metrics.get("dash_kmh"),
+        opt_metrics.get("dash_kmh"),
+        "km/h",
+        0,
+    )
+    if endurance_applicable:
+        numeric(
+            "Endurance",
+            base_metrics.get("endurance_hr"),
+            opt_metrics.get("endurance_hr"),
+            "h",
+            2,
+        )
+    numeric("Cruise L/D", base_metrics.get("lod"), opt_metrics.get("lod"), digits=2)
+    numeric(
+        "Stall speed",
+        (baseline_aero.get("balance") or {}).get("vstall_mps"),
+        (optimized_aero.get("balance") or {}).get("vstall_mps"),
+        "m/s",
+        1,
+    )
+    numeric(
+        "Static margin (full)",
+        (baseline_aero.get("stability") or {}).get("sm_full"),
+        (optimized_aero.get("stability") or {}).get("sm_full"),
+        "MAC",
+        3,
+        percent=False,
+    )
+    base_control, base_trim = _trim_setting(baseline_aero)
+    opt_control, opt_trim = _trim_setting(optimized_aero)
+    if base_control == opt_control and base_control != "none":
+        numeric(
+            f"Trim {base_control.replace('_', ' ')}",
+            base_trim,
+            opt_trim,
+            "deg",
+            2,
+            percent=False,
+        )
+    return rows
+
+
 _HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
 _BRIEF_MARKDOWN = MarkdownIt("commonmark", {"html": False}).enable("table")
 
@@ -451,6 +670,9 @@ section.alt { background:#e9eeeb; }
 .chart-card { margin:0; padding:18px; }
 .chart-card img { width:100%; display:block; margin-top:12px; border-radius:8px; background:white; }
 .chart-card figcaption { color:var(--muted); font-size:.79rem; margin-top:10px; }
+.table-scroll { max-height:432px; overflow-y:auto; border:1px solid var(--line); border-radius:12px; }
+.table-scroll .score { border:0; border-radius:0; }
+.table-scroll th { position:sticky; top:0; z-index:1; }
 .timeline { display:grid; grid-template-columns:repeat(4,1fr); gap:0; counter-reset:phase; }
 .phase { position:relative; padding:20px 19px 18px; border-top:3px solid var(--teal); background:var(--card); }
 .phase + .phase { border-left:1px solid var(--line); }
@@ -458,7 +680,15 @@ section.alt { background:#e9eeeb; }
 .phase h3 { margin:12px 0 5px; }
 .phase p { color:var(--muted); font-size:.86rem; }
 .split { display:grid; grid-template-columns:1.2fr .8fr; gap:22px; align-items:start; }
+.outcome-banner { display:grid; grid-template-columns:minmax(240px,auto) 1fr; gap:6px 34px; align-items:center; background:var(--card); border:1px solid var(--line); border-left:6px solid var(--green); border-radius:14px; padding:16px 22px; margin-bottom:30px; }
+.outcome-banner.fail { border-left-color:var(--red); }
+.outcome-status { display:flex; align-items:center; gap:11px; font-weight:800; font-size:1.06rem; letter-spacing:-.01em; }
+.outcome-banner .dot { background:var(--green); box-shadow:0 0 0 5px rgba(40,122,82,.12); }
+.outcome-banner.fail .dot { background:var(--red); box-shadow:0 0 0 5px rgba(179,66,53,.12); }
+.outcome-text { margin:0; color:var(--muted); font-size:.92rem; }
+.outcome-meta { grid-column:1 / -1; margin:0; padding-top:10px; border-top:1px solid var(--line); color:var(--muted); font-size:.78rem; }
 .brief-col { min-width:0; }
+.brief p,.brief ul,.brief ol { max-width:58rem; }
 .brief > :first-child { margin-top:0; }
 .brief h1,.brief h2,.brief h3,.brief h4 { color:var(--ink); letter-spacing:-.02em; line-height:1.25; }
 .brief h1 { font-size:1.28rem; margin:0 0 .55em; }
@@ -482,7 +712,7 @@ pre { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.55 ui-
 .meta { color:var(--muted); font-size:.8rem; }
 footer { color:#a9c5cc; background:var(--navy); padding:35px 0; }
 details summary { cursor:pointer; font-weight:800; margin-bottom:14px; }
-@media (max-width:900px) { .hero-grid,.section-head,.split { grid-template-columns:1fr; } .hero-grid { gap:24px; } .stat-row,.cards,.gates,.timeline { grid-template-columns:repeat(2,1fr); } .charts { grid-template-columns:1fr; } }
+@media (max-width:900px) { .hero-grid,.section-head,.split,.outcome-banner { grid-template-columns:1fr; } .hero-grid { gap:24px; } .stat-row,.cards,.gates,.timeline { grid-template-columns:repeat(2,1fr); } .charts { grid-template-columns:1fr; } }
 @media (max-width:560px) { .wrap { width:min(100% - 24px,1180px); } nav { display:none; } .hero { padding-top:42px; } .stat-row,.cards,.gates,.timeline { grid-template-columns:1fr; } .viewer-shell { margin-inline:-6px; } section { padding:54px 0; } }
 @media print { .topbar,.viewer-tools { display:none; } .hero { color:var(--ink); background:white; } .deck { color:var(--muted); } section { break-inside:avoid; } }
 </style>
@@ -507,7 +737,12 @@ details summary { cursor:pointer; font-weight:800; margin-bottom:14px; }
 
 <section id="executive"><div class="wrap">
   <div class="section-head"><div><div class="eyebrow">01 · Decision view</div><h2>Mission fit and flight-worthiness</h2></div><p>Headline values come from the optimized aircraft’s own artifacts. Every gate below carries one-line evidence and a source path; the green state is not inferred from a stage’s top-level flag alone.</p></div>
-  <div class="split"><div class="brief-col">@@BRIEF@@</div><div class="card"><div class="eyebrow">Outcome</div><h3>@@OUTCOME_TITLE@@</h3><p>@@OUTCOME_TEXT@@</p><p class="meta">Concept source: designs/@@CONCEPT@@/design.yaml<br>Optimized spec: results/@@CONCEPT@@/optimized/design.yaml</p></div></div>
+  <div class="outcome-banner @@VERDICT_CLASS@@">
+    <div class="outcome-status"><span class="dot"></span>@@OUTCOME_TITLE@@</div>
+    <p class="outcome-text">@@OUTCOME_TEXT@@</p>
+    <p class="outcome-meta">Concept source: designs/@@CONCEPT@@/design.yaml · Optimized spec: results/@@CONCEPT@@/optimized/design.yaml</p>
+  </div>
+  <div class="brief-col">@@BRIEF@@</div>
   <h3 style="margin-top:34px">Requirements scorecard</h3>
   <table class="score"><thead><tr><th>Requirement</th><th>Target</th><th>Predicted</th><th>Verdict</th></tr></thead><tbody>@@SCORECARD@@</tbody></table>
   <div class="gates">@@GATES@@</div>
@@ -519,9 +754,15 @@ details summary { cursor:pointer; font-weight:800; margin-bottom:14px; }
 </div></section>
 
 <section id="evolution"><div class="wrap">
-  <div class="section-head"><div><div class="eyebrow">03 · Design evolution</div><h2>From source or sketch to delivered design</h2></div><p>The delivered configuration is checked by a separate OAS solve. Stability evidence is labeled by method: an independent lifting-surface derivative or a same-run VSPAERO component model combined with the declared tail model.</p></div>
-  <div class="timeline">@@TIMELINE@@</div>
-  <div class="split" style="margin-top:24px"><div><h3>Delivery starts</h3><table class="score"><thead><tr><th>Start</th><th>Dash</th><th>Endurance</th><th>MTOW</th><th>Feasible</th></tr></thead><tbody>@@MDO_STARTS@@</tbody></table></div><div><h3>Static-margin closure</h3><table class="score"><thead><tr><th>Attempt</th><th>Internal band</th><th>Evaluated full / reserve</th><th>Verdict</th></tr></thead><tbody>@@SM_CAL@@</tbody></table></div></div>
+  <div class="section-head"><div><div class="eyebrow">03 · Design evolution</div><h2>From source or sketch to delivered design</h2></div><p>The baseline is the aircraft as drawn; the optimizer answers what it presented. Both columns below are read from their own phase artifacts — the two phases are different aircraft and are never mixed inside one number. The delivered configuration is checked by a separate OAS solve; stability evidence is labeled by method.</p></div>
+  <div class="split">
+    <div>@@BASELINE_FIG@@</div>
+    <div class="card"><div class="eyebrow">Baseline phase evidence</div><h3>What the baseline presented</h3><ul class="assumptions">@@BASELINE_FINDINGS@@</ul><p class="meta">Evidence: results/@@CONCEPT@@/baseline/{aero,sizing,structures}.json</p></div>
+  </div>
+  <h3 style="margin-top:36px">What the optimizer changed, and the effect</h3>
+  <table class="score"><thead><tr><th>Quantity</th><th>Baseline</th><th>Optimized</th><th>Change</th></tr></thead><tbody>@@DELTA_ROWS@@</tbody></table>
+  <div class="timeline" style="margin-top:46px">@@TIMELINE@@</div>
+  <div class="split" style="margin-top:24px"><div><h3>Delivery starts</h3><div class="table-scroll"><table class="score"><thead><tr><th>Start</th><th>Dash</th><th>Endurance</th><th>MTOW</th><th>Feasible</th></tr></thead><tbody>@@MDO_STARTS@@</tbody></table></div></div><div><h3>Static-margin closure</h3><table class="score"><thead><tr><th>Attempt</th><th>Internal band</th><th>Evaluated full / reserve</th><th>Verdict</th></tr></thead><tbody>@@SM_CAL@@</tbody></table></div></div>
 </div></section>
 
 <section id="verification" class="alt"><div class="wrap">
@@ -758,6 +999,8 @@ def build_presentation(design_path: str | Path) -> dict[str, Any]:
         )
     }
     data["mdo"] = mdo
+    baseline_aero = _read_json(baseline_dir / "aero.json")
+    baseline_structures = _read_json(baseline_dir / "structures.json")
     base_metrics, opt_metrics = _performance(
         baseline_sizing,
         mdo,
@@ -952,6 +1195,45 @@ def build_presentation(design_path: str | Path) -> dict[str, Any]:
         ]
     )
 
+    baseline_threeview_uri = _image_uri(baseline_dir / "threeview.png")
+    if baseline_threeview_uri:
+        baseline_fig = (
+            '<figure class="chart-card">'
+            '<div class="eyebrow">Artifact truth · baseline</div>'
+            "<h3>Baseline aircraft three-view</h3>"
+            f'<img src="{baseline_threeview_uri}" alt="Baseline three-view">'
+            "<figcaption>Orthographic projections drawn from the baseline STL — "
+            "the as-drawn aircraft before any optimization.</figcaption>"
+            "</figure>"
+        )
+    else:
+        baseline_fig = (
+            '<div class="card"><div class="eyebrow">Artifact truth · baseline</div>'
+            "<h3>Baseline three-view unavailable</h3>"
+            "<p>results/"
+            + html.escape(concept)
+            + "/baseline/threeview.png was not found.</p></div>"
+        )
+    findings = _baseline_findings(
+        baseline_spec,
+        baseline_sizing,
+        baseline_aero,
+        baseline_structures,
+    )
+    findings_html = (
+        "".join(f"<li>{html.escape(item)}</li>" for item in findings)
+        or "<li>No baseline stage artifacts were found beside the source design.</li>"
+    )
+    delta_rows = _evolution_rows(
+        baseline_spec,
+        optimized_spec,
+        base_metrics,
+        opt_metrics,
+        baseline_aero,
+        data["aero"],
+        endurance_applicable,
+    )
+
     starts = mdo.get("starts") or []
     start_rows = [
         [
@@ -1137,11 +1419,17 @@ def build_presentation(design_path: str | Path) -> dict[str, Any]:
         if endurance_applicable
         else '<div class="stat"><strong>—</strong><span>endurance not claimed</span></div>'
     )
+    payload_kg = float(optimized_spec.mission.payload_kg)
+    payload_stat = (
+        f'<div class="stat"><strong>{payload_kg:.1f}</strong><span>kg payload</span></div>'
+        if payload_kg > 0.05
+        else f'<div class="stat"><strong>{optimized_spec.wing.span_m:.2f}</strong><span>m span</span></div>'
+    )
     stats_html = "".join(
         [
             f'<div class="stat"><strong>{opt_metrics["dash_kmh"]:.0f}</strong><span>km/h dash</span></div>',
             endurance_stat,
-            f'<div class="stat"><strong>{optimized_spec.mission.payload_kg:.1f}</strong><span>kg payload</span></div>',
+            payload_stat,
             f'<div class="stat"><strong>{opt_metrics["mtow_kg"]:.1f}</strong><span>kg MTOW</span></div>',
         ]
     )
@@ -1151,8 +1439,8 @@ def build_presentation(design_path: str | Path) -> dict[str, Any]:
         "@@DATE@@": generated.strftime("%d %B %Y"),
         "@@DECK@@": html.escape(
             f"{optimized_spec.engine.name} {topology} · "
-            f"{optimized_spec.mission.payload_kg:.1f} kg payload · "
-            "baseline-to-optimized evidence with an embedded model of the actual exported mesh."
+            + (f"{payload_kg:.1f} kg payload · " if payload_kg > 0.05 else "")
+            + "baseline-to-optimized evidence with an embedded model of the actual exported mesh."
         ),
         "@@VERDICT_CLASS@@": "" if all_gates else "fail",
         "@@VERDICT@@": f"{sum(g['ok'] for g in gates)}/{len(gates)} preliminary-design gates pass",
@@ -1171,6 +1459,9 @@ def build_presentation(design_path: str | Path) -> dict[str, Any]:
         "@@SCORECARD@@": score_html,
         "@@GATES@@": gates_html,
         "@@CHARTS@@": charts,
+        "@@BASELINE_FIG@@": baseline_fig,
+        "@@BASELINE_FINDINGS@@": findings_html,
+        "@@DELTA_ROWS@@": _table_rows(delta_rows),
         "@@TIMELINE@@": timeline,
         "@@MDO_STARTS@@": _table_rows(
             start_rows, [row[-1] == "yes" for row in start_rows]
