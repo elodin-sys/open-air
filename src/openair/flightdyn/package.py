@@ -849,7 +849,7 @@ def build_elodin_package(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
             chord_m=spec.wing.mac_m,
             reference_altitude_m=spec.mission.cruise_altitude_m,
         )
-        balance = dict(sizing.get("balance") or {})
+        balance = dict(sizing.get("balance") or aero.get("balance") or {})
         masses = mass_breakdown or dict(sizing.get("masses") or {})
         mtow = float(
             masses.get("mtow_kg") or sizing.get("mtow_kg") or structures.get("mtow_kg")
@@ -862,6 +862,8 @@ def build_elodin_package(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
             or fuel_mass * spec.mission.reserve_fuel_fraction
         )
         fuel_volume = sizing.get("fuel_volume_m3")
+        if fuel_volume is None:
+            fuel_volume = fuel_mass / spec.engine.fuel_density_kg_m3
         inertia = dict((flightdyn or {}).get("mass_properties") or {})
         validation_summary = _validation_summary(validation)
         credibility = (
@@ -1093,8 +1095,14 @@ def build_elodin_package(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
                 },
                 stall={
                     "speed_mps": float(balance.get("vstall_mps") or 0.0),
-                    "cl_max": float(balance.get("cl_max") or spec.mission.cl_max),
-                    "cl_max_basis": spec.mission.cl_max_basis,
+                    "cl_max": float(
+                        balance.get("cl_max_effective")
+                        or balance.get("cl_max")
+                        or spec.mission.cl_max
+                    ),
+                    "cl_max_basis": "aircraft_effective",
+                    "input_cl_max": spec.mission.cl_max,
+                    "input_cl_max_basis": spec.mission.cl_max_basis,
                 },
                 positive_g={
                     key: positive.get(key)

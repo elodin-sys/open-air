@@ -113,6 +113,10 @@ def _fixture_phase(tmp_path: Path, *, flightdyn: bool = False):
                 "cl_alpha_per_deg": 0.08,
                 "dcm_dcl": -0.2,
             },
+            balance={
+                "vstall_mps": 17.5,
+                "cl_max_effective": 1.1,
+            },
             cruise={
                 "tas_mps": 40.0,
                 "mach": 0.12,
@@ -243,6 +247,7 @@ def test_builds_low_fidelity_package_and_round_trips(tmp_path: Path):
     assert model.frames.geometry_to_body_matrix[0][3] == pytest.approx(1.0)
     assert model.mass_properties.manufacturer_listed_mass_kg == [18.14, 19.05]
     assert model.mass_properties.fuel_capacity_kg == pytest.approx(4.8)
+    assert model.performance_anchors.stall["cl_max"] == pytest.approx(1.2)
     assert set(model.manifest) >= {
         "render_glb",
         "aero_tables",
@@ -328,3 +333,18 @@ def test_mixed_phase_pipeline_ids_are_rejected(tmp_path: Path):
 
     with pytest.raises(ValueError, match="mixed pipeline_run_id"):
         build_elodin_package(spec, outdir)
+
+
+def test_missing_sizing_uses_aero_balance_for_optimized_style_phase(tmp_path: Path):
+    spec, outdir = _fixture_phase(tmp_path)
+    (outdir / "sizing.json").unlink()
+
+    result = build_elodin_package(spec, outdir)
+    model = load_elodin_package(result["model"])
+
+    assert model.performance_anchors.stall["speed_mps"] == pytest.approx(17.5)
+    assert model.performance_anchors.stall["cl_max"] == pytest.approx(1.1)
+    assert model.performance_anchors.stall["cl_max_basis"] == "aircraft_effective"
+    assert model.mass_properties.fuel_volume_m3 == pytest.approx(
+        2.0 / spec.engine.fuel_density_kg_m3
+    )
