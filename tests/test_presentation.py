@@ -4,7 +4,45 @@ from pathlib import Path
 import openair.paths as paths
 from conftest import BASELINE_DESIGN
 from openair.cli import load_spec
-from openair.reporting.presentation import _topology_label, build_presentation
+from openair.reporting.presentation import _brief_html, _topology_label, build_presentation
+
+SAMPLE_BRIEF = """# Demo concept
+
+Provisional reconstruction of the **standard Elite Aerosports EA
+BDX** RC jet and the Elodin `rc-jet` example.
+
+| Source | Use |
+|---|---|
+| `handoff.md` | **Primary trace.** See `sketch-top.png` |
+
+- Convention: `x/L = 0` at the nose; positive `y`
+  toward the right wingtip.
+
+<!-- OPENAIR_SKETCH_WORKSHEET_START -->
+Worksheet body stays visible.
+<!-- OPENAIR_SKETCH_WORKSHEET_END -->
+"""
+
+
+def test_brief_html_renders_markdown_instead_of_escaping_it():
+    rendered = _brief_html(SAMPLE_BRIEF)
+    assert '<div class="brief">' in rendered
+    assert "<strong>standard Elite Aerosports EA" in rendered
+    assert "<code>rc-jet</code>" in rendered
+    assert "<th>Source</th>" in rendered
+    assert "<code>handoff.md</code>" in rendered
+    assert "<strong>Primary trace.</strong>" in rendered
+    assert "<code>x/L = 0</code>" in rendered
+    assert "Worksheet body stays visible." in rendered
+    assert "OPENAIR_SKETCH_WORKSHEET" not in rendered
+    assert "| Source |" not in rendered
+    assert "**standard" not in rendered
+    assert "`rc-jet`" not in rendered
+
+
+def test_brief_html_empty_input_is_blank():
+    assert _brief_html("") == ""
+    assert _brief_html("   \n<!-- only a comment -->\n") == ""
 
 
 def _write_json(path: Path, payload: dict) -> None:
@@ -26,6 +64,7 @@ def test_presentation_embeds_mesh_and_writes_pdf(tmp_path: Path, monkeypatch):
     source.parent.mkdir(parents=True)
     optimized.parent.mkdir(parents=True)
     source.write_text(BASELINE_DESIGN.read_text())
+    (source.parent / "brief.md").write_text(SAMPLE_BRIEF)
     (source.parent / "sketch-top.png").write_bytes(b"\x89PNG\r\n\x1a\nconcept-sketch")
     optimized.write_text(BASELINE_DESIGN.read_text())
     monkeypatch.setattr(paths, "DESIGNS_DIR", designs)
@@ -207,6 +246,9 @@ endsolid demo
     assert "Tier C · artifact truth" in text
     assert "Upstream response:" in text
     assert "Concept sketch · top" in text
+    assert "<th>Source</th>" in text
+    assert "<code>rc-jet</code>" in text
+    assert "| Source |" not in text
     assert "data:image/png;base64," in text
     assert "Wireframe" in text
     assert feedback["gates"][0]["evidence"] == (

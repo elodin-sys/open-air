@@ -8,6 +8,7 @@ import html
 import importlib.metadata
 import json
 import platform
+import re
 import struct
 from datetime import datetime
 from pathlib import Path
@@ -15,6 +16,7 @@ from typing import Any
 
 import numpy as np
 import yaml
+from markdown_it import MarkdownIt
 
 from openair.io import dump_json, load_yaml
 from openair.paths import optimized_design_for, resolve_design, results_dir_for
@@ -178,6 +180,21 @@ def _performance(
         ),
     }
     return base, opt
+
+
+_HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+_BRIEF_MARKDOWN = MarkdownIt("commonmark", {"html": False}).enable("table")
+
+
+def _brief_html(text: str) -> str:
+    """Render a concept ``brief.md`` (or spec notes) to HTML."""
+    cleaned = _HTML_COMMENT.sub("", text).strip()
+    if not cleaned:
+        return ""
+    rendered = _BRIEF_MARKDOWN.render(cleaned)
+    rendered = rendered.replace("<table>", '<div class="table-wrap"><table>')
+    rendered = rendered.replace("</table>", "</table></div>")
+    return f'<div class="brief">{rendered}</div>'
 
 
 def _table_rows(rows: list[list[str]], statuses: list[bool] | None = None) -> str:
@@ -441,6 +458,23 @@ section.alt { background:#e9eeeb; }
 .phase h3 { margin:12px 0 5px; }
 .phase p { color:var(--muted); font-size:.86rem; }
 .split { display:grid; grid-template-columns:1.2fr .8fr; gap:22px; align-items:start; }
+.brief-col { min-width:0; }
+.brief > :first-child { margin-top:0; }
+.brief h1,.brief h2,.brief h3,.brief h4 { color:var(--ink); letter-spacing:-.02em; line-height:1.25; }
+.brief h1 { font-size:1.28rem; margin:0 0 .55em; }
+.brief h2 { font-size:1.08rem; margin:1.35em 0 .45em; }
+.brief h3,.brief h4 { font-size:1rem; margin:1.1em 0 .4em; }
+.brief p,.brief ul,.brief ol { margin:0 0 .85em; }
+.brief ul,.brief ol { padding-left:1.2em; }
+.brief li { margin-bottom:.35em; }
+.brief li > ul,.brief li > ol { margin:.35em 0 0; }
+.brief code { font:.86em/1.45 ui-monospace,SFMono-Regular,Consolas,monospace; background:#e8eeec; border-radius:4px; padding:.08em .35em; }
+.brief pre { color:var(--ink); background:#e8eeec; max-height:none; }
+.brief .table-wrap { overflow-x:auto; margin:0 0 1em; border:1px solid var(--line); border-radius:12px; background:var(--card); }
+.brief table { width:100%; border-collapse:collapse; font-size:.78rem; }
+.brief th { text-align:left; color:white; background:var(--navy); padding:8px 10px; font-size:.72rem; text-transform:uppercase; letter-spacing:.04em; }
+.brief td { border-top:1px solid var(--line); padding:8px 10px; vertical-align:top; }
+.brief tr:nth-child(even) td { background:#f7f6f1; }
 pre { margin:0; white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace; color:#d8e5e8; background:#092a35; border-radius:12px; padding:20px; max-height:650px; overflow:auto; }
 .assumptions li { margin-bottom:10px; }
 .pill { display:inline-block; border-radius:999px; padding:3px 8px; font-size:.7rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; background:#d9e6e2; }
@@ -473,7 +507,7 @@ details summary { cursor:pointer; font-weight:800; margin-bottom:14px; }
 
 <section id="executive"><div class="wrap">
   <div class="section-head"><div><div class="eyebrow">01 · Decision view</div><h2>Mission fit and flight-worthiness</h2></div><p>Headline values come from the optimized aircraft’s own artifacts. Every gate below carries one-line evidence and a source path; the green state is not inferred from a stage’s top-level flag alone.</p></div>
-  <div class="split"><div>@@BRIEF@@</div><div class="card"><div class="eyebrow">Outcome</div><h3>@@OUTCOME_TITLE@@</h3><p>@@OUTCOME_TEXT@@</p><p class="meta">Concept source: designs/@@CONCEPT@@/design.yaml<br>Optimized spec: results/@@CONCEPT@@/optimized/design.yaml</p></div></div>
+  <div class="split"><div class="brief-col">@@BRIEF@@</div><div class="card"><div class="eyebrow">Outcome</div><h3>@@OUTCOME_TITLE@@</h3><p>@@OUTCOME_TEXT@@</p><p class="meta">Concept source: designs/@@CONCEPT@@/design.yaml<br>Optimized spec: results/@@CONCEPT@@/optimized/design.yaml</p></div></div>
   <h3 style="margin-top:34px">Requirements scorecard</h3>
   <table class="score"><thead><tr><th>Requirement</th><th>Target</th><th>Predicted</th><th>Verdict</th></tr></thead><tbody>@@SCORECARD@@</tbody></table>
   <div class="gates">@@GATES@@</div>
@@ -784,11 +818,7 @@ def build_presentation(design_path: str | Path) -> dict[str, Any]:
         if brief_path.exists()
         else baseline_spec.notes
     )
-    brief_html = "".join(
-        f"<p>{html.escape(block.strip())}</p>"
-        for block in brief_text.split("\n\n")
-        if block.strip() and not block.lstrip().startswith("#")
-    )
+    brief_html = _brief_html(brief_text)
 
     desires = data["report"].get("desires") or {}
     endurance_applicable = bool(

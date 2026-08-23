@@ -20,6 +20,7 @@ dependencies = [
     "pydantic>=2",
     "pyyaml",
     "pandas",
+    "markdown-it-py>=3",
 ]
 
 [project.optional-dependencies]
