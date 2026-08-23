@@ -1,7 +1,7 @@
 # 2026-08-23 — Elodin model package export
 
 - Type: milestone
-- Commits: `cb6b385`, `dad6df9`
+- Commits: `cb6b385`, `dad6df9`, `cb21bfe`
 
 The BDX handoff exposed a second source-of-truth problem: Elodin's `rc-jet`
 example copied aircraft constants into Python while open-air published
@@ -35,6 +35,11 @@ validate before world creation.
 - Rewrote the Elodin engineering guide with the file contract, rejection
   rules, low-/high-fidelity consumption paths, GLB use, scenario separation,
   and package-driven acceptance tests.
+- Embedded a generated `integration_guide.md` in every package: load and
+  rejection checklist, frame transform with the concept's numbers, the
+  low-fidelity equations, sidecar contracts, validity bounds, and a per-block
+  absent/present table naming the exact `design.yaml` fields that supply each
+  missing tier.
 
 ## Outcome
 
