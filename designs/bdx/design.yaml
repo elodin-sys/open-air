@@ -1,0 +1,192 @@
+name: "bdx"
+notes: >-
+  Provisional parametric reconstruction of the standard Elite Aerosports EA BDX sport turbine jet for a future Elodin example. Hard manufacturer facts: span 2.65 m, length 2.80 m, listed weight 18.14-19.05 kg (state unknown), recommended thrust 180-210 N, 6.0 L main fuel cell. Planform, loft, and fin shape are traced from an orthographic BDXL livery sheet and photo cross-checks; the BDXL is the stretched family variant, so shape ratios carry wider tolerances. Airfoil is NOT published; NACA 0012 is an explicitly labeled surrogate. Aerodynamic coefficients, mass distribution, and turbine data remain provisional until correlated with an actual BDX.
+  
+sketch:
+  treatment: "inspiration"
+  hard_scale: 3
+  fidelity_weight: 1
+  span_over_length: 0.946429
+  span_over_length_tol: 0.03
+  root_over_length: 0.234643
+  root_over_length_tol: 0.02
+  le_sweep_deg: 12.5
+  le_sweep_tol_deg: 3
+  taper: 0.53
+  taper_tol: 0.07
+  x_le_root_over_length: 0.402143
+  x_le_root_over_length_tol: 0.035
+  payload_bay_x_lo_m: 0.45
+  payload_bay_x_hi_m: 1.35
+  fuel_tank_x_lo_m: 1.3
+  fuel_tank_x_hi_m: 1.7
+  twist_tip_lo_deg: -3
+  twist_tip_hi_deg: 0
+  fin_span_m: 0.4
+  fin_span_tol_m: 0.06
+  fin_root_chord_m: 0.92
+  fin_root_chord_tol_m: 0.1
+  fin_le_sweep_deg: 62
+  fin_le_sweep_tol_deg: 5
+  fin_cant_deg: 0
+  fin_cant_tol_deg: 3
+  fin_x_le_m: 1.85
+  fin_x_le_tol_m: 0.1
+engine:
+  name: "200 N-class small turbojet (provisional; EA recommends 180-210 N)"
+  energy_source: "liquid_fuel"
+  diameter_m: 0.12
+  length_m: 0.35
+  dry_mass_kg: 2.6
+  installation: "internal"
+  installation_count: 1
+  x_m: null
+  lateral_offset_m: 0
+  z_m: 0.17
+  max_thrust_sl_n: 200
+  fuel_flow_max_kg_s: 0.006667
+  thrust_lapse_k_mach: 0.35
+  thrust_lapse_floor: 0.08
+  tsfc_part_a: 0.8
+  tsfc_part_b: 0.2
+  tsfc_mach_k: 0.15
+  min_throttle: 0.18
+  fuel_density_kg_m3: 800
+  nacelle_frontal_cd: 0.08
+  deck: null
+wing:
+  span_m: 2.65
+  root_chord_m: 0.657
+  taper: 0.53
+  le_sweep_deg: 12.5
+  dihedral_deg: 0
+  twist_root_deg: 0
+  twist_tip_deg: -1
+  t_over_c: 0.12
+  airfoil: "0012"
+  x_le_root_m: 1.126
+  z_root_m: 0.03
+fuselage:
+  length_m: 2.8
+  max_width_m: 0.36
+  max_height_m: 0.44
+  nose_fine_ratio: 0.22
+  tail_fine_ratio: 0.28
+  payload_bay_length_m: 0.5
+  payload_bay_width_m: 0.2
+  payload_bay_height_m: 0.16
+  payload_bay_x_m: 0.6
+  fuel_tank_x_m: 1.45
+  stations:
+    - {x_over_length: 0, width_m: 0, height_m: 0, z_offset_m: 0, side_power: 2, top_power: 2, bottom_power: 2}
+    - {x_over_length: 0.1, width_m: 0.18, height_m: 0.223, z_offset_m: 0.037, side_power: 2, top_power: 2, bottom_power: 2.5}
+    - {x_over_length: 0.222937, width_m: 0.254, height_m: 0.330389, z_offset_m: 0.077193, side_power: 2, top_power: 2, bottom_power: 3}
+    - {x_over_length: 0.33, width_m: 0.254, height_m: 0.385, z_offset_m: 0.105, side_power: 2, top_power: 2, bottom_power: 3}
+    - {x_over_length: 0.64, width_m: 0.356, height_m: 0.44, z_offset_m: 0.141, side_power: 2, top_power: 2, bottom_power: 3}
+    - {x_over_length: 0.78, width_m: 0.277, height_m: 0.424, z_offset_m: 0.131, side_power: 2, top_power: 2, bottom_power: 2.5}
+    - {x_over_length: 0.92, width_m: 0.16, height_m: 0.279, z_offset_m: 0.173, side_power: 2, top_power: 2, bottom_power: 2}
+    - {x_over_length: 1, width_m: 0.06, height_m: 0.06, z_offset_m: 0.28, side_power: 2, top_power: 2, bottom_power: 2}
+vtail:
+  count: 1
+  span_m: 0.4
+  root_chord_m: 0.92
+  taper: 0.17
+  le_sweep_deg: 62
+  cant_deg: 0
+  t_over_c: 0.07
+  x_le_m: 1.85
+  y_root_m: 0
+  z_root_m: 0.26
+htail:
+  span_m: 1.302
+  root_chord_m: 0.442
+  taper: 0.38
+  le_sweep_deg: 23
+  t_over_c: 0.1
+  x_le_m: 2.301
+  z_m: 0.24
+  incidence_deg: 0
+mission:
+  endurance_s: 900
+  endurance_required: true
+  payload_kg: 0
+  cruise_altitude_m: 300
+  dash_altitude_m: 100
+  cruise_mach: 0.12
+  cruise_cl: 0.18
+  dash_mach_cap: 0.3
+  limit_positive_g: 6
+  limit_negative_g: -3
+  safety_factor: 1.5
+  static_margin_min: 0.05
+  static_margin_max: 0.15
+  reserve_fuel_fraction: 0.08
+  cl_max: 1.2
+  cl_max_basis: "aircraft"
+  stall_speed_max_mps: 25
+structures:
+  fem_model_type: "wingbox"
+  spar_thickness_m: 0.0025
+  skin_thickness_m: 0.0018
+  tube_radius_m: 0.018
+  tube_thickness_m: 0.0025
+  wing_weight_ratio: 1.35
+  n_spanwise: 9
+  n_chordwise: 3
+  material:
+    name: "Al7050-T7451"
+    E_pa: 71700000000
+    nu: 0.33
+    yield_pa: 470000000
+    density_kg_m3: 2830
+  spanwise: null
+  modal_calibration: []
+  sensor_stations: []
+drag:
+  interference_fraction: 0.08
+  protuberance_cd0: 0.004
+mass:
+  fuel_mass_kg: 4.8
+  fuel_mass_mode: "sized"
+  operating_empty_mass_kg: 18.6
+  operating_empty_cg_x_m: 1.42
+  systems_kg: 3
+  landing_gear_fraction: 0.035
+  avionics_kg: 0.5
+  contingency_fraction: 0.08
+flight_dynamics:
+  enabled: false
+  reference_airspeed_mps: 18
+  reference_altitude_m: 0
+  inertia: null
+  control_surfaces: []
+  aeroelastic:
+    enabled: false
+    strip_count: 48
+    modes_per_family: 1
+    frequency_min_hz: 0.5
+    frequency_max_hz: 30
+    frequency_points: 160
+    maximum_reduced_frequency: 0.3
+    elastic_axis_fraction_chord: 0.4
+    lift_curve_slope_per_rad: null
+    calibration_id: "none"
+  allow_diagonal_inertia_approximation: false
+  calibration_id: "none"
+solver:
+  oas_with_viscous: true
+  oas_with_wave: true
+  optimize_maxiter: 25
+  optimize_tol: 0.0001
+  fd_step: 0.001
+  vspaero_wake_iters: 3
+  su2_maxiter: 200
+  gmsh_lc_m: 0.1
+  stability_method: "lifting_surface"
+  np_shift_mac: 0.04305
+  wing_body_np_mac: null
+  wing_body_cl_alpha_per_deg: null
+  cm_washout_per_deg: 0.00362
+  tail_incidence_offset_deg: 0
+  tail_lift_effectiveness_factor: 1
+  tail_lift_effectiveness_source: null
