@@ -1,7 +1,7 @@
 # 2026-08-23 — Design previews in git
 
 - Type: plan
-- Commits: (policy commit and preview commit; hashes recorded at close-out)
+- Commits: `8837120`, `699dc92`
 - Related: [2026-08-23-1441-elodin-model-package.md](2026-08-23-1441-elodin-model-package.md)
 
 The Elodin package export left `results/` fully gitignored, so cloning the
