@@ -79,6 +79,63 @@ libraries it needs into `tools/` from official archives.
    python -m openair promote my-concept my-concept-v2
    ```
 
+## Design previews
+
+Each complete concept keeps a browsable preview under `results/<concept>/`.
+These files are regenerated evidence: pipeline run id, source commit, and
+artifact hashes live inside the report, the brief, and
+`elodin_package/elodin_model.json` / `provenance.md`. Refresh them in the
+same change that alters what they show. GitHub renders the PDF and PNGs
+in-browser; `report.html` is a download (GitHub shows the HTML as source).
+Baseline and optimized packages are different aircraft — do not mix them.
+
+- **bdx** — Elite Aerosports BDX RC sport-jet reconstruction.
+  [executive brief](results/bdx/executive_brief.pdf) ·
+  [baseline vs optimized](results/bdx/baseline_vs_optimized.png) ·
+  [CG / NP](results/bdx/cg_np_balance.png) ·
+  [report.html](results/bdx/report.html) ·
+  [optimized package](results/bdx/optimized/elodin_package/) ·
+  [baseline package](results/bdx/baseline/elodin_package/)
+- **gtm-t2** — NASA GTM T-2 5.5% twin-engine reconstruction.
+  [executive brief](results/gtm-t2/executive_brief.pdf) ·
+  [baseline vs optimized](results/gtm-t2/baseline_vs_optimized.png) ·
+  [CG / NP](results/gtm-t2/cg_np_balance.png) ·
+  [report.html](results/gtm-t2/report.html) ·
+  [optimized package](results/gtm-t2/optimized/elodin_package/) ·
+  [baseline package](results/gtm-t2/baseline/elodin_package/)
+- **ntnu-x8** — NTNU Skywalker X8 source-only reconstruction.
+  [executive brief](results/ntnu-x8/executive_brief.pdf) ·
+  [baseline vs optimized](results/ntnu-x8/baseline_vs_optimized.png) ·
+  [CG / NP](results/ntnu-x8/cg_np_balance.png) ·
+  [report.html](results/ntnu-x8/report.html) ·
+  [optimized package](results/ntnu-x8/optimized/elodin_package/) ·
+  [baseline package](results/ntnu-x8/baseline/elodin_package/)
+- **diana2** — Baudismodel Diana 2 1:3 sailplane reconstruction.
+  [executive brief](results/diana2/executive_brief.pdf) ·
+  [baseline vs optimized](results/diana2/baseline_vs_optimized.png) ·
+  [CG / NP](results/diana2/cg_np_balance.png) ·
+  [report.html](results/diana2/report.html) ·
+  [optimized package](results/diana2/optimized/elodin_package/) ·
+  [baseline package](results/diana2/baseline/elodin_package/)
+- **ceras-csr01** — CeRAS CSR-01 transport reconstruction. The OAS wingbox
+  refuses structural closure at this scale; the package still ships
+  geometry, aero, and propulsion with that allowance recorded.
+  [executive brief](results/ceras-csr01/executive_brief.pdf) ·
+  [baseline vs optimized](results/ceras-csr01/baseline_vs_optimized.png) ·
+  [CG / NP](results/ceras-csr01/cg_np_balance.png) ·
+  [report.html](results/ceras-csr01/report.html) ·
+  [optimized package](results/ceras-csr01/optimized/elodin_package/) ·
+  [baseline package](results/ceras-csr01/baseline/elodin_package/)
+- **openair-x8-capstone** — sealed NTNU X8 Class-A holdout reconstruction.
+  The 2026-08-22 report, brief, and charts are committed as-is. No Elodin
+  package: the frozen YAML carries `flight_dynamics.elevon`, which the
+  current schema rejects, and there is no `designs/` source to regenerate
+  without reopening the holdout.
+  [executive brief](results/openair-x8-capstone/executive_brief.pdf) ·
+  [baseline vs optimized](results/openair-x8-capstone/baseline_vs_optimized.png) ·
+  [CG / NP](results/openair-x8-capstone/cg_np_balance.png) ·
+  [report.html](results/openair-x8-capstone/report.html)
+
 ## Tests
 
 ```bash

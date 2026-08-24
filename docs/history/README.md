@@ -73,6 +73,7 @@ non-claims. Do not turn calibration or post-hoc agreement into validation.
 ### 2026-08-23 — Simulator delivery
 
 - [14:41 — Elodin model package export](2026-08-23-1441-elodin-model-package.md): replaced copied simulation constants with a phase-bound, hash-verified low-/high-fidelity package and CG-frame GLB.
+- [18:25 — Design previews in git](2026-08-23-1825-design-previews.md): committed report/brief/chart/`elodin_package` previews so the repo shows each design's outcome without staging stage JSONs.
 
 ## Adding an entry
 

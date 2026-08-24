@@ -15,8 +15,15 @@ truth/cases/diana2-flight/truth/training/*.mat
 tools/
 *.deb
 
-# Run artifacts
-results/
+# Run artifacts: ignore everything under results/, then un-ignore the
+# presentation subset so `git add results/` stages only previews.
+results/**
+!results/**/
+!results/*/report.html
+!results/*/executive_brief.pdf
+!results/*/baseline_vs_optimized.png
+!results/*/cg_np_balance.png
+!results/*/*/elodin_package/**
 design-studio.html
 *.db
 *.n2.html

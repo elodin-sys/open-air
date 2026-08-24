@@ -71,8 +71,10 @@ docs/history/     chronological project decisions, milestones, and capstones
 scripts/          setup_env.sh (no-sudo install), run_pipeline.sh (env wrapper)
 .cursor/skills/   /initialize-aero authoring + /create-aero runner + QA skills
 tools/            OpenVSP, SU2, micromamba TACS, isolated Elodin (gitignored)
-results/          <concept>/{baseline,optimized}/ artifacts (gitignored)
-                  truth/<case>/ prediction-only results and scorecards
+results/          <concept>/{baseline,optimized}/ artifacts. Committed
+                  preview subset: report.html, executive_brief.pdf,
+                  comparison PNGs, and elodin_package/. Stage JSONs,
+                  other meshes, and truth/<case>/ stay gitignored.
 ```
 
 `src/openair/` packages: `schemas` (the contract), `designer` (authoring UI),
@@ -452,7 +454,10 @@ that review end to end.
 - **Overlay discipline:** the only value that flows from results back into a
   spec is the sizing-closed fuel mass (F13) and, during a single reviewed
   auto-retry, a transient wing-mass override that never touches YAML.
-- **Never commit** `results/`, `tools/`, or `.venv/`; concept inputs must be
+- **Commit only** the preview subset of `results/` (reports, executive
+  brief, comparison PNGs, `elodin_package/`). Never stage stage JSONs or
+  other artifacts; refresh previews in the same change that alters what
+  they show. Do not commit `tools/` or `.venv/`. Concept inputs must be
   committed before a full run so every report is reproducible from history.
 
 ## Environment

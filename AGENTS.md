@@ -33,5 +33,7 @@ TACS/SU2 stretch cross-checks. Stages run as
 - Accuracy claims must cite a generated scorecard, intended use, truth class,
   source revision, and frozen acceptance band. A self-case or class-C
   comparison is verification, never independent physical validation.
-- Do not commit `results/`, `tools/`, or `.venv/`; do not edit files under
-  `~/.cursor/plans/`.
+- Commit only the preview subset of `results/` (reports, brief, comparison
+  PNGs, `elodin_package/`); never stage JSONs or other artifacts; refresh
+  previews in the same change that alters what they show. Do not commit
+  `tools/` or `.venv/`; do not edit files under `~/.cursor/plans/`.
