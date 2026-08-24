@@ -1,0 +1,13 @@
+altitude_m,mach,throttle,effective_throttle,thrust_n,fuel_flow_kg_s,tsfc_kg_per_n_s,source_model,clamped
+0,0,0.2,0.2,47160,0.54017064,1.1454e-05,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false
+0,0,0.6,0.6,141480,1.47959784,1.0458e-05,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false
+0,0,1,1,235800,2.348568,9.96e-06,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false
+0,0.78,0.2,0.2,27920,0.35358475,1.26642102436e-05,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false
+0,0.78,0.6,0.6,83760,0.96851475,1.15629745702e-05,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false
+0,0.78,1,1,139600,1.537325,1.10123567335e-05,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false
+10668,0,0.2,0.2,27920,0.35358475,1.26642102436e-05,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false
+10668,0,0.6,0.6,83760,0.96851475,1.15629745702e-05,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false
+10668,0,1,1,139600,1.537325,1.10123567335e-05,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false
+10668,0.78,0.2,0.2,8680,0.16699886,1.92395e-05,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false
+10668,0.78,0.6,0.6,26040,0.45743166,1.75665e-05,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false
+10668,0.78,1,1,43400,0.726082,1.673e-05,"engine_deck:CSR-01 equivalent pair, CeRAS bucket points",false

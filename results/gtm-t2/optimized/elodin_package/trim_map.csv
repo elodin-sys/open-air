@@ -1,0 +1,3 @@
+condition,altitude_m,tas_mps,mach,alpha_deg,beta_deg,control_name,control_deg,throttle,fuel_flow_kg_s,valid
+cruise,304.8,38.6,0.113823306895,6.56315929426,0,tail_incidence,-5.05517173928,0.192672647808,0.00248011931669,true
+dash,304.8,98.8113697086,0.291374011893,2.00008878822,0,tail_incidence,-5.05517173928,1,0.00672151100253,true

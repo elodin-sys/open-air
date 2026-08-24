@@ -1,0 +1,10 @@
+altitude_m,mach,throttle,effective_throttle,thrust_n,fuel_flow_kg_s,tsfc_kg_per_n_s,source_model,clamped
+0,0,0.3,0.3,6.1245397711,0,0,engine_deck:Published X8 electric thrust deck at rho=1.225 kg/m^3,false
+0,0,0.6,0.6,23.215699427,0,0,engine_deck:Published X8 electric thrust deck at rho=1.225 kg/m^3,false
+0,0,1,1,60.3845350822,0,0,engine_deck:Published X8 electric thrust deck at rho=1.225 kg/m^3,false
+0,0.0528954393,0.3,0.6,10.979210524,0,0,engine_deck:Published X8 electric thrust deck at rho=1.225 kg/m^3,true
+0,0.0528954393,0.6,0.6,10.979210524,0,0,engine_deck:Published X8 electric thrust deck at rho=1.225 kg/m^3,false
+0,0.0528954393,1,1,44.0867415841,0,0,engine_deck:Published X8 electric thrust deck at rho=1.225 kg/m^3,false
+0,0.073465888,0.3,0.6,3.5675422739,0,0,engine_deck:Published X8 electric thrust deck at rho=1.225 kg/m^3,true
+0,0.073465888,0.6,0.6,3.5675422739,0,0,engine_deck:Published X8 electric thrust deck at rho=1.225 kg/m^3,false
+0,0.073465888,1,1,34.6208306371,0,0,engine_deck:Published X8 electric thrust deck at rho=1.225 kg/m^3,false
