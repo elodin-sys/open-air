@@ -1,0 +1,234 @@
+# AtomRC Dolphin V1.1 source-locked reproduction. SI units throughout.
+# Datum: x=0 at the nose tip, x=0.710 m at the rear propeller-hub plane
+# (published overall length). z=0 at the nose-tip center, +z up.
+name: atomrc-dolphin-v1-1
+notes: >-
+  Reproduction of the stock 845 mm AtomRC Dolphin V1.1 from the supplied top
+  and side product renders plus published span/length/area and the
+  installed-component brief. Forward-swept trapezoid wing uses the published
+  0.1524 m^2 area as an equivalent-trapezoid tip-chord closure over the
+  rounded tips; airfoil, twist, t/c, structural gauges/material, thrust,
+  min-throttle, and cl_max are wide-bound placeholders, not measurements.
+  Propulsion (2307 motor + ESC) is modeled as an internal aft package; the
+  external pusher disk is not lofted. The schema payload bay is the forward
+  battery bay; the aft avionics bay holding the 0.500 kg Elodin Aleph is
+  bookkept inside the 1.30 kg operating-empty override at CG x=0.40 m and is
+  documented in brief.md. Aft skid strakes and the wing-root shoulder blend
+  are visible but unrepresentable; fins attach at the builder-derived body
+  point below the rendered deck edge. Mass 1.30 kg and CG 0.40 m are
+  provisional (+/-0.10 kg, +/-0.04 m) pending a weigh-and-balance.
+
+sketch:
+  treatment: reproduction
+  hard_scale: 1.0
+  fidelity_weight: 1.0
+  span_over_length: 1.1901
+  span_over_length_tol: 0.03
+  root_over_length: 0.3924
+  root_over_length_tol: 0.028
+  le_sweep_deg: -5.3
+  le_sweep_tol_deg: 2.0
+  taper: 0.2945
+  taper_tol: 0.09
+  x_le_root_over_length: 0.5437
+  x_le_root_over_length_tol: 0.03
+  payload_bay_x_lo_m: 0.165
+  payload_bay_x_hi_m: 0.215
+  fin_span_m: 0.177
+  fin_span_tol_m: 0.015
+  fin_root_chord_m: 0.115
+  fin_root_chord_tol_m: 0.012
+  fin_le_sweep_deg: 28.7
+  fin_le_sweep_tol_deg: 4.0
+  fin_cant_deg: 47.4
+  fin_cant_tol_deg: 5.0
+  fin_x_le_m: 0.517
+  fin_x_le_tol_m: 0.015
+
+engine:
+  name: AtomRC 2307 1800KV + Exceed BLS 30A + Gemfan Flash 7042 pusher (placeholder thrust)
+  energy_source: electric
+  diameter_m: 0.028
+  length_m: 0.060
+  dry_mass_kg: 0.0445
+  installation: internal
+  installation_count: 1
+  x_m: 0.680
+  lateral_offset_m: 0.0
+  z_m: 0.007
+  # Wide-bound placeholder: momentum-theory bound at the 20 A pack limit,
+  # NOT a measured static thrust. Excluded from validation claims.
+  max_thrust_sl_n: 10.0
+  fuel_flow_max_kg_s: 0.0
+  thrust_lapse_k_mach: 0.0
+  thrust_lapse_floor: 1.0
+  tsfc_part_a: 1.0
+  tsfc_part_b: 0.0
+  tsfc_mach_k: 0.0
+  min_throttle: 0.30
+  fuel_density_kg_m3: 800.0
+  nacelle_frontal_cd: 0.08
+
+wing:
+  span_m: 0.845
+  root_chord_m: 0.2786
+  taper: 0.2945
+  le_sweep_deg: -5.3
+  dihedral_deg: 0.0
+  twist_root_deg: 0.0
+  twist_tip_deg: 0.0
+  t_over_c: 0.09
+  airfoil: "0009"
+  x_le_root_m: 0.386
+  z_root_m: 0.025
+
+fuselage:
+  length_m: 0.710
+  max_width_m: 0.150
+  max_height_m: 0.1075
+  nose_fine_ratio: 0.22
+  tail_fine_ratio: 0.28
+  payload_bay_length_m: 0.105
+  payload_bay_width_m: 0.050
+  payload_bay_height_m: 0.050
+  payload_bay_x_m: 0.190
+  fuel_tank_x_m: 0.30
+  # Sections are inferred smooth ellipses (no front view supplied).
+  stations:
+    - x_over_length: 0.0
+      width_m: 0.0
+      height_m: 0.0
+      z_offset_m: 0.0
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.08
+      width_m: 0.079
+      height_m: 0.057
+      z_offset_m: 0.014
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.22
+      width_m: 0.104
+      height_m: 0.1075
+      z_offset_m: 0.0217
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.34
+      width_m: 0.120
+      height_m: 0.1007
+      z_offset_m: 0.0296
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.48
+      width_m: 0.150
+      height_m: 0.0985
+      z_offset_m: 0.0226
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.63
+      width_m: 0.134
+      height_m: 0.0903
+      z_offset_m: 0.0104
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.82
+      width_m: 0.0846
+      height_m: 0.0316
+      z_offset_m: -0.0063
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 1.0
+      width_m: 0.040
+      height_m: 0.039
+      z_offset_m: 0.0072
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+
+vtail:
+  count: 2
+  span_m: 0.177
+  root_chord_m: 0.115
+  taper: 0.56
+  le_sweep_deg: 28.7
+  cant_deg: 47.4
+  t_over_c: 0.07
+  x_le_m: 0.517
+  # Attachment is derived from the body by the builder; these record the
+  # derived point, not the rendered deck edge (see brief.md limitations).
+  y_root_m: 0.020
+  z_root_m: 0.005
+
+htail:
+  span_m: 0.0
+  root_chord_m: 0.10
+  taper: 0.50
+  le_sweep_deg: 0.0
+  t_over_c: 0.10
+  x_le_m: 0.60
+  z_m: 0.02
+  incidence_deg: 0.0
+
+mission:
+  endurance_s: 1.0
+  endurance_required: false
+  payload_kg: 0.0
+  cruise_altitude_m: 100.0
+  dash_altitude_m: 100.0
+  cruise_mach: 0.0530
+  cruise_cl: 0.4257
+  dash_mach_cap: 0.11
+  limit_positive_g: 4.0
+  limit_negative_g: -2.0
+  safety_factor: 1.5
+  static_margin_min: 0.03
+  static_margin_max: 0.10
+  reserve_fuel_fraction: 0.0
+  cl_max: 1.0
+  cl_max_basis: aircraft
+  stall_speed_max_mps: 12.0
+
+structures:
+  fem_model_type: wingbox
+  spar_thickness_m: 0.0012
+  skin_thickness_m: 0.0008
+  tube_radius_m: 0.006
+  tube_thickness_m: 0.0012
+  wing_weight_ratio: 1.20
+  n_spanwise: 9
+  n_chordwise: 3
+  material:
+    name: Assumed quasi-isotropic CFRP-equivalent for carbon-reinforced EPP
+    E_pa: 3.5e10
+    nu: 0.30
+    yield_pa: 2.5e8
+    density_kg_m3: 1600.0
+
+mass:
+  fuel_mass_kg: 0.0
+  fuel_mass_mode: fixed
+  operating_empty_mass_kg: 1.30
+  operating_empty_cg_x_m: 0.40
+  systems_kg: 0.0
+  landing_gear_fraction: 0.0
+  avionics_kg: 0.0
+  contingency_fraction: 0.0
+
+solver:
+  oas_with_viscous: true
+  oas_with_wave: false
+  optimize_maxiter: 25
+  optimize_tol: 1.0e-4
+  fd_step: 1.0e-3
+  vspaero_wake_iters: 3
+  su2_maxiter: 200
+  gmsh_lc_m: 0.05
+  np_shift_mac: 0.04305
+  cm_washout_per_deg: 0.00362
