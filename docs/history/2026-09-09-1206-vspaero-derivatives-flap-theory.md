@@ -2,7 +2,8 @@
 
 - Type: corrective milestone + calibration revision
 - Window: 2026-09-09
-- Commits: `770fd2c` (implementation); governance evidence follow-up pending
+- Commits: `770fd2c` (implementation), `df6f6b3` (governance evidence and
+  multi-attempt ledger)
 - Supersedes: the two deferred anomalies in
   `2026-09-09-1145-elevon-pitch-trim.md`
 
