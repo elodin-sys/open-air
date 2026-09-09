@@ -73,6 +73,11 @@ paths come from
    by root/tip twist; otherwise valid pitch-control twist is mistaken for a
    vertical wing (audit F18). All checks must pass; then look at
    `threeview.png` (rendered from the mesh).
+7. `reference_fidelity` (present when the concept has a measured reference
+   model, chapter 13): point-sampled p95 deviation and silhouette IoU of the
+   exported mesh against the aligned scan, with `reference_overlay.png`.
+   Departures must be explainable by documented unrepresentable features,
+   never by measurement error.
 
 ## Known lies
 

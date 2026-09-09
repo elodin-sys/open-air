@@ -40,9 +40,15 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from openair.controls import (
+    elevon_travel_deg,
+    pitch_control_surface,
+    pitch_trim_control,
+    te_down_deg,
+)
 from openair.geometry.packing import wing_tank_volume_m3
 from openair.mission.mass import MassBreakdown, breakdown
-from openair.schemas import VehicleSpec
+from openair.schemas import ControlSurfaceSpec, VehicleSpec
 from openair.units import G0
 
 
@@ -217,6 +223,129 @@ def tail_incidence_required_deg(
     return math.degrees(incidence_rad) + spec.solver.tail_incidence_offset_deg
 
 
+def plain_flap_theory(chord_fraction: float) -> dict[str, float]:
+    """Thin-airfoil plain-flap derivatives for a flap of ``chord_fraction`` c.
+
+    Glauert's result with the hinge at x_h = (1 - chord_fraction) c and
+    cos(theta_h) = 1 - 2 x_h / c:
+
+        dCl/ddelta      = 2 (pi - theta_h + sin theta_h)          [per rad]
+        dCm_c/4/ddelta  = -sin(theta_h) (1 - cos theta_h) / 2      [per rad]
+        tau             = (dCl/ddelta) / (2 pi)                    [flap effectiveness]
+
+    Trailing edge DOWN is positive (lift up, nose-down moment). Inviscid,
+    unsealed-gap and thickness effects are ignored, so the section values are
+    upper bounds; the ``elevon_effectiveness_factor`` in ``SolverSpec`` is the
+    only sanctioned correction and must cite a source.
+    """
+    if not 0.0 < chord_fraction < 1.0:
+        raise ValueError("chord_fraction must lie strictly between 0 and 1")
+    x_hinge = 1.0 - chord_fraction
+    theta_h = math.acos(1.0 - 2.0 * x_hinge)
+    dcl_ddelta = 2.0 * (math.pi - theta_h + math.sin(theta_h))
+    dcm_ddelta = -0.5 * math.sin(theta_h) * (1.0 - math.cos(theta_h))
+    return {
+        "theta_h_rad": theta_h,
+        "dcl_ddelta_per_rad": dcl_ddelta,
+        "dcm_ac_ddelta_per_rad": dcm_ddelta,
+        "tau": dcl_ddelta / (2.0 * math.pi),
+    }
+
+
+def elevon_pitch_derivative(
+    spec: VehicleSpec, surface: ControlSurfaceSpec, x_cg_m: float
+) -> dict[str, float]:
+    """Closed-form dCm_cg/ddelta of a wing trailing-edge surface (TE down +).
+
+    Strip integration of the thin-airfoil flap increments over the trapezoid
+    planform between the surface's span fractions:
+
+        dCL/ddelta   = CL_alpha_wing tau (S_e / S) cos(Lambda_hinge)
+        dCm/ddelta   = dCm_ac/ddelta * integral(c^2 dy) / (S cbar)
+                       - dCL/ddelta * (x_qc(eta_c) - x_cg) / cbar
+
+    where eta_c is the area centroid of the elevon strip and x_qc its quarter
+    chord. The wing lift slope is the same finite-wing value the balance model
+    uses elsewhere (or the same-run VSPAERO value when calibrated). Results
+    are scaled by ``solver.elevon_effectiveness_factor`` (source-cited when not
+    unity). Per radian; ``per_deg`` keys are provided for reporting.
+    """
+    w = spec.wing
+    flap = plain_flap_theory(surface.chord_fraction)
+    semispan = 0.5 * w.span_m
+    eta_s, eta_e = surface.span_start_fraction, surface.span_end_fraction
+    c_r, c_t = w.root_chord_m, w.tip_chord_m
+
+    def chord(eta: float) -> float:
+        return c_r + (c_t - c_r) * eta
+
+    # Exact trapezoid integrals over [eta_s, eta_e], both wing halves.
+    n = 400
+    etas = np.linspace(eta_s, eta_e, n)
+    chords = np.array([chord(e) for e in etas])
+    strip_area = 2.0 * semispan * float(np.trapezoid(chords, etas))
+    chord_sq_integral = 2.0 * semispan * float(np.trapezoid(chords**2, etas))
+    eta_c = float(np.trapezoid(chords * etas, etas) / max(np.trapezoid(chords, etas), 1e-12))
+    x_qc_c = w.x_le_root_m + eta_c * semispan * math.tan(math.radians(w.le_sweep_deg))
+    x_qc_c += 0.25 * chord(eta_c)
+    hinge_x_root = w.x_le_root_m + (1.0 - surface.chord_fraction) * c_r
+    hinge_x_tip = (
+        w.x_le_root_m
+        + semispan * math.tan(math.radians(w.le_sweep_deg))
+        + (1.0 - surface.chord_fraction) * c_t
+    )
+    hinge_sweep = math.atan2(hinge_x_tip - hinge_x_root, semispan)
+    wing_slope = (
+        spec.solver.wing_body_cl_alpha_per_deg * 180.0 / math.pi
+        if spec.solver.wing_body_cl_alpha_per_deg is not None
+        else _lift_curve_slope_per_rad(w.aspect_ratio)
+    )
+    dcl_ddelta = wing_slope * flap["tau"] * (strip_area / w.area_m2) * math.cos(hinge_sweep)
+    dcm_ddelta = flap["dcm_ac_ddelta_per_rad"] * chord_sq_integral / (
+        w.area_m2 * w.mac_m
+    ) - dcl_ddelta * (x_qc_c - x_cg_m) / w.mac_m
+    factor = float(spec.solver.elevon_effectiveness_factor)
+    return {
+        "surface_id": surface.id,
+        "flap_effectiveness_tau": flap["tau"],
+        "section_dcm_ac_ddelta_per_rad": flap["dcm_ac_ddelta_per_rad"],
+        "strip_area_fraction": strip_area / w.area_m2,
+        "strip_area_centroid_eta": eta_c,
+        "hinge_sweep_deg": math.degrees(hinge_sweep),
+        "dcl_ddelta_per_rad": dcl_ddelta * factor,
+        "dcm_cg_ddelta_per_rad": dcm_ddelta * factor,
+        "dcl_ddelta_per_deg": dcl_ddelta * factor * math.pi / 180.0,
+        "dcm_cg_ddelta_per_deg": dcm_ddelta * factor * math.pi / 180.0,
+        "effectiveness_factor": factor,
+        "sign_convention": "trailing edge down positive",
+    }
+
+
+def elevon_required_deg(
+    spec: VehicleSpec, surface: ControlSurfaceSpec, x_cg_m: float, sm: float, cl_cruise: float
+) -> dict[str, float]:
+    """Elevon deflection (TE up positive) that zeroes Cm_cg with twist frozen.
+
+    The residual moment the frozen wing leaves at cruise is
+    Cm_cg0 = k_w * washout + cm_ac - SM * CL (the same low-order model the
+    washout closure inverts); the elevon supplies dCm_cg/ddelta * delta.
+    """
+    sect = thin_airfoil_props(spec.wing.airfoil)
+    k_w = spec.solver.cm_washout_per_deg * _sweep_calibration_ratio(spec)
+    washout = spec.wing.twist_root_deg - spec.wing.twist_tip_deg
+    cm_cg0 = k_w * washout + sect["cm_ac"] - sm * cl_cruise
+    derivative = elevon_pitch_derivative(spec, surface, x_cg_m)
+    dcm = derivative["dcm_cg_ddelta_per_deg"]
+    if abs(dcm) < 1e-7:
+        dcm = -1e-7
+    delta_te_down = -cm_cg0 / dcm
+    return {
+        "required_te_up_deg": te_down_deg(delta_te_down),
+        "cm_cg_untrimmed": cm_cg0,
+        **derivative,
+    }
+
+
 # Fin (vertical tail) volume coefficient band for a small UAV. Below 0.02 the
 # yaw stiffness is doubtful; above ~0.09 the fins are oversized for this class
 # (Raymer-class guidance).
@@ -259,6 +388,11 @@ class BalanceReport:
     vv_ok: bool = False
     trim_control: str = "wing_twist"
     tail_incidence_required_deg: float | None = None
+    # Elevon trim (mission.pitch_trim_control: elevon); trailing edge up +.
+    elevon_required_deg: float | None = None
+    elevon_spec_deg: float | None = None
+    elevon_travel_deg: tuple | None = None
+    elevon_model: dict | None = None
     items_full: list = field(default_factory=list)
 
     def as_dict(self) -> dict:
@@ -387,15 +521,33 @@ def balance_report(spec: VehicleSpec, mtow_kg: float, fuel_kg: float) -> Balance
     # Reserve-fuel margin remains a separate stability gate; fixed twist cannot
     # close two different CG states without an explicit control-surface model.
     wash_avail = spec.wing.twist_root_deg - spec.wing.twist_tip_deg
-    tail_enabled = spec.htail.span_m > 0.05
+    control = pitch_trim_control(spec)
+    tail_enabled = control == "tail_incidence"
     tail_incidence_req = (
         tail_incidence_required_deg(spec, xf, spec.mission.cruise_cl)
         if tail_enabled
         else None
     )
+    elevon_req: float | None = None
+    elevon_spec: float | None = None
+    elevon_travel: tuple[float, float] | None = None
+    elevon_model: dict[str, float] | None = None
+    if control == "elevon":
+        surface = pitch_control_surface(spec)
+        if surface is None:
+            raise ValueError("elevon pitch trim requires a collective-pitch wing surface")
+        elevon_model = elevon_required_deg(
+            spec, surface, xf, sm_f, spec.mission.cruise_cl
+        )
+        elevon_req = float(elevon_model["required_te_up_deg"])
+        elevon_spec = float(surface.trim_deflection_deg)
+        elevon_travel = elevon_travel_deg(surface)
+    # Twist is frozen whenever a movable control closes trim: the washout
+    # "requirement" then equals what the wing has, and the control carries
+    # the gap.
     wash_req = (
         wash_avail
-        if tail_enabled
+        if control != "wing_twist"
         else washout_required_deg(spec, sm_f, spec.mission.cruise_cl)
     )
     vs = stall_speed_mps(spec, masses.mtow_kg)
@@ -404,12 +556,29 @@ def balance_report(spec: VehicleSpec, mtow_kg: float, fuel_kg: float) -> Balance
     reproduction = bool(
         spec.sketch is not None and spec.sketch.treatment == "reproduction"
     )
+    if control == "elevon":
+        lo, hi = elevon_travel  # type: ignore[misc]
+        trim_ok = (
+            abs(elevon_spec - elevon_req) <= 1.5  # type: ignore[operator]
+            and lo + 0.5 <= elevon_req <= hi - 0.5  # type: ignore[operator]
+        )
+    elif tail_incidence_req is not None:
+        trim_ok = (
+            abs(spec.htail.incidence_deg - tail_incidence_req) <= 1.5
+            and abs(tail_incidence_req) <= 10.0
+        )
+    else:
+        trim_ok = abs(wash_avail - wash_req) <= 1.5 and abs(wash_req) <= 10.0
     return BalanceReport(
         vv=vv,
         vv_band=VV_BAND,
         vv_ok=(vv >= VV_BAND[0] if reproduction else VV_BAND[0] <= vv <= VV_BAND[1]),
-        trim_control="tail_incidence" if tail_enabled else "wing_twist",
+        trim_control=control,
         tail_incidence_required_deg=tail_incidence_req,
+        elevon_required_deg=elevon_req,
+        elevon_spec_deg=elevon_spec,
+        elevon_travel_deg=elevon_travel,
+        elevon_model=elevon_model,
         x_np_m=x_np,
         x_cg_full_m=xf,
         x_cg_reserve_m=xr,
@@ -420,12 +589,7 @@ def balance_report(spec: VehicleSpec, mtow_kg: float, fuel_kg: float) -> Balance
         in_band=in_band,
         washout_required_deg=wash_req,
         washout_available_deg=wash_avail,
-        trim_ok=(
-            abs(spec.htail.incidence_deg - tail_incidence_req) <= 1.5
-            and abs(tail_incidence_req) <= 10.0
-            if tail_incidence_req is not None
-            else abs(wash_avail - wash_req) <= 1.5 and abs(wash_req) <= 10.0
-        ),
+        trim_ok=bool(trim_ok),
         cm_ac_section=sect["cm_ac"],
         vstall_mps=vs,
         cl_max_effective=effective_cl_max(spec),

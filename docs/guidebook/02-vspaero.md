@@ -48,6 +48,19 @@ and flight `ReCref`; reads `VSPAERO_Polar` and falls back to parsing the
 [`src/openair/validation/runner.py`](../../src/openair/validation/runner.py)
 compares ΔCL/Δα to OAS on the same wing plus optional horizontal-tail set.
 
+Control derivatives: the geometry stage serializes every declared
+`flight_dynamics.control_surfaces` entry as an `SS_CONTROL` subsurface and its
+mixing as VSPAERO control groups whether or not the flight-dynamics stage is
+enabled. For `mission.pitch_trim_control: elevon` designs,
+`flightdyn.stability.run_vspaero_control_derivatives` runs one steady
+stability solve (`UnsteadyType = STABILITY_DEFAULT`, wake iterations ≥ 8) on
+the **wing-only** thin set at the OAS trim alpha and cruise speed, and the
+validation check `elevon_cm_delta_vspaero_vs_oas` compares the pitch group's
+`Cm` column with the fixed-alpha OAS `dCm_cg/dδ`. VSPAERO's group command is
+trailing edge down positive and the derivative table is per radian; the check
+negates and converts to the spec convention (trailing edge up, per degree)
+before comparing.
+
 ## Check your work
 
 1. `validation.json` check `vspaero_vs_oas_CL`: `CL_alpha_ratio_*` in
@@ -63,8 +76,20 @@ compares ΔCL/Δα to OAS on the same wing plus optional horizontal-tail set.
    `CDo` with the fuselage absent is meaningless; validation stores CD fields
    as `*_not_comparable` on purpose (audit F12).
 5. CM comparisons require identical `Xcg` and `cref` — verify before flagging.
+6. `elevon_cm_delta_vspaero_vs_oas`: same sign and OAS/VSPAERO ratio in
+   0.6–1.6 on the fixed-alpha derivative (the Dolphin: 0.82). Read the
+   disclosed `dcl_ratio_oas_over_vspaero` too — a lift-increment ratio near
+   0.5 with a moment ratio near 1 means the two lattices place the flap load
+   differently, which is worth a note but not a gate failure.
 
 ## Known lies
+
+- The stability-run `CL_alpha` column can come out roughly twice the sweep
+  slope at some alphas (the Dolphin: 9.8/rad at α≈5.8° against 4.6/rad from
+  the α=3°/7° sweep, and 4.9/rad from the same stability solve at α=3°). Do
+  not build lift-trimmed conversions on it without checking it against the
+  sweep; the elevon check therefore gates on the fixed-alpha derivative and
+  only discloses the trimmed one.
 
 - API result vectors that read 0.0 while the `.polar` has real values —
   always treat empty as missing.

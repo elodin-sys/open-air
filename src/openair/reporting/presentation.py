@@ -187,6 +187,8 @@ def _trim_setting(aero: dict[str, Any]) -> tuple[str, float | None]:
     control = str(trim.get("control") or "none")
     if control == "tail_incidence":
         value = trim.get("tail_incidence_trim_deg")
+    elif control == "elevon":
+        value = trim.get("elevon_trim_deg")
     else:
         value = trim.get("twist_tip_trim_deg")
     return control, (float(value) if value is not None else None)
@@ -227,9 +229,16 @@ def _baseline_findings(
         findings.append(
             f"Pitch trim closes with {control.replace('_', ' ')} at "
             f"{trim_value:+.2f}°"
+            + (" (trailing edge up positive, twist frozen)" if control == "elevon" else "")
             + (
                 f" against a {float(spec_value):+.2f}° spec setting"
                 if spec_value is not None
+                else ""
+            )
+            + (
+                f" within the {trim['elevon_travel_deg'][0]:+.0f}…"
+                f"{trim['elevon_travel_deg'][1]:+.0f}° travel"
+                if control == "elevon" and trim.get("elevon_travel_deg")
                 else ""
             )
             + ("." if trim.get("converged") else " (not converged).")
@@ -1141,6 +1150,23 @@ def build_presentation(design_path: str | Path) -> dict[str, Any]:
         )
         for path in sorted(baseline_yaml.parent.glob("sketch-*.png"))
     ]
+    reference_cards = []
+    reference_fidelity = data["geometry"].get("reference_fidelity") or {}
+    if reference_fidelity.get("available") and (optimized_dir / "reference_overlay.png").exists():
+        distance = reference_fidelity.get("distance_model_to_reference") or {}
+        views = reference_fidelity.get("silhouettes") or {}
+        reference_cards.append(
+            (
+                "Reference model · exported mesh versus measured scan",
+                "Artifact truth",
+                optimized_dir / "reference_overlay.png",
+                f"Point-sampled surface deviation p95 {1000.0 * float(distance.get('p95_m') or 0.0):.1f} mm whole aircraft "
+                f"(body gate {1000.0 * float(((reference_fidelity.get('checks') or {}).get('p95_body') or {}).get('got') or 0.0):.1f} mm); "
+                f"silhouette IoU top {float((views.get('top') or {}).get('iou') or 0.0):.3f}, "
+                f"side {float((views.get('side') or {}).get('iou') or 0.0):.3f}. "
+                "The reference model is measured design input, not validation truth.",
+            )
+        )
     charts = _chart_cards(
         [
             (
@@ -1149,6 +1175,7 @@ def build_presentation(design_path: str | Path) -> dict[str, Any]:
                 optimized_dir / "threeview.png",
                 "Orthographic projections drawn from the optimized STL, not from design parameters.",
             ),
+            *reference_cards,
             *sketch_cards,
             (
                 "Baseline versus optimized",

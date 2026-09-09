@@ -109,6 +109,12 @@ def promote_design(design_path: str | Path, new_name: str) -> Path:
             for sketch in sorted(source_bundle.glob("sketch-*.png")):
                 shutil.copy2(sketch, staging / sketch.name)
                 copied_sketches.append(sketch.name)
+            reference_dir = source_bundle / "reference"
+            if reference_dir.is_dir():
+                # The measured reference model grounds the promoted iteration
+                # exactly as it grounded the source concept.
+                shutil.copytree(reference_dir, staging / "reference")
+                copied_sketches.append("reference/")
         prior_brief = source_bundle / "brief.md"
         prior_text = (
             prior_brief.read_text(encoding="utf-8")

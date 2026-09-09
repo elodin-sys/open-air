@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -141,6 +142,160 @@ def _lift_curve_slope_cross_check(
     return result
 
 
+def _elevon_pitch_derivative_cross_check(
+    spec: VehicleSpec, outdir: Path, case_path: Path | None
+) -> dict[str, Any]:
+    """Compare the OAS elevon pitch derivative with a wing-only VSPAERO solve.
+
+    The aero stage records dCm_cg/ddelta at the trimmed alpha both lift-trimmed
+    (what the trim solve uses) and at fixed alpha. VSPAERO's finite-difference
+    control derivative is a fixed-alpha quantity, so the fixed-alpha OAS value
+    is the gated comparison; the lift-trimmed VSPAERO equivalent
+    (Cm_delta - Cm_alpha CL_delta / CL_alpha from the same .stab file) is
+    disclosed. VSPAERO deflects a wing control surface trailing edge down for
+    a positive group command; the spec convention is trailing edge up positive,
+    so VSPAERO values are negated before comparison. The VSPAERO thin set is
+    the wing alone so both solvers see the same lifting surface. Two vortex
+    lattices with different hinge-line discretizations agree only to first
+    order; the acceptance band is a same-sign magnitude ratio in [0.6, 1.6].
+    The thin-airfoil closed form is disclosed alongside, never gated.
+    """
+    from openair.controls import pitch_control_surface, pitch_trim_control
+    from openair.flightdyn.stability import run_vspaero_control_derivatives
+    from openair.io import load_stage as _ls
+    from openair.mission.balance import balance_report, elevon_pitch_derivative
+    from openair.mission.mass import closed_mass_breakdown as _closed_mass
+
+    name = "elevon_cm_delta_vspaero_vs_oas"
+    if pitch_trim_control(spec) != "elevon":
+        return {
+            "name": name,
+            "ok": True,
+            "status": "not-applicable",
+            "note": "pitch trim control is not elevon",
+        }
+    surface = pitch_control_surface(spec)
+    if surface is None:
+        return {"name": name, "ok": False, "reason": "no collective-pitch wing surface"}
+    group_id = next(
+        mix.id
+        for mix in surface.mixing
+        if mix.mode == "collective" and mix.axis == "pitch"
+    )
+    aero = (_ls(case_path, "aero") if case_path is not None else None) or {}
+    if not aero:
+        aero_path = outdir / "aero.json"
+        if aero_path.is_file():
+            aero = json.loads(aero_path.read_text(encoding="utf-8"))
+    trim = aero.get("trim") or {}
+    oas_dcm = trim.get("dcm_ddelta_fixed_alpha_per_deg")
+    oas_dcm_trimmed = trim.get("dcm_ddelta_per_deg")
+    oas_dcl = trim.get("dcl_ddelta_fixed_alpha_per_deg")
+    if not isinstance(oas_dcm, (int, float)):
+        return {
+            "name": name,
+            "ok": False,
+            "reason": "aero stage carries no fixed-alpha dCm/ddelta for the elevon",
+        }
+    vsp3s = sorted(outdir.glob("*.vsp3"))
+    if not vsp3s:
+        return {"name": name, "ok": False, "reason": "no vsp3"}
+    cruise = aero.get("cruise") or {}
+    alpha = float(trim.get("alpha_deg") or cruise.get("alpha_deg") or 3.0)
+    tas = float(cruise.get("tas_mps") or 18.0)
+    probe = run_vspaero_control_derivatives(
+        spec,
+        vsp3s[0],
+        outdir,
+        alpha_deg=alpha,
+        airspeed_mps=tas,
+        altitude_m=spec.mission.cruise_altitude_m,
+        lifting_names={"wing"},
+    )
+    if not probe.get("ok"):
+        return {
+            "name": name,
+            "ok": False,
+            "reason": (probe.get("analysis") or {}).get("reason") or probe.get("reason"),
+        }
+    analysis = probe["analysis"]
+    names = list(analysis["control_group_names"])
+    if group_id not in names:
+        return {
+            "name": name,
+            "ok": False,
+            "reason": f"VSPAERO control groups {names} lack pitch group {group_id!r}",
+        }
+    column = f"control_{names.index(group_id) + 1}"
+    coefficients = analysis["stab"]["coefficients"]
+    cm_delta = float(coefficients["Cm"]["derivatives"][column])
+    cl_delta = float(coefficients["CL"]["derivatives"][column])
+    cm_alpha = float(coefficients["Cm"]["derivatives"]["alpha"])
+    cl_alpha = float(coefficients["CL"]["derivatives"]["alpha"])
+    if abs(cl_alpha) < 1e-9:
+        return {"name": name, "ok": False, "reason": "VSPAERO CL_alpha is zero"}
+    per_deg = math.pi / 180.0
+    # VSPAERO: trailing edge down positive -> spec: trailing edge up positive.
+    vsp_dcm_te_up_per_deg = -cm_delta * per_deg
+    vsp_dcl_te_up_per_deg = -cl_delta * per_deg
+    vsp_dcm_trimmed_te_up_per_deg = -(cm_delta - cm_alpha * cl_delta / cl_alpha) * per_deg
+    ratio = (
+        abs(float(oas_dcm)) / abs(vsp_dcm_te_up_per_deg)
+        if abs(vsp_dcm_te_up_per_deg) > 1e-9
+        else float("inf")
+    )
+    same_sign = (float(oas_dcm) > 0.0) == (vsp_dcm_te_up_per_deg > 0.0)
+    masses = _closed_mass(spec, spec.mass.fuel_mass_kg)
+    bal = balance_report(spec, masses.mtow_kg, spec.mass.fuel_mass_kg)
+    closed_form = elevon_pitch_derivative(spec, surface, bal.x_cg_full_m)
+    return {
+        "name": name,
+        "got": float(oas_dcm),
+        "want": vsp_dcm_te_up_per_deg,
+        "ratio_oas_over_vspaero": ratio,
+        "same_sign": same_sign,
+        "ok": bool(same_sign and 0.6 <= ratio <= 1.6),
+        "units": "dCm_cg/ddelta per degree, trailing edge up positive, fixed alpha",
+        "comparison": "fixed_alpha_pitch_derivative_wing_only",
+        "oas": {
+            "dcm_ddelta_fixed_alpha_per_deg": float(oas_dcm),
+            "dcm_ddelta_lift_trimmed_per_deg": oas_dcm_trimmed,
+            "dcl_ddelta_fixed_alpha_per_deg": oas_dcl,
+            "alpha_deg": alpha,
+        },
+        "vspaero": {
+            "dcm_ddelta_fixed_alpha_per_deg": vsp_dcm_te_up_per_deg,
+            "dcm_ddelta_lift_trimmed_per_deg": vsp_dcm_trimmed_te_up_per_deg,
+            "dcl_ddelta_fixed_alpha_per_deg": vsp_dcl_te_up_per_deg,
+            "dcl_ratio_oas_over_vspaero": (
+                abs(float(oas_dcl)) / abs(vsp_dcl_te_up_per_deg)
+                if isinstance(oas_dcl, (int, float))
+                and abs(vsp_dcl_te_up_per_deg) > 1e-9
+                else None
+            ),
+            "per_rad_raw": {
+                "Cm_delta": cm_delta,
+                "CL_delta": cl_delta,
+                "Cm_alpha": cm_alpha,
+                "CL_alpha": cl_alpha,
+            },
+            "x_cg_m": (analysis["stab"].get("references") or {}).get("x_cg_m"),
+            "thin_set": sorted(analysis.get("lifting_components") or []),
+            "sign_note": "VSPAERO group command is trailing edge down positive; negated",
+        },
+        "closed_form_thin_airfoil_per_deg": -float(closed_form["dcm_cg_ddelta_per_deg"]),
+        "closed_form_note": (
+            "thin-airfoil plain flap on the trapezoid strip, disclosed only; "
+            "the OAS trim is the gating derivative"
+        ),
+        "control_group": group_id,
+        "wake_converged": bool((analysis.get("wake_convergence") or {}).get("converged")),
+        "artifacts": analysis.get("artifacts"),
+        "artifact_sha256": analysis.get("artifact_sha256"),
+        "vsp3_sha256": probe.get("vsp3_sha256"),
+    }
+
+
 def _wing_mass_consistency(
     spec: VehicleSpec, structures: dict[str, Any] | None
 ) -> dict[str, Any] | None:
@@ -253,6 +408,10 @@ def run_validation_stage(
     rect.structures.n_spanwise = 11
     rect.solver.oas_with_viscous = False
     rect.solver.oas_with_wave = False
+    # The analytical rectangle is a clean wing: no serialized elevon trim
+    # deflection may be carried onto it.
+    rect.mission.pitch_trim_control = "wing_twist"
+    rect.flight_dynamics.control_surfaces = []
     try:
         vlm = run_vlm(rect, 0.0, 50.0, 4.0)
         cdi_th = elliptical_induced_drag(vlm["CL"], rect.wing.aspect_ratio)
@@ -605,6 +764,15 @@ def run_validation_stage(
         except Exception as exc:
             vsp_cross = {"ok": False, "reason": str(exc)}
     checks.append({"name": "vspaero_vs_oas_CL", **vsp_cross})
+
+    # Independent solver cross-check of the elevon pitch derivative that the
+    # trim solve relies on (elevon pitch-trim designs only).
+    try:
+        checks.append(_elevon_pitch_derivative_cross_check(spec, outdir, case_path))
+    except Exception as exc:
+        checks.append(
+            {"name": "elevon_cm_delta_vspaero_vs_oas", "ok": False, "error": str(exc)}
+        )
 
     # Stretch-stage honesty (non-fatal): if TACS/SU2 artifacts exist, their
     # JSON must carry the fields QA relies on, and SU2 'ok' must not be

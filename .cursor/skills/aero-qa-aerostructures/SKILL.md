@@ -20,9 +20,16 @@ Non-negotiables for this repo:
   `openair.mission.balance`, and the flat VLM needs the thin-airfoil `cm_ac`
   added for cambered sections.
 - Trim gates in `aero.json`: `trim.converged`, selected control within ~1° of
-  spec (tailless washout or fallback-tail incidence), `|cm_residual| < 0.005`,
+  spec (tailless washout, fallback-tail incidence, or elevon deflection with
+  `elevon_within_travel` and `twist_frozen` true), `|cm_residual| < 0.005`,
   and `stability.sm_full/.sm_reserve` inside the mission band (measured from
   dCM/dCL, not the geometric model).
+- Elevon trim (`openair.controls`, `geometry.mesh.deflect_trailing_edge`):
+  trailing edge up positive; the aero-only seed gets a hinge row and a
+  taper-prescaled z shear; `dcm_ddelta_per_deg` (lift-trimmed) must be
+  positive and smaller than `dcm_ddelta_fixed_alpha_per_deg`; the wingbox
+  keeps the undeflected mesh. Any spec copy turned into a synthetic test
+  wing must reset `pitch_trim_control` and drop the control surfaces.
 - Wingbox `failure <= 0` at +4g is the pass criterion (KS of von Mises over
   allowable minus 1, safety factor 1.5). W0 excludes wing mass and OAS's
   internal fuel burn (keep `R` tiny).

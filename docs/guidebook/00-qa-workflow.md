@@ -7,7 +7,7 @@ traceable aircraft phases and a presentation:
 designs/<concept>/design.yaml
   -> mission (sizing.json)      closed-form closure: mass, fuel, endurance, balance
   -> geometry (geometry.json)   OpenVSP model + OAS mesh + packing + read-back
-  -> aero (aero.json)           OAS VLM: trim (alpha + washout), stability, polar
+  -> aero (aero.json)           OAS VLM: trim (alpha + washout | tail | elevon), stability, polar
   -> structures (structures.json)  OAS wingbox at +4g / -2g
   -> mdo (mdo.json)             discrete branches + SLSQP soft-prior MDO
                                 + OAS recalibration/verification
@@ -36,7 +36,12 @@ A prototype passes QA only when all of these hold, in this order:
    fin verticality, root attachment — measured from the exported STL, because
    read-back cannot catch a wrong rotation choice: F11, F14). Then LOOK at
    `threeview.png`, which is rendered from the exported mesh, not the spec
-   (F15). At least one report figure must always be artifact-derived.
+   (F15). At least one report figure must always be artifact-derived. When
+   the concept carries a measured reference model
+   (`designs/<concept>/reference/`, chapter 13), also require
+   `geometry.json .reference_fidelity.ok == true` for a `reproduction` and
+   look at `reference_overlay.png`; for other treatments the deviation is
+   disclosed in the gate evidence, not gating.
 3. **Packing**: `packing.ok` — engine diameter/length, payload bay clear of the
    engine compartment, fuel volume within wing tanks + fuselage leftover.
 4. **Balance**: static margin at **full and reserve fuel** inside the band
@@ -45,8 +50,16 @@ A prototype passes QA only when all of these hold, in this order:
    not just the geometric model). First attempt shipped SM = 0.63 (F1).
 5. **Pitch trim**: `aero.json .trim.converged` with the selected control
    within ~1° of spec and `|cm_residual| < 0.005`: wing washout for a
-   tailless branch, horizontal-tail incidence for the fallback branch. A
-   design that "trims" only in the lift equation is unflyable (F3).
+   tailless branch, horizontal-tail incidence for the fallback branch, or —
+   when `mission.pitch_trim_control: elevon` is declared — the wing control
+   surface deflection (trailing edge up positive) with the measured twist
+   frozen. The elevon branch additionally requires `elevon_within_travel`
+   (solution at least 0.5° inside the declared `[-max_down, +max_up]`) and
+   `twist_frozen: true`; the evidence prints the measured neutral when one
+   was reported and "not reported" otherwise. A design that "trims" only in
+   the lift equation is unflyable (F3). A trim deflection that only a solver
+   has seen is a prediction: say so, and compare it with the flown neutral
+   when it exists (chapter 13).
 6. **Stall**: `balance.vstall_mps <= mission.stall_speed_max_mps` under the
    documented `cl_max` assumption (F6).
 6b. **Directional stability/authority**: sized concepts require fin volume
@@ -81,15 +94,22 @@ A prototype passes QA only when all of these hold, in this order:
     every value beyond one tolerance has a reason and clamp study in
     `mdo.json .sketch_departures`. Confirm `fidelity_sweep` contains weights
     2.0/1.0/0.25 and marks weight 1.0 as delivered. `reproduction` must preserve
-    every source field exactly apart from its declared trim control and
-    same-run hybrid component-stability constants.
+    every source field exactly apart from its declared trim control
+    (`htail.incidence_deg`, or `trim_deflection_deg` of the pitch control
+    surface for elevon trim) and same-run hybrid component-stability
+    constants; `mdo.json .reference_closure.allowed_control` names which.
 11. **Cross-checks**: validation.json core checks all pass; VSPAERO/OAS lift-
     curve-slope (CLα) ratio within 0.75–1.25 (chapter 02). Absolute CL is not
     compared because OpenVSP carries NACA camber while the OAS VLM mesh is
     flat and carries section moment separately. Hybrid component constants must
     carry the matching same-phase VSP3 SHA-256. Inspect the reported
     neutral-point method spread as a diagnostic; CLα agreement does not imply
-    pitching-moment agreement. Stretch TACS/SU2 are calibration data, not gates
+    pitching-moment agreement. Elevon-trim designs add
+    `elevon_cm_delta_vspaero_vs_oas`: the fixed-alpha OAS `dCm_cg/dδ` must
+    agree in sign and within a 0.6–1.6 ratio with a wing-only VSPAERO control
+    derivative from the serialized control groups (chapter 02); the
+    lift-trimmed values, `dCL/dδ`, and the thin-airfoil closed form are
+    disclosed alongside. Stretch TACS/SU2 are calibration data, not gates
     — but their JSON must be honest about convergence
     (chapter 07: SU2 `ok` means "ran", `converged` is separate).
 12. **Report consistency**: recompute the dash Mach from the report's own TAS

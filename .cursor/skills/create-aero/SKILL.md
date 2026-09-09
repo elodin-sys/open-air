@@ -25,12 +25,13 @@ If the resolved concept directory does not exist:
 1. Do not copy the template or create the concept directory from this skill.
    Offer both supported bootstrap paths:
 
-   - For an intent plus requirement documents/sketches, invoke the dedicated
-     initializer so it measures, authors, and runs the bounded geometry
-     checkpoint:
+   - For an intent plus requirement documents, sketches, and optionally a
+     reference 3D model (a triangle mesh of the real aircraft), invoke the
+     dedicated initializer so it measures, authors, and runs the bounded
+     geometry checkpoint:
 
      ```text
-     /initialize-aero <name> "<intent>" @requirements.md @sketches
+     /initialize-aero <name> "<intent>" @requirements.md @sketches @reference.stl
      ```
 
    - For direct visual authoring, start the schema-driven Studio:
@@ -86,9 +87,17 @@ pipeline:
    input-shape error. In autonomous `inspiration` mode this is an automated
    evidence checkpoint, not a request for user approval: require geometry
    truth and the hard identity bound, then let MDO repair soft-prior mistakes.
-5. Require the concept inputs (`brief.md`, `design.yaml`, and sketches) to be
-   committed before the full run. If they are uncommitted, stop and ask the
-   user to commit them or explicitly authorize a commit.
+5. When the concept carries a reference model
+   (`designs/<name>/reference/reference.json`, guidebook chapter 13), the
+   baseline checkpoint must also show
+   `results/<name>/baseline/geometry.json .reference_fidelity.ok == true`
+   (mandatory for `reproduction`; disclosed for other treatments), and you
+   must open `results/<name>/baseline/reference_overlay.png`. Departures are
+   acceptable only where the brief lists the feature as unrepresentable.
+6. Require the concept inputs (`brief.md`, `design.yaml`, sketches, and
+   `reference/`) to be committed before the full run. If they are
+   uncommitted, stop and ask the user to commit them or explicitly authorize a
+   commit.
 
 ## Run an existing concept
 

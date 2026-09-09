@@ -204,6 +204,10 @@ def _run_stability(
     outdir: Path,
     *,
     alpha_deg: float,
+    airspeed_mps: float | None = None,
+    altitude_m: float | None = None,
+    artifact_tag: str = "stability",
+    lifting_names: set[str] | None = None,
 ) -> dict[str, Any]:
     configure_runtime()
     try:
@@ -218,7 +222,8 @@ def _run_stability(
             control_groups = _control_groups(vsp)
 
             thin_set = getattr(vsp, "SET_FIRST_USER", 3)
-            lifting_names = {"wing", "vtailc", "vtaill", "vtailr", "htail"}
+            if lifting_names is None:
+                lifting_names = {"wing", "vtailc", "vtaill", "vtailr", "htail"}
             included: list[str] = []
             for geom in vsp.FindGeoms():
                 name = str(vsp.GetGeomName(geom))
@@ -246,8 +251,16 @@ def _run_stability(
             )
             vsp.ExecAnalysis(geometry_analysis)
 
-            atmosphere = isa(spec.flight_dynamics.reference_altitude_m)
-            airspeed = spec.flight_dynamics.reference_airspeed_mps
+            atmosphere = isa(
+                spec.flight_dynamics.reference_altitude_m
+                if altitude_m is None
+                else float(altitude_m)
+            )
+            airspeed = (
+                spec.flight_dynamics.reference_airspeed_mps
+                if airspeed_mps is None
+                else float(airspeed_mps)
+            )
             mach = airspeed / atmosphere.speed_of_sound_mps
             wake_iterations = max(int(spec.solver.vspaero_wake_iters), 8)
             sweep = "VSPAEROSweep"
@@ -294,8 +307,8 @@ def _run_stability(
             source_history = base.with_suffix(".history")
             if not source_stab.is_file():
                 raise FileNotFoundError(f"VSPAERO did not write {source_stab}")
-            stab_path = outdir / f"{spec.name}.stability.stab"
-            history_path = outdir / f"{spec.name}.stability.history"
+            stab_path = outdir / f"{spec.name}.{artifact_tag}.stab"
+            history_path = outdir / f"{spec.name}.{artifact_tag}.history"
             shutil.copy2(source_stab, stab_path)
             if source_history.is_file():
                 shutil.copy2(source_history, history_path)
@@ -378,6 +391,57 @@ def run_vspaero_stability(
     return {
         "ok": bool(analysis.get("ok")),
         "method": "VSPAERO steady 6DOF finite-difference stability analysis",
+        "vsp3": str(vsp3_path),
+        "vsp3_sha256": before,
+        "analysis": analysis,
+    }
+
+
+def run_vspaero_control_derivatives(
+    spec: VehicleSpec,
+    vsp3_path: Path,
+    outdir: Path,
+    *,
+    alpha_deg: float,
+    airspeed_mps: float,
+    altitude_m: float,
+    lifting_names: set[str] | None = None,
+) -> dict[str, Any]:
+    """Control-derivative probe for cross-checks; does not need flight dynamics.
+
+    Same VSPAERO stability solve as :func:`run_vspaero_stability`, run at an
+    explicit flight condition on a serialized VSP3 whose control groups were
+    built from declared ``control_surfaces``. ``lifting_names`` restricts the
+    thin lifting set (e.g. ``{"wing"}`` to compare against a wing-only VLM).
+    Used by the validation stage to compare the OAS elevon pitch derivative
+    against an independent solver.
+    """
+    if not spec.flight_dynamics.control_surfaces:
+        return {"ok": False, "reason": "no_control_surfaces_declared"}
+    if not vsp3_path.is_file():
+        return {"ok": False, "reason": f"missing serialized VSP3: {vsp3_path}"}
+    before = sha256_file(vsp3_path)
+    analysis = _run_stability(
+        spec,
+        vsp3_path,
+        outdir,
+        alpha_deg=alpha_deg,
+        airspeed_mps=airspeed_mps,
+        altitude_m=altitude_m,
+        artifact_tag="control-derivatives",
+        lifting_names=lifting_names,
+    )
+    after = sha256_file(vsp3_path)
+    if before != after:
+        return {
+            "ok": False,
+            "reason": "VSPAERO control-derivative probe mutated the serialized VSP3",
+            "vsp3_sha256_before": before,
+            "vsp3_sha256_after": after,
+        }
+    return {
+        "ok": bool(analysis.get("ok")),
+        "method": "VSPAERO steady finite-difference control derivatives",
         "vsp3": str(vsp3_path),
         "vsp3_sha256": before,
         "analysis": analysis,

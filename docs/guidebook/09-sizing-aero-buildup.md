@@ -52,6 +52,20 @@ know their assumptions to catch them lying.
     across a concept's optimization envelope (absolute ratio for NP shift,
     signed ratio for trim effectiveness). This preserves the measured target
     and reverses washout effectiveness for forward sweep.
+  - elevon to trim (`mission.pitch_trim_control: elevon`): `plain_flap_theory`
+    is Glauert's thin-airfoil plain flap, `θ_h = acos(1 − 2 x_h/c)`,
+    `dCl/dδ = 2(π − θ_h + sin θ_h)`, `dCm_c/4/dδ = −½ sin θ_h (1 − cos θ_h)`
+    (τ ≈ 0.55 for a 20 % flap, 0.82 for 50 %); `elevon_pitch_derivative`
+    strip-integrates it over the trapezoid between the surface's span
+    fractions with the finite-wing lift slope, hinge-sweep cosine, and the
+    `c²`-weighted section moment, and takes the lift increment about the
+    strip's quarter-chord centroid; `elevon_required_deg` zeroes
+    `Cm_cg0 = k_w·washout + cm_ac − SM·CL` with twist frozen. Trailing edge
+    up is positive in every published field; `controls.te_down_deg` is the
+    one conversion. The closed form is inviscid and gapless, so it
+    over-predicts authority (the Dolphin: 0.0048/° closed form vs 0.0038/°
+    OAS fixed-alpha) and only seeds the OAS solve; a source-cited
+    `solver.elevon_effectiveness_factor` is the sanctioned correction.
   - optional horizontal-tail fallback: finite-wing lift-curve slopes weight
     wing and tail aerodynamic centers into the combined NP. Tail effectiveness
   uses a conservative conventional-tail dynamic-pressure ratio `ηq = 0.80`

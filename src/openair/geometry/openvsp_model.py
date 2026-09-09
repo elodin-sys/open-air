@@ -380,7 +380,10 @@ def _construct_model(
 
     controls: list[dict[str, Any]] = []
     logical_groups: list[dict[str, Any]] = []
-    if spec.flight_dynamics.enabled:
+    # Declared control surfaces are serialized whenever they exist, not only
+    # when the flight-dynamics stage is enabled: the validation stage uses the
+    # VSPAERO control groups to cross-check the OAS elevon pitch derivative.
+    if spec.flight_dynamics.control_surfaces:
         host_geometries = {
             "wing": [wid],
             "htail": [hid] if hid is not None else [],
@@ -548,10 +551,8 @@ def _construction_readback(
             and abs(got_twist_tip - spec.wing.twist_tip_deg) <= 0.1
         )
         readback["twist_matches"] = twist_ok
-        controls_ok = (
-            not spec.flight_dynamics.enabled
-            or len(built["control_surfaces"])
-            == len(spec.flight_dynamics.control_surfaces)
+        controls_ok = len(built["control_surfaces"]) == len(
+            spec.flight_dynamics.control_surfaces
         )
         control_values = []
         wanted_by_id = {
@@ -1152,11 +1153,35 @@ def run_geometry_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
     except Exception:
         pass
 
+    # Reference-model fidelity: when the concept carries a measured reference
+    # mesh (designs/<concept>/reference/), score the exported artifact against
+    # it. The check is evidence for the geometry-truth gate; for a
+    # source-locked reproduction it also decides this stage's ``ok``.
+    reference_fidelity: dict[str, Any] | None = None
+    if vsp_info.get("stl"):
+        try:
+            from openair.reference.compare import compare_reference, reference_dir_for_outdir
+
+            reference_dir = reference_dir_for_outdir(outdir)
+            if reference_dir is not None:
+                reference_fidelity = compare_reference(
+                    spec,
+                    outdir,
+                    stl_path=vsp_info["stl"],
+                    component_stls=(vsp_info.get("mesh_checks") or {}).get("component_stls") or {},
+                    reference_dir=reference_dir,
+                )
+        except Exception as exc:  # pragma: no cover - depends on artifacts
+            reference_fidelity = {"ok": False, "available": True, "error": str(exc)}
+
     # If OpenVSP ran, the model must match the spec; mesh-only mode is
     # acceptable only when the API is unavailable, not when it disagrees.
     vsp_attempted = vsp_info.get("reason") != "openvsp_import_failed"
     geometry_ok = pack["ok"] and (not vsp_attempted or bool(vsp_info.get("ok")))
-    return {
+    reproduction = bool(spec.sketch is not None and spec.sketch.treatment == "reproduction")
+    if reproduction and reference_fidelity is not None and reference_fidelity.get("available"):
+        geometry_ok = geometry_ok and bool(reference_fidelity.get("ok"))
+    result = {
         "ok": geometry_ok,
         "mesh_shape": list(mesh.shape),
         "mesh_path": str(mesh_path),
@@ -1170,3 +1195,7 @@ def run_geometry_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
         "threeview": threeview_path,
         "backend": "openvsp" if vsp_info.get("ok") else "mesh_only",
     }
+    if reference_fidelity is not None:
+        reference_fidelity["gates_stage_ok"] = reproduction
+        result["reference_fidelity"] = reference_fidelity
+    return result

@@ -96,12 +96,15 @@ python -m openair.designer [concept] [-o out.html] # static, download-only page
 There are two supported entry paths. Studio-first authoring seeds a complete
 six-station fuselage loft from `designs/_template/`; the legacy simple-envelope
 body remains an explicit fallback, not the default. For source-driven
-authoring, `/initialize-aero <concept> "<intent>" @requirements @sketches`
-classifies and measures the supplied views, records measured/inferred/defaulted
+authoring, `/initialize-aero <concept> "<intent>" @requirements @sketches
+@reference-mesh` classifies and measures the supplied views, ingests an
+optional reference model (a triangle mesh of the real aircraft) into measured
+values with scan-derived tolerances, records measured/inferred/defaulted
 provenance in `brief.md`, writes the same canonical source bundle, and runs at
 most three geometry-only checkpoint iterations against the exported-mesh
-three-view. It never runs MDO or the full pipeline. The initialized source then
-opens through the shorter existing-workspace command above for human review.
+three-view (and the reference-fidelity overlay when a reference exists). It
+never runs MDO or the full pipeline. The initialized source then opens through
+the shorter existing-workspace command above for human review.
 
 The Studio is one self-contained HTML document generated from
 `VehicleSpec.model_json_schema()` — every form field, bound, and unit comes
@@ -180,6 +183,16 @@ contain:
   table, and the fuselage-station dimensions and section powers.
 - `sketch-<view>.png` and `sketch-<view>-rectified.png`, which the report
   embeds beside the produced three-view.
+- Optionally `reference/` — a measured reference model (guidebook chapter 13):
+  `reference.json` (provenance, alignment transform, full measurement record,
+  schema-ready values with tolerances), `reference.ply` (aligned, decimated
+  scan), and `reference-sections.png`. `python -m openair.reference ingest`
+  writes it from any triangle mesh (STL/PLY/OBJ/3MF/GLB) with a declared unit;
+  native CAD or scan project files are refused so every tool chain meets the
+  same contract. Its silhouettes become the concept's `sketch-*.png`, and the
+  geometry stage scores every exported artifact against it
+  (`geometry.json .reference_fidelity`, `reference_overlay.png`). The
+  reference is measured design input, never `truth/` evidence.
 
 ### 2. Orchestration (`src/openair/cli.py`)
 
@@ -258,7 +271,12 @@ panel wing mass (skins + spar webs at the specified gauges) that replaced the
 MDO, aero, structures, validation, and report MTOW identical (F20).
 `balance.py` computes the component-CG buildup,
 calibrated neutral point, static margin at full and reserve fuel,
-thin-airfoil trim/washout, stall speed, and fin volume coefficient.
+thin-airfoil trim (washout, tail incidence, or — for
+`mission.pitch_trim_control: elevon` — a Glauert plain-flap elevon
+deflection with twist frozen), stall speed, and fin volume coefficient.
+`src/openair/controls.py` is the single place that resolves the active
+pitch-trim control, names the pitch surface, and owns the trailing-edge-up
+sign convention for every stage.
 Per QA audit F13, the sizing overlay (`target_sized.yaml`) carries **only**
 the closed fuel mass back into later stages — the source YAML stays
 authoritative for everything else.
@@ -269,9 +287,10 @@ Deep dive: [guidebook 09](docs/guidebook/09-sizing-aero-buildup.md).
 `openvsp_model.py` builds the OpenVSP model (wing, station-loft or legacy
 fuselage, and one or two fins attached to the local body section), verifies every
 parameter by API read-back, and exports `.vsp3` plus whole-model and
-per-component STLs. When flight dynamics is enabled it also creates and
-read-back verifies generalized wing/horizontal-tail/vertical-tail control
-subsurfaces and overlapping logical groups. `fuselage.py` is the
+per-component STLs. Whenever control surfaces are declared it also creates
+and read-back verifies generalized wing/horizontal-tail/vertical-tail control
+subsurfaces and overlapping logical groups (the flight-dynamics stage and the
+validation elevon cross-check both consume them). `fuselage.py` is the
 single station-interpolation source
 shared by geometry, packing, drag, plots, and mesh checks. It samples the same
 split super-ellipse equation as OpenVSP and supplies polygon area, perimeter,
@@ -287,8 +306,12 @@ Deep dive: [guidebook 01](docs/guidebook/01-openvsp.md).
 ### Aero — `src/openair/aero/`
 
 `oas_backend.py` runs the OpenAeroStruct VLM: pitch trim closes lift *and*
-moment (alpha + washout), stability is measured from dCM/dCL (not assumed
-25% MAC — F2), and the polar feeds endurance/dash. `drag_buildup.py` adds the
+moment (alpha plus washout, tail incidence, or a travel-bounded elevon
+deflection on a hinge-aligned deflected mesh with the measured twist
+frozen), stability is measured from dCM/dCL (not assumed 25% MAC — F2), and
+the polar feeds endurance/dash. For elevon trim the validation stage
+cross-checks the fixed-alpha pitch derivative against a wing-only VSPAERO
+control derivative from the serialized control groups. `drag_buildup.py` adds the
 component parasite-drag buildup (Raymer/Hoerner conceptual fidelity).
 `vspaero_backend.py` is the independent VLM cross-check used by validation.
 Deep dive: [guidebook 03](docs/guidebook/03-openaerostruct.md),
@@ -512,6 +535,11 @@ raise fidelity, trust, or speed.
 - **Mission segments.** Sizing closes on cruise + dash point conditions.
   Takeoff, climb, descent, and reserve segments would make endurance and
   fuel margins honest for real sorties.
+- **Body pitching moment.** Both lattices see the wing alone. A blended
+  fuselage that is a large fraction of the span (the Dolphin) adds a nose-up
+  moment and a forward neutral-point shift, so elevon trim predictions for
+  such airframes are wing-only upper bounds until a body term, calibrated
+  against a flown trimmed neutral, exists.
 - **Automated planform calibration.** The MDO loop learns per-design
   neutral-point, washout, and fallback-tail-incidence residuals from OAS, but
   the initial family priors are still calibrated by hand (aft-swept,

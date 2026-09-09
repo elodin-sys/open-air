@@ -30,3 +30,14 @@ Non-negotiables for this repo:
 - Packing: payload bay must clear the engine compartment front
   (`L - 0.20 - engine_length - 0.05`) and fuel volume must fit wing tanks +
   fuselage leftover (`packing_report`).
+- Reference model (guidebook chapter 13): when
+  `designs/<concept>/reference/reference.json` exists, `geometry.json` carries
+  `reference_fidelity` (gating: body p95 surface deviation and top/side
+  silhouette IoU; disclosed: whole-aircraft and wing/fin p95, station and
+  planform deltas; `reference_sha256`) and the phase directory holds
+  `reference_overlay.png`. For `sketch.treatment: reproduction` the stage
+  `ok` and the Geometry-truth gate require `reference_fidelity.ok`; otherwise
+  it is disclosed evidence. Open the overlay. Any departure must trace to a
+  documented unrepresentable feature in the brief (strakes, blends, rounded
+  tips), never to measurement error, and the reference is measured design
+  input — not validation truth.

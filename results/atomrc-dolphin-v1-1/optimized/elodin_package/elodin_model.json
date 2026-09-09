@@ -1,0 +1,492 @@
+{
+  "aero": {
+    "allowances": [
+      "Do not clamp alpha or floor CL; publish validity separately.",
+      "Absolute CL/CM depend on the declared trim control and CG."
+    ],
+    "derivative_source": null,
+    "derivatives": null,
+    "drag_polar_fit": {
+      "CD0": 0.03577321316283463,
+      "CL_domain": [
+        -0.2692511002322183,
+        0.4294712837768261
+      ],
+      "equation": "CD = CD0 + k * CL^2",
+      "k": 0.07110248181008685,
+      "rms_residual": 0.0003171397073687919
+    },
+    "linearization": {
+      "CL0": -0.1386534659786583,
+      "CL_alpha_per_rad": 4.0978548743682595,
+      "Cm0": 0.033889453897944566,
+      "Cm_alpha_per_rad": -0.3305448137169164,
+      "cm_residual": 0.0001856516590315778,
+      "coefficient_reference": {
+        "angles": "radians",
+        "area": "main-wing planform (0.1587731031 m^2)",
+        "chord": "main-wing MAC (0.196533344645 m)",
+        "moments": "about the declared CG",
+        "span": "main-wing span (0.849 m)"
+      },
+      "evidence_class": "C",
+      "reference_airspeed_mps": 18.002021013540983,
+      "reference_alpha_deg": 5.842129544005189,
+      "reference_altitude_m": 100.0,
+      "reference_beta_deg": 0.0,
+      "reference_cg_x_m": 0.41900000000000004,
+      "trim_control": "elevon",
+      "trim_control_value_deg": 16.299
+    },
+    "polar_asset": "aero_tables.npz",
+    "validity_component_required": true
+  },
+  "concept": "atomrc-dolphin-v1-1",
+  "created_at": "2026-09-09T17:20:19+00:00",
+  "credibility": "analysis-correlated",
+  "frames": {
+    "body": "X_FORWARD_Y_LEFT_Z_UP",
+    "body_origin_in_geometry_m": [
+      0.41900000000000004,
+      0.0,
+      0.02769381869059088
+    ],
+    "coefficient_adapter": {
+      "force": "wind-axis lift/drag to body with alpha; source +Y right maps to body -Y",
+      "pitch_moment": "tau_y = -Cm*qbar*S*c",
+      "rates": "source p*b/(2V), q*c/(2V), r*b/(2V)",
+      "roll_moment": "tau_x = +Cl*qbar*S*b",
+      "yaw_moment": "tau_z = +Cn*qbar*S*b after beta/r sign conversion"
+    },
+    "coefficient_source": "STANDARD_AEROSPACE_X_FORWARD_Y_RIGHT_Z_DOWN",
+    "geometry": "X_NOSE_TO_TAIL_Y_RIGHT_Z_UP",
+    "geometry_to_body_matrix": [
+      [
+        -1.0,
+        0.0,
+        0.0,
+        0.41900000000000004
+      ],
+      [
+        0.0,
+        -1.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        -0.02769381869059088
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "glb": "X_FORWARD_Y_LEFT_Z_UP_CG_ORIGIN",
+    "moment_reference": "CG",
+    "world": "ENU_Z_UP"
+  },
+  "limits": {
+    "cl_max": 1.0,
+    "cl_max_basis": "aircraft",
+    "dash_mach_cap": 0.11,
+    "negative_g": -2.0,
+    "positive_g": 4.0,
+    "safety_factor": 1.5,
+    "stall_speed_max_mps": 12.0
+  },
+  "manifest": {
+    "aero_tables": {
+      "path": "aero_tables.npz",
+      "role": "aerodynamic_lookup_tables",
+      "sha256": "39d5a3b7d46a960fe26def1cda4bfd40769a6bce3760494e169f0849f8fc86f6",
+      "size_bytes": 2158
+    },
+    "geometry_component_fin_l": {
+      "path": "geometry/component_fin_l.stl",
+      "role": "verified_geometry_component_fin_l",
+      "sha256": "648d460ebb8a868c2a48d0a3c8d6d87664ecc6958af6791c2e434b22b1c5e296",
+      "size_bytes": 164857
+    },
+    "geometry_component_fin_r": {
+      "path": "geometry/component_fin_r.stl",
+      "role": "verified_geometry_component_fin_r",
+      "sha256": "0af3e3858382c9e690b0d626eb1fcfd23e07fe705aa537dc427b239944830641",
+      "size_bytes": 163203
+    },
+    "geometry_component_fuselage": {
+      "path": "geometry/component_fuselage.stl",
+      "role": "verified_geometry_component_fuselage",
+      "sha256": "8c8fc260ff3304e5904d335e775c23959bcfd8c869b8ccb08495c3332c579562",
+      "size_bytes": 324384
+    },
+    "geometry_component_wing": {
+      "path": "geometry/component_wing.stl",
+      "role": "verified_geometry_component_wing",
+      "sha256": "9fd010c226b59bbce8451ff1805493a177509c290b22bc21c4279ccd186f6592",
+      "size_bytes": 257823
+    },
+    "geometry_vsp3": {
+      "path": "geometry/atomrc-dolphin-v1-1.vsp3",
+      "role": "verified_geometry_vsp3",
+      "sha256": "1e812b99e60a72efb50e74f51b4e52926dd87e7e8cc71ce9d7d9c1ec1995c53d",
+      "size_bytes": 306894
+    },
+    "geometry_whole_stl": {
+      "path": "geometry/atomrc-dolphin-v1-1.stl",
+      "role": "verified_geometry_whole_stl",
+      "sha256": "7550232c4356fb66b9bf655915b67c7dbcf235267769e7d549ecf1774ede706c",
+      "size_bytes": 910222
+    },
+    "integration_guide": {
+      "path": "integration_guide.md",
+      "role": "integration_guide",
+      "sha256": "4dd517098d38300d163c971fec369a50eeb86d900dfca638ed34f425afc26d60",
+      "size_bytes": 4933
+    },
+    "propulsion_map": {
+      "path": "propulsion_map.csv",
+      "role": "propulsion_lookup_map",
+      "sha256": "fba77263c16c717d4b41e91a3eda74955c4fb7695ada11cb9851edf0ddd05003",
+      "size_bytes": 2830
+    },
+    "provenance": {
+      "path": "provenance.md",
+      "role": "human_readable_provenance",
+      "sha256": "fd121f53488a1eaa7f83eb45f25c7a2aa07683a052753a8ab2a19dc1d7423a03",
+      "size_bytes": 1004
+    },
+    "render_glb": {
+      "path": "atomrc-dolphin-v1-1.glb",
+      "role": "render_mesh_body_frame",
+      "sha256": "27df5f86a4dae7b0455050dd921062637eee1103b4e590ee6d3dac02baba8757",
+      "size_bytes": 52080
+    },
+    "trim_map": {
+      "path": "trim_map.csv",
+      "role": "trim_initialization_map",
+      "sha256": "e673277b9c3b7d949c9a411a8a80ee9b9ed64539db333dfeedff5daa67e325b4",
+      "size_bytes": 282
+    }
+  },
+  "mass_properties": {
+    "cg_body_m": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "cg_geometry_m": [
+      0.41900000000000004,
+      0.0,
+      0.02769381869059088
+    ],
+    "cg_z_source": "interpolated fuselage centerline; not a measured vertical CG",
+    "diagonal_approximation_declared": false,
+    "elodin_diagonal_kg_m2": null,
+    "evidence_class": "C",
+    "fuel_capacity_kg": null,
+    "fuel_mass_kg": 0.0,
+    "fuel_volume_m3": 0.0,
+    "full_inertia_tensor_kg_m2": null,
+    "inertia_source": null,
+    "manufacturer_listed_mass_kg": null,
+    "manufacturer_mass_state": "not_structured_in_vehicle_spec",
+    "mass_kg": 0.889,
+    "operating_empty_mass_kg": 0.889,
+    "reserve_fuel_kg": 0.0
+  },
+  "model_id": "atomrc-dolphin-v1-1-optimized",
+  "performance_anchors": {
+    "cruise": {
+      "CD": 0.041592326028656326,
+      "CL": 0.27918183065302865,
+      "alpha_deg": 5.842129544005189,
+      "altitude_m": 100.0,
+      "mach": 0.05296114615347814,
+      "tas_mps": 18.002021013540983,
+      "throttle": 0.3
+    },
+    "dash": {
+      "CD": 0.03443635139281097,
+      "CL": 0.06473425412686379,
+      "alpha_deg": 2.7696385739292397,
+      "altitude_m": 100.0,
+      "mach": 0.1100000000286036,
+      "tas_mps": 37.390095491246896,
+      "throttle": 0.46818048289032843
+    },
+    "negative_g": {
+      "CL": -0.5586145424798793,
+      "aerodynamic_domain_ok": true,
+      "alpha_deg": -9.125400063260141,
+      "failure": -0.9635486805405971,
+      "load_factor": -2.0,
+      "ok": true,
+      "tas_mps": 18.002021013540983
+    },
+    "positive_g": {
+      "CL": 0.7920350511225124,
+      "aerodynamic_domain_ok": true,
+      "alpha_deg": 10.279865776669627,
+      "failure": -0.9610279324334771,
+      "load_factor": 4.0,
+      "ok": true,
+      "tas_mps": 21.380004687333408
+    },
+    "stall": {
+      "cl_max": 1.0,
+      "cl_max_basis": "aircraft_effective",
+      "input_cl_max": 1.0,
+      "input_cl_max_basis": "aircraft",
+      "speed_mps": 9.46824975602358
+    },
+    "validation": {
+      "ok": true,
+      "passed": 15,
+      "total": 15
+    }
+  },
+  "phase": "optimized",
+  "propulsion": {
+    "evidence_class": "D",
+    "map_asset": "propulsion_map.csv",
+    "model": {
+      "deck": null,
+      "diameter_m": 0.028,
+      "dry_mass_kg": 0.0445,
+      "energy_source": "electric",
+      "fuel_density_kg_m3": 800.0,
+      "fuel_flow_max_kg_s": 0.0,
+      "installation": "internal",
+      "installation_count": 1,
+      "lateral_offset_m": 0.0,
+      "length_m": 0.06,
+      "max_thrust_sl_n": 10.0,
+      "min_throttle": 0.3,
+      "nacelle_frontal_cd": 0.08,
+      "name": "AtomRC 2307 1800KV + Exceed BLS 30A + Gemfan Flash 7042 pusher (placeholder thrust)",
+      "thrust_lapse_floor": 1.0,
+      "thrust_lapse_k_mach": 0.0,
+      "tsfc_mach_k": 0.0,
+      "tsfc_part_a": 1.0,
+      "tsfc_part_b": 0.0,
+      "x_m": 0.68,
+      "z_m": 0.024
+    },
+    "provisional": true,
+    "provisional_reason": "No identified engine deck; analytic lapse and TSFC assumptions.",
+    "thrust_application_body_m": {
+      "x_m": -0.261,
+      "y_m": 0.0,
+      "z_m": -0.003693818690590881
+    },
+    "thrust_axis_body": [
+      1.0,
+      0.0,
+      0.0
+    ]
+  },
+  "provenance": {
+    "allowances": [
+      "Attached-flow aerodynamics only; emit a validity flag outside the declared domain.",
+      "Aero/structures solver agreement is verification, not physical-aircraft validation.",
+      "Propulsion map is evaluated from the analytic lapse/TSFC model, not an identified engine deck.",
+      "No measured inertia tensor is available; consumers must not invent one from this package."
+    ],
+    "design_sha256": "71ebb51b0f50ddf462db6e4b09cd5ed154d2f378bfad6b8e410e49685c120d95",
+    "evidence_classes": {
+      "aerodynamics": "C",
+      "mass_properties": "C",
+      "performance_anchors": "C",
+      "propulsion": "D",
+      "reference_geometry": "C"
+    },
+    "model_source_sha256": "b808480a704bd7cf01b0ace584a1e51869ab3f85116c3f92e029fabc07d80051",
+    "pipeline_run_id": "ba28937183c74fe59e0fa478c24b036f",
+    "source_git_commit": "bf5767aa43b59e109a63ccff1a449ca16de886ca",
+    "upstream_sha256": {
+      "aero.json": "780d22be616ce217fa48594c98089d499bd7b9dceaefa73e9a92b386597b5e60",
+      "geometry.json": "a026cd07d4c21117aa7c955bce73c9272f05cb4f0be620bfd4013038cda63ed2",
+      "structures.json": "43ae6f68445958f699f66b2724319024522e23a5b5a94d5b5cdc591242018d9d",
+      "validation.json": "cb67a47e47168a49fb634d435550db9338c8ba276b9366d9a2b738d6b5ad41f9"
+    }
+  },
+  "reference_geometry": {
+    "area_m2": 0.1587731031,
+    "aspect_ratio": 4.539818054359107,
+    "evidence_class": "C",
+    "fuselage": {
+      "fuel_tank_x_m": 0.3,
+      "length_m": 0.712,
+      "max_height_m": 0.107,
+      "max_width_m": 0.15,
+      "nose_fine_ratio": 0.22,
+      "payload_bay_height_m": 0.05,
+      "payload_bay_length_m": 0.105,
+      "payload_bay_width_m": 0.05,
+      "payload_bay_x_m": 0.19,
+      "stations": [
+        {
+          "bottom_power": 2.0,
+          "height_m": 0.0,
+          "side_power": 2.0,
+          "top_power": 2.0,
+          "width_m": 0.0,
+          "x_over_length": 0.0,
+          "z_offset_m": 0.0
+        },
+        {
+          "bottom_power": 2.86,
+          "height_m": 0.065,
+          "side_power": 2.75,
+          "top_power": 1.03,
+          "width_m": 0.089,
+          "x_over_length": 0.0983,
+          "z_offset_m": 0.015
+        },
+        {
+          "bottom_power": 1.17,
+          "height_m": 0.107,
+          "side_power": 3.0,
+          "top_power": 0.89,
+          "width_m": 0.118,
+          "x_over_length": 0.316,
+          "z_offset_m": 0.0316
+        },
+        {
+          "bottom_power": 2.0,
+          "height_m": 0.1,
+          "side_power": 2.0,
+          "top_power": 2.0,
+          "width_m": 0.15,
+          "x_over_length": 0.47,
+          "z_offset_m": 0.033
+        },
+        {
+          "bottom_power": 0.64,
+          "height_m": 0.082,
+          "side_power": 1.92,
+          "top_power": 2.61,
+          "width_m": 0.141,
+          "x_over_length": 0.6531,
+          "z_offset_m": 0.0248
+        },
+        {
+          "bottom_power": 0.66,
+          "height_m": 0.071,
+          "side_power": 3.67,
+          "top_power": 4.71,
+          "width_m": 0.099,
+          "x_over_length": 0.7621,
+          "z_offset_m": 0.0211
+        },
+        {
+          "bottom_power": 2.0,
+          "height_m": 0.059,
+          "side_power": 2.44,
+          "top_power": 4.07,
+          "width_m": 0.095,
+          "x_over_length": 0.8931,
+          "z_offset_m": 0.02
+        },
+        {
+          "bottom_power": 6.33,
+          "height_m": 0.048,
+          "side_power": 1.05,
+          "top_power": 3.44,
+          "width_m": 0.045,
+          "x_over_length": 1.0,
+          "z_offset_m": 0.0237
+        }
+      ],
+      "tail_fine_ratio": 0.28
+    },
+    "geometry_assets": [
+      "atomrc-dolphin-v1-1.glb",
+      "geometry/atomrc-dolphin-v1-1.vsp3",
+      "geometry/atomrc-dolphin-v1-1.stl",
+      "geometry/component_fuselage.stl",
+      "geometry/component_wing.stl",
+      "geometry/component_fin_r.stl",
+      "geometry/component_fin_l.stl"
+    ],
+    "horizontal_tail": {
+      "area_m2": 0.0,
+      "incidence_deg": 0.0,
+      "le_sweep_deg": 0.0,
+      "root_chord_m": 0.1,
+      "span_m": 0.0,
+      "t_over_c": 0.1,
+      "taper": 0.5,
+      "x_le_m": 0.6,
+      "z_m": 0.02
+    },
+    "mac_m": 0.19653334464534075,
+    "span_m": 0.849,
+    "vertical_tail": {
+      "area_m2": 0.0099253735,
+      "cant_deg": 39.0,
+      "count": 2,
+      "le_sweep_deg": 29.4,
+      "root_chord_m": 0.107,
+      "span_m": 0.119,
+      "t_over_c": 0.129,
+      "taper": 0.559,
+      "x_le_m": 0.5426,
+      "y_root_m": 0.062,
+      "z_root_m": 0.0496
+    },
+    "wing": {
+      "airfoil": "1210",
+      "area_m2": 0.1587731031,
+      "aspect_ratio": 4.539818054359107,
+      "dihedral_deg": -0.9,
+      "le_sweep_deg": -6.38,
+      "mac_m": 0.19653334464534075,
+      "root_chord_m": 0.2601,
+      "span_m": 0.849,
+      "t_over_c": 0.1,
+      "taper": 0.438,
+      "tip_chord_m": 0.1139238,
+      "twist_root_deg": 1.6,
+      "twist_tip_deg": 0.5,
+      "x_ac_m": 0.43559243645673706,
+      "x_le_mac_m": 0.38645910029540187,
+      "x_le_root_m": 0.4071,
+      "y_mac_m": 0.18459944367176634,
+      "z_root_m": 0.0245
+    },
+    "x_ac_m_geometry": 0.43559243645673706,
+    "x_le_mac_m_geometry": 0.38645910029540187
+  },
+  "schema_version": "1.0",
+  "trim_map_asset": "trim_map.csv",
+  "validity": {
+    "attached_flow_alpha_deg": [
+      -12.0,
+      12.0
+    ],
+    "derivatives_local_only": false,
+    "extrapolation_policy": "flag_invalid_do_not_clamp",
+    "mach": [
+      0.0,
+      0.11
+    ],
+    "notes": [
+      "Polar is attached-flow analysis; it is not a stall/post-stall model.",
+      "Control/rate derivatives, when present, are local linearizations."
+    ],
+    "polar_table_alpha_deg": [
+      -2.0,
+      8.0
+    ],
+    "reynolds_per_m": [
+      1222764.836316442,
+      1222764.836316442
+    ]
+  }
+}

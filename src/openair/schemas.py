@@ -323,6 +323,14 @@ class MissionSpec(PhysicalModel):
     # documented finite-wing/sweep conversion in mission.balance.
     cl_max_basis: Literal["aircraft", "section"] = "aircraft"
     stall_speed_max_mps: float = Field(30.0, gt=5.0)
+    # Which control closes cruise pitch trim. ``auto`` keeps the historical
+    # rule (tail incidence when a horizontal tail exists, otherwise wing
+    # twist). ``elevon`` is an explicit opt-in for tailless aircraft whose
+    # twist is a frozen measurement: trim is closed by deflecting the wing
+    # control surface whose mixing carries the collective pitch group.
+    pitch_trim_control: Literal["auto", "wing_twist", "tail_incidence", "elevon"] = (
+        "auto"
+    )
 
 
 class MaterialSpec(PhysicalModel):
@@ -551,6 +559,15 @@ class ControlSurfaceSpec(PhysicalModel):
     chord_fraction: float = Field(gt=0.02, lt=0.6)
     max_up_deg: float = Field(gt=0.0, le=60.0)
     max_down_deg: float = Field(gt=0.0, le=60.0)
+    # Deflection sign convention for both fields: trailing-edge UP is positive
+    # (nose-up pitch command), so the admissible range is
+    # [-max_down_deg, +max_up_deg]. ``neutral_deg`` is the measured as-flown
+    # trimmed neutral (None when nobody measured it). ``trim_deflection_deg``
+    # is the deflection the aero and MDO stages analyze; when the mission
+    # selects ``pitch_trim_control: elevon`` the reproduction closure writes
+    # the solved cruise trim deflection back into this field.
+    neutral_deg: float | None = None
+    trim_deflection_deg: float = 0.0
     source: str = Field(min_length=1)
     mixing: list[ControlMixSpec] = Field(min_length=1)
 
@@ -560,6 +577,18 @@ class ControlSurfaceSpec(PhysicalModel):
             raise ValueError(
                 "control-surface span_end_fraction must exceed span_start_fraction"
             )
+        for label, value in (
+            ("neutral_deg", self.neutral_deg),
+            ("trim_deflection_deg", self.trim_deflection_deg),
+        ):
+            if value is not None and not (
+                -self.max_down_deg - 1e-9 <= value <= self.max_up_deg + 1e-9
+            ):
+                raise ValueError(
+                    f"control-surface {label} {value:.3f} lies outside the travel "
+                    f"[-{self.max_down_deg:g}, +{self.max_up_deg:g}] deg "
+                    "(trailing-edge up positive)"
+                )
         ids = [mix.id for mix in self.mixing]
         if len(ids) != len(set(ids)):
             raise ValueError("control-surface mixing ids must be unique per surface")
@@ -672,6 +701,11 @@ class SolverSpec(PhysicalModel):
     # effectiveness. Keep this at 1.0 for uncalibrated concepts.
     tail_lift_effectiveness_factor: float = Field(1.0, ge=0.3, le=1.2)
     tail_lift_effectiveness_source: str | None = None
+    # Optional source-backed scale on the closed-form thin-airfoil plain-flap
+    # elevon pitching-moment derivative used by the balance model. Keep 1.0
+    # for uncalibrated concepts; OAS trim re-measures the real derivative.
+    elevon_effectiveness_factor: float = Field(1.0, ge=0.3, le=1.5)
+    elevon_effectiveness_source: str | None = None
 
     @model_validator(mode="after")
     def validate_tail_effectiveness_calibration(self) -> Self:
@@ -682,6 +716,11 @@ class SolverSpec(PhysicalModel):
             raise ValueError(
                 "tail_lift_effectiveness_factor requires a source citation"
             )
+        if (
+            abs(self.elevon_effectiveness_factor - 1.0) > 1e-12
+            and not self.elevon_effectiveness_source
+        ):
+            raise ValueError("elevon_effectiveness_factor requires a source citation")
         return self
 
 
@@ -744,6 +783,29 @@ class VehicleSpec(PhysicalModel):
                     and surface.host == "vtail"
                 ):
                     raise ValueError("centerline vtail controls require single mixing")
+        trim_mode = self.mission.pitch_trim_control
+        if trim_mode == "tail_incidence" and self.htail.span_m <= 0.05:
+            raise ValueError("pitch_trim_control tail_incidence requires a horizontal tail")
+        if trim_mode == "elevon":
+            if self.htail.span_m > 0.05:
+                raise ValueError(
+                    "pitch_trim_control elevon is for tailless aircraft; use "
+                    "tail_incidence when a horizontal tail exists"
+                )
+            pitch_surfaces = [
+                surface
+                for surface in self.flight_dynamics.control_surfaces
+                if surface.host == "wing"
+                and any(
+                    mix.mode == "collective" and mix.axis == "pitch"
+                    for mix in surface.mixing
+                )
+            ]
+            if len(pitch_surfaces) != 1:
+                raise ValueError(
+                    "pitch_trim_control elevon requires exactly one wing control "
+                    "surface with a collective pitch mixing group"
+                )
         return self
 
     @computed_field

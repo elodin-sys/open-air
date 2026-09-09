@@ -54,10 +54,27 @@ estimate; wave drag is a Korn-equation model that is exactly zero below Mcrit.
   (projected S_ref, NACA section data, `CD0` = fuselage+fins+base buildup).
 - Aero + trim: [`src/openair/aero/oas_backend.py`](../../src/openair/aero/oas_backend.py) —
   `run_vlm` (CM about a chosen x-ref), `trim_alpha` (L=W),
-  `trim_pitch` (α + wing twist, or α + fallback-tail incidence, for L=W
-  **and** CM_cg=0, with the thin-airfoil cm_ac correction because the VLM
-  mesh is flat), `measure_neutral_point` (dCM/dCL → true NP). A second
-  `htail` surface is added only for the discrete repair branch.
+  `trim_pitch` (α + wing twist, α + fallback-tail incidence, or α + elevon
+  deflection, for L=W **and** CM_cg=0, with the thin-airfoil cm_ac
+  correction because the VLM mesh is flat), `measure_neutral_point`
+  (dCM/dCL → true NP). A second `htail` surface is added only for the
+  discrete repair branch.
+- Elevon trim (`mission.pitch_trim_control: elevon`, opt-in;
+  [`src/openair/controls.py`](../../src/openair/controls.py) resolves the
+  control): the aero-only seed mesh is re-spaced so a chordwise row lies on
+  the hinge (`geometry.mesh.elevon_chord_fractions`, six rows) and the rows
+  aft of it are sheared in z by `deflect_trailing_edge`. OAS tapers the seed
+  about the quarter chord *after* we deflect it and scales only x, so the
+  z-drop is pre-multiplied by the local taper factor `k(η)`; the resulting
+  flap slope is `tan δ` everywhere. Spanwise coverage is area-weighted over
+  each node's interval so the elevon edges need not sit on nodes. Twist
+  stays frozen; the outer secant runs on the deflection (trailing edge up
+  positive), clamped to the declared travel, and a solution pinned within
+  0.5° of a limit is reported as not converged. The result carries the
+  lift-trimmed `dcm_ddelta_per_deg` (what trim uses) and the fixed-alpha
+  `dcm/dcl_ddelta_fixed_alpha_per_deg` (what another solver's control
+  derivative measures). Dash, polar, and the NP sweep run the solved
+  deflection held fixed; the coupled wingbox keeps the undeflected seed.
 - Structures: [`src/openair/structures/oas_wingbox.py`](../../src/openair/structures/oas_wingbox.py) —
   exact requested FEM topology at signed ±limit load, reference-mass-closed
   `W0`, and tiny `R`. It refuses span >10 m or MTOW >1,000 kg until a
@@ -69,7 +86,13 @@ estimate; wave drag is a Korn-equation model that is exactly zero below Mcrit.
    (validation suite runs this).
 2. CLα ≈ 2πAR/(AR+2) per radian within a few percent.
 3. Trim: `aero.json .trim.cm_residual` < 0.005 and selected control within
-   ~1° of spec (washout or tail incidence).
+   ~1° of spec (washout, tail incidence, or elevon deflection with
+   `elevon_within_travel` and `twist_frozen` true).
+3b. Elevon derivative sanity: trailing edge up must give `dcm_ddelta_per_deg`
+   > 0 (nose-up about the CG) and `dcl_ddelta_fixed_alpha_per_deg` < 0; the
+   fixed-alpha value must be the larger of the two (the lift-trimmed value
+   subtracts `SM·dCL/dδ`). The trim solution should move by well under 1°
+   between `structures.n_spanwise` of 15 and 31.
 4. NP: `stability.x_np_measured_m` within 0.05·MAC of the balance model.
 5. Structures: `failure ≤ 0` at +4g; lift closes to signed `nW`, aerodynamic
    incidence remains within the linear-VLM domain, OAS equilibrium mass closes
@@ -84,3 +107,12 @@ estimate; wave drag is a Korn-equation model that is exactly zero below Mcrit.
 - Wave drag "zero" is not evidence below Mcrit — it is the model's floor.
 - A flat VLM sees no camber: section cm_ac must be added analytically for
   trim work (chapter 09).
+- A wing-only VLM sees no body. A blended fuselage that is a large fraction
+  of the span adds a nose-up moment and moves the neutral point forward; the
+  elevon deflection OAS needs to trim such an aircraft is an upper bound on
+  what the airframe needs. Compare it with a flown trimmed neutral before
+  believing it, and never re-twist a measured wing to shrink it.
+- A serialized elevon trim deflection rides along on every `run_vlm` of that
+  spec. Analytical checks that build a synthetic wing from a spec copy must
+  reset `pitch_trim_control` and drop the control surfaces first (the
+  validation rectangle does).

@@ -75,6 +75,14 @@ non-claims. Do not turn calibration or post-hoc agreement into validation.
 - [14:41 — Elodin model package export](2026-08-23-1441-elodin-model-package.md): replaced copied simulation constants with a phase-bound, hash-verified low-/high-fidelity package and CG-frame GLB.
 - [18:25 — Design previews in git](2026-08-23-1825-design-previews.md): committed report/brief/chart/`elodin_package` previews so the repo shows each design's outcome without staging stage JSONs.
 
+### 2026-09-05 — Reference models
+
+- [11:30 — Reference models as measured design input](2026-09-05-1130-reference-model-grounding.md): made any triangle-mesh scan or CAD export a tool-agnostic design source, measured into schema values with tolerances and scored against every exported artifact.
+
+### 2026-09-09 — Elevon trim
+
+- [11:45 — Elevon pitch trim for measured tailless airframes](2026-09-09-1145-elevon-pitch-trim.md): added an opt-in elevon pitch-trim control (frozen twist, travel-bounded OAS solve, thin-airfoil seed, VSPAERO cross-check) and closed the scan-grounded Dolphin at 12/12 gates.
+
 ## Adding an entry
 
 Create one file at the time the work closes. Prefer one durable decision or

@@ -30,6 +30,7 @@ design-studio.html
 *.out
 *.log
 *.env
+*.zip
 
 # OpenMDAO default reports dirs
 *_out/

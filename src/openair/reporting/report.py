@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from openair.atmosphere import isa
+from openair.controls import trim_control_values
 from openair.design_intent import (
     DEFAULT_SKETCH_SHAPE,
     shape_fidelity_report,
@@ -214,14 +215,13 @@ def run_report_stage(
     )
     tail_enabled = spec.htail.span_m > 0.05
     cm_residual = trim.get("cm_residual")
-    if tail_enabled:
-        trim_got = trim.get("tail_incidence_trim_deg")
-        trim_spec = spec.htail.incidence_deg
-        trim_control_name = "tail incidence"
-    else:
-        trim_got = trim.get("washout_trim_deg")
-        trim_spec = spec.wing.twist_root_deg - spec.wing.twist_tip_deg
-        trim_control_name = "wing washout"
+    trim_values = trim_control_values(spec, trim)
+    trim_got = trim_values["solved_deg"]
+    trim_spec = trim_values["spec_deg"] if trim_values["spec_deg"] is not None else 0.0
+    trim_control_name = (
+        "wing washout" if trim_values["control"] == "wing_twist" else trim_values["label"]
+    )
+    movable_control = trim_values["control"] in {"tail_incidence", "elevon"}
     inspiration = bool(
         spec.sketch is not None and spec.sketch.treatment == "inspiration"
     )
@@ -233,8 +233,9 @@ def run_report_stage(
             and abs(float(cm_residual)) < 0.005
             and trim_got is not None
             and abs(float(trim_got) - trim_spec) <= 1.0
+            and (trim_values["control"] != "elevon" or trim.get("elevon_within_travel"))
         )
-        if inspiration or tail_enabled
+        if inspiration or movable_control
         else bool(trim.get("converged"))
     )
     vstall = balance.get("vstall_mps")
@@ -333,7 +334,11 @@ def run_report_stage(
     wing_trim_note = (
         "fixed while tail incidence closes pitch trim"
         if tail_enabled
-        else "sized by the tailless trim solve"
+        else (
+            "frozen (measured) while the elevon closes pitch trim within its travel"
+            if trim_values["control"] == "elevon"
+            else "sized by the tailless trim solve"
+        )
     )
     tail_config = (
         f"horizontal tail span {spec.htail.span_m:.2f} m, root "
