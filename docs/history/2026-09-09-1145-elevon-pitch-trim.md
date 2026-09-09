@@ -2,7 +2,7 @@
 
 - Type: decision + milestone
 - Window: 2026-09-09
-- Commits: pending (this change set)
+- Commits: `07c0e5f` (shared with the reference-model entry)
 
 The scan-grounded AtomRC Dolphin failed two gates on its first full run:
 pitch trim and reproduction-closure honesty. Both had the same cause. The

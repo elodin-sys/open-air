@@ -2,7 +2,7 @@
 
 - Type: milestone
 - Window: 2026-09-04 – 2026-09-05
-- Commits: pending (this change set)
+- Commits: `07c0e5f` (shared with the 2026-09-09 elevon-trim entry)
 
 Sketch photos and product renders were the only shape evidence a concept
 could carry, and the render-traced AtomRC Dolphin exposed the limits of that:
