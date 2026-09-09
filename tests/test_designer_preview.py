@@ -148,6 +148,15 @@ def _single_fin_spec() -> VehicleSpec:
     return spec
 
 
+def _measured_fin_spec() -> VehicleSpec:
+    spec = _station_spec()
+    spec.name = "preview-measured-fin"
+    spec.vtail.root_attachment = "measured"
+    spec.vtail.y_root_m = 0.10
+    spec.vtail.z_root_m = 0.10
+    return spec
+
+
 @pytest.mark.parametrize(
     ("case", "spec_factory"),
     [
@@ -156,6 +165,7 @@ def _single_fin_spec() -> VehicleSpec:
         ("station-loft", _station_spec),
         ("blade-bubble", _blade_bubble_spec),
         ("single-fin", _single_fin_spec),
+        ("measured-fin", _measured_fin_spec),
     ],
 )
 def test_preview_mesh_matches_openvsp_readback_and_stl_bbox(

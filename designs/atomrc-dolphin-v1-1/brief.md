@@ -168,7 +168,7 @@ x ≈ 0.10–0.15 (bottom −0.017 m) is real.
 | Root chord / tip chord | LE/TE lines extrapolated to the junction and tip | 0.107 m / 0.060 m -> taper 0.559 | ±0.004 m | measured (reference model) |
 | LE sweep (in the fin plane) | LE line slope | 29.4° | ±1.0° | measured (reference model) |
 | x_le (root) | LE line at the junction | 0.5426 m | ±0.004 m | measured (reference model) |
-| Root junction | y ±0.062 m, z +0.0496 m (deck edge) | recorded in `vtail.y_root_m/z_root_m` | — | measured; builder derives attachment |
+| Root junction | y ±0.062 m, z +0.0496 m (deck edge) | `vtail.root_attachment: measured`; OpenVSP uses `y_root_m/z_root_m` exactly | — | measured (reference model) |
 | t/c | plane-slab thickness 10.8 mm over the mean chord | 0.129 | — | measured (reference model) |
 
 The render-based estimate (fin span 0.177 m, cant 47.4°, x_le 0.517 m) is
@@ -246,8 +246,13 @@ stretch solvers only).
   0.42 m semispan and adds a nose-up moment and a forward neutral-point shift
   that neither lattice models, so the predicted elevon trim deflection is an
   upper bound for the wing-only physics, not a flight measurement.
-- **Fin root fairing and toe**: fins attach at the builder-derived body point;
-  measured toe (±1.5°) is not representable.
+- **Fin root fairing and toe**: the fin origin now honours the measured
+  deck/strake junction exactly. A single planar OpenVSP WING cannot represent
+  the sloping root fairing or measured toe (±1.5°). The nominal point is
+  outside the narrow core-body section at the root LE (reported eccentricity
+  2.64) because the omitted aft deck/strake supports it; the exported root
+  centroid still passes the artifact attachment check (eccentricity 0.955,
+  nearest body vertex 16.1 mm) without relaxing its limits.
 - **Scan gaps**: missing leading-edge skin, open bays, missing belly panels
   (repaired by interpolation as listed above); propeller not scanned.
 - **Aft avionics-bay volume**: the packing contract reserves the aft
@@ -342,6 +347,22 @@ stretch solvers only).
   static margin 0.0807 MAC. Validation 13/13 and the gate verdict remains
   12/12. This closes both symptoms of the derivative anomaly without tuning
   aircraft geometry, CG, trim, or an acceptance band.
+- Iteration 5 (2026-09-09): geometry-tool repair —
+  `vtail.root_attachment: measured` makes the builder, Studio VSP import, and
+  Studio preview use the scan junction y ±0.062 m / z +0.0496 m exactly
+  instead of the legacy body-derived y ±0.0258 m / z +0.0378 m. Fin span,
+  chords, sweep, cant, t/c, mass, CG, and all aerodynamic settings are
+  unchanged. Full pipeline: read-back matches, bbox passes, mesh checks 18/18
+  including both fin attachments, validation 13/13, gates 12/12. Reference
+  fidelity improves materially: fin p95 **20.5/21.4 -> 3.1/3.6 mm** (mean
+  13.6/14.1 -> 1.5/1.8 mm), whole-aircraft model-to-reference p95
+  **17.7 -> 13.4 mm**, top/side/front IoU **0.900/0.940/0.664 ->
+  0.912/0.953/0.787**. The remaining whole-aircraft deviation is
+  wing-dominated (wing p95 16.4 mm: equivalent trapezoid root/tips); body p95
+  remains 11.6 mm. The helper discloses nominal root-LE core eccentricity
+  2.64 rather than pretending the omitted deck/strake exists, while the
+  exported root centroid passes the existing mesh attachment criterion at
+  0.955. No fidelity band was widened.
 
 <!-- OPENAIR_SKETCH_WORKSHEET_START -->
 ## Sketch measurement worksheet

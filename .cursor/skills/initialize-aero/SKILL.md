@@ -105,6 +105,12 @@ is tool-agnostic on purpose.
    per-station `fill_method`/`width_clamped`/`top_overridden` flags, and the
    `width_core_m` versus `width_blended_m` choice; decide deliberately and
    write the reason in the brief.
+4b. When the fin measurement resolves a root junction, write its mirrored
+   absolute y and shared z into `vtail.y_root_m/z_root_m` and set
+   `vtail.root_attachment: measured`. The default `derived` mode intentionally
+   ignores those coordinates and applies the legacy 60%-body rule; never use
+   it for a measured reference-model reproduction. Record any deck/strake
+   fairing the single body loft cannot support.
 5. The scan silhouettes (`sketch-top/side/front.png`) are the primary views:
    orthographic, rectified by construction, 10 mm grid, mm/px in the PNG
    metadata. Keep any photographs or renders in the source list as secondary

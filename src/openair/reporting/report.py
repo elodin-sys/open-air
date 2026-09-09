@@ -351,6 +351,13 @@ def run_report_stage(
     fin_topology = (
         "single centerline fin" if spec.vtail.count == 1 else "twin canted fins"
     )
+    fin_root_text = (
+        f"{'root' if spec.vtail.count == 1 else 'roots'} at the measured junction "
+        f"y {'0.000' if spec.vtail.count == 1 else f'±{spec.vtail.y_root_m:.3f}'} m, "
+        f"z {spec.vtail.z_root_m:.3f} m"
+        if spec.vtail.root_attachment == "measured"
+        else "root derived from the local aft-body section"
+    )
     reproduction = bool(
         spec.sketch is not None and spec.sketch.treatment == "reproduction"
     )
@@ -498,7 +505,7 @@ def run_report_stage(
         f"- Fuselage length × width × height: {spec.fuselage.length_m:.2f} × {spec.fuselage.max_width_m:.2f} × {spec.fuselage.max_height_m:.2f} m",
         f"- Wing: span {spec.wing.span_m:.2f} m, root {spec.wing.root_chord_m:.2f} m, taper {spec.wing.taper:.2f}, LE sweep {spec.wing.le_sweep_deg:.1f}°, t/c {spec.wing.t_over_c:.3f}, NACA {spec.wing.airfoil}",
         f"- Washout {spec.wing.twist_root_deg - spec.wing.twist_tip_deg:.1f}° (root {spec.wing.twist_root_deg:+.1f}°, tip {spec.wing.twist_tip_deg:+.1f}°) — {wing_trim_note}",
-        f"- {fin_topology.title()}: span {spec.vtail.span_m:.2f} m, cant {spec.vtail.cant_deg:.1f}°, roots derived from the local aft-body section (see `geometry.json .openvsp.fin_attach`); {tail_config}",
+        f"- {fin_topology.title()}: span {spec.vtail.span_m:.2f} m, cant {spec.vtail.cant_deg:.1f}°, {fin_root_text} (see `geometry.json .openvsp.fin_attach`); {tail_config}",
         f"- Payload bay front face x={spec.fuselage.payload_bay_x_m:.2f} m; fuselage tank x={spec.fuselage.fuel_tank_x_m:.2f} m (balance-driven)",
         f"- Propulsion installation: {installation_text}; declared mass, thrust, "
         "and fuel flow represent the complete installed system",

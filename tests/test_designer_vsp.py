@@ -221,6 +221,51 @@ def test_station_loft_naca_and_htail_round_trip(tmp_path: Path):
     )
 
 
+def test_measured_twin_fin_root_round_trips_gui_edits(tmp_path: Path):
+    spec = _roundtrip_spec()
+    spec.name = "vsp-measured-fin-roundtrip"
+    spec.vtail.root_attachment = "measured"
+    spec.vtail.y_root_m = 0.12
+    spec.vtail.z_root_m = 0.10
+    path = tmp_path / "measured-fin.vsp3"
+    _write_or_skip(spec, path)
+
+    geometry = import_vsp3(path, spec)
+    assert geometry_changes(spec, geometry) == []
+
+    def edit(vsp, geoms):
+        for name, y_m in (("vtailr", 0.15), ("vtaill", -0.15)):
+            vsp.SetParmVal(geoms[name], "Y_Rel_Location", "XForm", y_m)
+            vsp.SetParmVal(geoms[name], "Z_Rel_Location", "XForm", 0.12)
+
+    _edit_vsp3(path, edit)
+    geometry = import_vsp3(path, spec)
+    imported = _merge(spec, geometry)
+
+    assert imported.vtail.root_attachment == "measured"
+    assert imported.vtail.y_root_m == pytest.approx(0.15)
+    assert imported.vtail.z_root_m == pytest.approx(0.12)
+
+
+def test_derived_twin_fin_root_gui_edit_is_rejected(tmp_path: Path):
+    spec = _roundtrip_spec()
+    path = tmp_path / "derived-fin.vsp3"
+    _write_or_skip(spec, path)
+
+    def edit(vsp, geoms):
+        right_y = vsp.GetParmVal(geoms["vtailr"], "Y_Rel_Location", "XForm")
+        vsp.SetParmVal(
+            geoms["vtailr"],
+            "Y_Rel_Location",
+            "XForm",
+            right_y + 0.01,
+        )
+
+    _edit_vsp3(path, edit)
+    with pytest.raises(ImportRejected, match="derived from the local fuselage"):
+        import_vsp3(path, spec)
+
+
 def test_single_centerline_fin_round_trip(tmp_path: Path):
     spec = _roundtrip_spec()
     spec.name = "vsp-single-fin-roundtrip"

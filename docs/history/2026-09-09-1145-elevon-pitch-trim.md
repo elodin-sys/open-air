@@ -90,5 +90,7 @@ a body-moment term can be calibrated.
   by the shared Glauert implementation. Diana 2 V1 is refused; V2 re-fits one
   force scale on its designated training flights before any post-change
   holdout attempt.
-- Deferred: the builder fin attachment on the measured root junction; a body
-  pitching-moment term for blended flying wings; the Studio ghost overlay.
+- Follow-up resolution (2026-09-09): `vtail.root_attachment: measured` now
+  honours the scan junction; see the measured-fin-attachment history entry.
+  Still deferred: a body pitching-moment term for blended flying wings and
+  the Studio ghost overlay.

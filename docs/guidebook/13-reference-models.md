@@ -85,6 +85,9 @@ publishing. A staged concept bundle passes `--out <staging>/reference` and
    - *Fins*: surfaces above the appendage-free deck in the aft body; plane fit
      for cant and toe; root/tip chord, span along the surface, in-plane LE
      sweep, root junction where the span line meets the fin-free body top.
+     When that junction resolves, carry `y_root_m/z_root_m` into `vtail` and
+     set `root_attachment: measured`; leaving the default `derived` mode
+     deliberately ignores those coordinates.
 4. **Tolerances.** Every value carries `max(2 × resolution, symmetry residual,
    left/right disagreement, fit residual)` with floors of 1 mm and 0.5°, plus
    explicit allowances for open noses and incomplete leading edges.
@@ -121,11 +124,16 @@ whole aircraft when component STLs are absent) and **IoU top ≥ 0.90 / side ≥
 0.85**. Defaults: 15 mm, 0.90, 0.85 (`--fidelity-p95-mm`, `--fidelity-iou`
 at ingest). The wing and fins are already gated by the measured sketch priors
 (span, chords, sweep, taper, station, `fin_*`), and their residual p95 is
-dominated by declared abstractions — the equivalent-trapezoid tip and the
-builder-derived fin attachment — so their p95 and the whole-aircraft p95 are
-**disclosed** (`disclosed`) rather than gating. The Dolphin made the case: a
+dominated by declared abstractions — the equivalent-trapezoid tip and, when
+selected, a body-derived fin attachment — so their p95 and the whole-aircraft
+p95 are **disclosed** (`disclosed`) rather than gating. A measured fin root
+removes that attachment abstraction but does not make the scan validation
+truth. The Dolphin made the case: a
 render trace and a scan-grounded concept both scored 17.7 mm whole-aircraft
-p95 while their silhouette IoUs differed by 0.05–0.16. For
+p95 while their silhouette IoUs differed by 0.05–0.16. Honouring its measured
+fin junction later reduced fin p95 from 20–21 mm to 3–4 mm, whole-aircraft
+p95 to 13.4 mm, and raised front IoU from 0.664 to 0.787 without changing an
+acceptance band. For
 `sketch.treatment: reproduction` the check is part of the geometry stage `ok`
 and of the **Geometry truth** gate (chapter 00); otherwise it is recorded and
 disclosed, not gating.

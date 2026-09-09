@@ -314,12 +314,17 @@
       interpolateProfile(body, rootX + rootChord),
     ];
     const count = Math.round(number(tail.count, 2)) === 1 ? 1 : 2;
+    const measuredAttachment = tail.root_attachment === "measured";
     const baseY = count === 1
       ? 0
-      : .3 * Math.min(...attachmentSections.map(section => section.width));
-    const baseZ = Math.min(
-      ...attachmentSections.map(section => section.z + .3 * section.height),
-    );
+      : measuredAttachment
+        ? Math.abs(number(tail.y_root_m))
+        : .3 * Math.min(...attachmentSections.map(section => section.width));
+    const baseZ = measuredAttachment
+      ? number(tail.z_root_m)
+      : Math.min(
+        ...attachmentSections.map(section => section.z + .3 * section.height),
+      );
     const dy = span * Math.sin(radians(tail.cant_deg));
     const dz = span * Math.cos(radians(tail.cant_deg));
     const sides = count === 1 ? [1] : [-1, 1];

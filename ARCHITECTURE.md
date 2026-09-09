@@ -295,7 +295,10 @@ single station-interpolation source
 shared by geometry, packing, drag, plots, and mesh checks. It samples the same
 split super-ellipse equation as OpenVSP and supplies polygon area, perimeter,
 and generalized containment; powers of 2 retain the historical ellipse
-formulas exactly. `packing.py` checks engine, payload-bay, and fuel volumes
+formulas exactly. `fin_attachment.py` is the shared builder/GUI policy:
+`derived` preserves the 60%-body default, while `measured` honours declared
+root y/z exactly and relies on exported-mesh QA to prove attachment.
+`packing.py` checks engine, payload-bay, and fuel volumes
 against local body sections.
 `mesh_checks.py` re-measures the *exported STL* — component extents, fin
 verticality, root attachment inside the local section — because read-back

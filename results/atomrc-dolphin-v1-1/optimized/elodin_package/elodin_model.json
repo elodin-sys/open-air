@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "atomrc-dolphin-v1-1",
-  "created_at": "2026-09-09T19:50:59+00:00",
+  "created_at": "2026-09-09T21:29:27+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -109,14 +109,14 @@
     "geometry_component_fin_l": {
       "path": "geometry/component_fin_l.stl",
       "role": "verified_geometry_component_fin_l",
-      "sha256": "648d460ebb8a868c2a48d0a3c8d6d87664ecc6958af6791c2e434b22b1c5e296",
-      "size_bytes": 164857
+      "sha256": "aa852977e1f70424c4f93ebc4656805d727cec9b458743fc2ac3c20bb6be9904",
+      "size_bytes": 164856
     },
     "geometry_component_fin_r": {
       "path": "geometry/component_fin_r.stl",
       "role": "verified_geometry_component_fin_r",
-      "sha256": "0af3e3858382c9e690b0d626eb1fcfd23e07fe705aa537dc427b239944830641",
-      "size_bytes": 163203
+      "sha256": "4d3e1c0c31f0bbe07d3f754e4c55e7e3e8bfb79a2bf3e14b48a2b77e058d7e3d",
+      "size_bytes": 163204
     },
     "geometry_component_fuselage": {
       "path": "geometry/component_fuselage.stl",
@@ -133,13 +133,13 @@
     "geometry_vsp3": {
       "path": "geometry/atomrc-dolphin-v1-1.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "8650206301d6907e331496569ccbbea444a926168417969da28a72de9c6b0353",
+      "sha256": "28b9079552dc501ccf95d77332b0b3c1ec45a83f5dc57e4ba3f116ad6ada592a",
       "size_bytes": 306894
     },
     "geometry_whole_stl": {
       "path": "geometry/atomrc-dolphin-v1-1.stl",
       "role": "verified_geometry_whole_stl",
-      "sha256": "7550232c4356fb66b9bf655915b67c7dbcf235267769e7d549ecf1774ede706c",
+      "sha256": "e85140f832dba9b4ec1a509e5023c36386f68713e30338a1d172ccee2f9b9faa",
       "size_bytes": 910222
     },
     "integration_guide": {
@@ -157,14 +157,14 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "9127ab0d3b8f391232d51fe0837fb47f5eb075a75049f3ab6423cd1b8af4689e",
+      "sha256": "a10f081a6045659e2771334f8d829c7c1b9aad712a61b19a13a7d3999f085f5b",
       "size_bytes": 1004
     },
     "render_glb": {
       "path": "atomrc-dolphin-v1-1.glb",
       "role": "render_mesh_body_frame",
-      "sha256": "27df5f86a4dae7b0455050dd921062637eee1103b4e590ee6d3dac02baba8757",
-      "size_bytes": 52080
+      "sha256": "a3b7ed86810a063d03d75026093172e7a4ce1f91d40bcbffe2341630e9fa60f8",
+      "size_bytes": 52076
     },
     "trim_map": {
       "path": "trim_map.csv",
@@ -297,7 +297,7 @@
       "Propulsion map is evaluated from the analytic lapse/TSFC model, not an identified engine deck.",
       "No measured inertia tensor is available; consumers must not invent one from this package."
     ],
-    "design_sha256": "16329422d87484fc1d4e7d5983453c3464fdb74de277e271a0b083e63df9b9d8",
+    "design_sha256": "b5008acc340523e9f81083730b4c6cd376e20e5b666253376964938167ba77d4",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -305,14 +305,14 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "6c3af6d21fb25a724ab412268a7a3de73594bd1cd02e72206ae46ae50e857281",
-    "pipeline_run_id": "fc5d1b6ec27c44fb8af14df90529b425",
-    "source_git_commit": "770fd2c4c4b5d2ac91ea2ab39ec178b8bfe9269a",
+    "model_source_sha256": "3b4c86753d6827a8926c2480057057ff4852c6d97982c3e1e5b756626e6b2e7f",
+    "pipeline_run_id": "284d26d5ffe9418891a0f9a1ebeb92f1",
+    "source_git_commit": "dae80c7883bf7787168d80aaa7b24d2f0adb684f",
     "upstream_sha256": {
-      "aero.json": "075b76f835587803b6a14bcf38df66e03f3f6df04b85be664584a217c11ff125",
-      "geometry.json": "52408a57128349bdd0b1f75e7cb6a50d8967fd8d19c62c437c06bebdebb5964e",
-      "structures.json": "2b06d31fc5ebb2c2e30b27816c8adfc39d38dc4381ae1549228c7aa1332cc715",
-      "validation.json": "ace8f18e86ce3f4e89de92243aa1b70c164906fa1471fc9cc135719921df4c70"
+      "aero.json": "8b800a8575a33493acab331d8b675c2353ef9accba6a8f5049aa97a2447cdf6c",
+      "geometry.json": "91c5c21ec5a8ff94dc71c23e5897d5d77be4c6c598c92a224527e484aaf066d2",
+      "structures.json": "9a48dd6e9bdccb3a88b3c07892989794f5dd428c84618fe199d5618e20249656",
+      "validation.json": "73bb298cae8c1f9140f0d8e88a02ef9ddc8fa42d8f843450061771c50fb56eae"
     }
   },
   "reference_geometry": {
@@ -432,6 +432,7 @@
       "cant_deg": 39.0,
       "count": 2,
       "le_sweep_deg": 29.4,
+      "root_attachment": "measured",
       "root_chord_m": 0.107,
       "span_m": 0.119,
       "t_over_c": 0.129,

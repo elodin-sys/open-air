@@ -354,6 +354,23 @@ artifact hashes; reject stale provenance and duplicate/incomplete truth rows.
 This prevents accidental leakage and stale reporting, but a genuinely new
 validation claim still requires a separately controlled, unseen holdout.
 
+## F34 — A measured fin root was silently replaced by a heuristic
+
+The scan-grounded Dolphin stored the measured fin junction at y=±0.062 m,
+z=0.0496 m, but the OpenVSP builder never read those fields. It always placed
+twin fins at 60% of the smallest fuselage half-section under the root chord:
+y=±0.0258 m, z=0.0378 m. Read-back passed because it compared the artifact
+with the same derived value; the reference overlay alone showed both fins
+about 36 mm inboard (20–21 mm component p95). Studio import rejected the
+measured position and its JS preview duplicated the heuristic.
+**Fix:** `vtail.root_attachment` makes the choice explicit. `derived` remains
+the backward-compatible default; `measured` uses `y_root_m/z_root_m` exactly
+in the builder, GUI round-trip, and preview, while read-back and unchanged
+exported-mesh attachment checks gate it. The Dolphin fin p95 fell to 3–4 mm,
+whole-aircraft p95 from 17.7 to 13.4 mm, and front IoU from 0.664 to 0.787
+without moving source geometry or widening a band. The omitted deck/strake
+fairing remains disclosed rather than invented.
+
 ## Measured calibration constants (corrected OAS mesh, 32° swept trapezoid)
 
 - Neutral point: 25% MAC + 0.043 MAC → `np_shift_mac = 0.043`

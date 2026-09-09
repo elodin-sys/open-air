@@ -10,8 +10,8 @@ from typing import Any
 from openair.geometry.fuselage import (
     LEGACY_XSEC_SCALES,
     LEGACY_XSEC_STATIONS,
-    fuselage_section_wh as _fuselage_section_wh,
 )
+from openair.geometry.fin_attachment import fin_attachment
 from openair.geometry.mesh import (
     generate_oas_rect_mesh,
     save_mesh,
@@ -57,14 +57,6 @@ def _station_uses_superellipse(station) -> bool:
             station.bottom_power,
         )
     )
-
-
-def fuselage_section_wh(
-    spec: VehicleSpec,
-    x_m: float,
-) -> tuple[float, float, float]:
-    """Local half-width, half-height, and centerline z at station x."""
-    return _fuselage_section_wh(spec, x_m)
 
 
 def _drain_vsp_errors(vsp) -> list[str]:
@@ -287,39 +279,23 @@ def _construct_model(
     vsp.Update()
 
     # A WING geom spans +y. One X-axis roll makes a vertical fin while
-    # preserving streamwise chord: right 90-cant, left 90+cant. Attachment is
-    # derived at the smallest body section under the full fin root chord;
-    # read-back alone cannot catch this rotation choice (QA audit F14/F15).
-    x_te_fin = spec.vtail.x_le_m + spec.vtail.root_chord_m
-    sections = [
-        fuselage_section_wh(spec, x)
-        for x in (
-            spec.vtail.x_le_m,
-            0.5 * (spec.vtail.x_le_m + x_te_fin),
-            x_te_fin,
-        )
-    ]
-    half_w = min(section[0] for section in sections)
-    half_h = min(section[1] for section in sections)
-    twin_y_attach = 0.60 * half_w
-    y_attach = 0.0 if spec.vtail.count == 1 else twin_y_attach
-    z_attach = min(section[2] + 0.60 * section[1] for section in sections)
+    # preserving streamwise chord: right 90-cant, left 90+cant. The shared
+    # attachment policy either preserves the historical body-derived root or
+    # honours a measured y/z junction exactly; exported-mesh QA verifies that
+    # the selected point remains attached (QA audit F14/F15/F34).
     fin_attach = {
-        "count": spec.vtail.count,
-        "x_m": spec.vtail.x_le_m,
-        "y_m": y_attach,
-        "z_m": z_attach,
-        "min_half_width_m": half_w,
-        "min_half_height_m": half_h,
+        **fin_attachment(spec),
         "x_rotation_center_deg": 90.0 - spec.vtail.cant_deg,
         "x_rotation_right_deg": 90.0 - spec.vtail.cant_deg,
         "x_rotation_left_deg": 90.0 + spec.vtail.cant_deg,
     }
+    root_y = fin_attach["y_m"]
+    z_attach = fin_attach["z_m"]
     vtails = []
     fin_defs = (
         ((1.0, "vtailc", 0.0),)
         if spec.vtail.count == 1
-        else ((1.0, "vtailr", twin_y_attach), (-1.0, "vtaill", -twin_y_attach))
+        else ((1.0, "vtailr", root_y), (-1.0, "vtaill", -root_y))
     )
     for sign, name, y_root in fin_defs:
         vid = vsp.AddGeom("WING", "")

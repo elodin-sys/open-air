@@ -94,7 +94,8 @@ the aero stage is the next tooling step.
   cannot place (fin roots, rounded tips). The gate was therefore made
   component-aware on 2026-09-09: body p95 plus top/side IoU gate; wing, fin,
   and whole-aircraft p95 are disclosed, because the wing and fins are already
-  gated by their measured sketch priors. A builder fin attachment that honours
-  the measured root junction remains the first geometry follow-up.
+  gated by their measured sketch priors. Follow-up resolution (2026-09-09):
+  explicit measured fin attachment now honours that root junction and cuts
+  Dolphin fin p95 to 3–4 mm.
 - Deferred: a Studio ghost overlay of `reference.ply`; the elevon trim path in
   the aero stage that the Dolphin's measured deflection now motivates.

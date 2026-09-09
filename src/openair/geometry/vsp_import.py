@@ -10,8 +10,8 @@ from pydantic import ValidationError
 from openair.geometry.fuselage import (
     LEGACY_XSEC_SCALES,
     LEGACY_XSEC_STATIONS,
-    fuselage_section_wh,
 )
+from openair.geometry.fin_attachment import fin_attachment
 from openair.geometry.openvsp_model import (
     VSP_LOCK,
     _drain_vsp_errors,
@@ -356,42 +356,47 @@ def _import_vtail(
             "vtail pair: left/right X rotations do not describe a symmetric canted pair"
         )
 
-    # The GUI does not parent the fins to the body. Accept their generated
-    # seed attachment while body/planform edits are in progress; the next
-    # model build derives a fresh attachment from the imported geometry.
-    x_te = seed_spec.vtail.x_le_m + seed_spec.vtail.root_chord_m
-    sections = [
-        fuselage_section_wh(seed_spec, x)
-        for x in (
-            seed_spec.vtail.x_le_m,
-            0.5 * (seed_spec.vtail.x_le_m + x_te),
-            x_te,
-        )
-    ]
-    expected_y = 0.60 * min(section[0] for section in sections)
-    expected_z = min(section[2] + 0.60 * section[1] for section in sections)
+    attachment = fin_attachment(seed_spec)
     actual = {
         "right_y": _parm(vsp, right_id, "Y_Rel_Location", "XForm"),
         "left_y": _parm(vsp, left_id, "Y_Rel_Location", "XForm"),
         "right_z": _parm(vsp, right_id, "Z_Rel_Location", "XForm"),
         "left_z": _parm(vsp, left_id, "Z_Rel_Location", "XForm"),
     }
-    if (
-        abs(actual["right_y"] - expected_y) > 1e-4
-        or abs(actual["left_y"] + expected_y) > 1e-4
-        or abs(actual["right_z"] - expected_z) > 1e-4
-        or abs(actual["left_z"] - expected_z) > 1e-4
-    ):
-        reasons.append(
-            "vtail pair: root y/z positions are derived from the local "
-            "fuselage and cannot be edited directly"
-        )
+    if seed_spec.vtail.root_attachment == "measured":
+        if (
+            actual["right_y"] <= 0.0
+            or abs(actual["left_y"] + actual["right_y"]) > 1e-4
+            or abs(actual["left_z"] - actual["right_z"]) > 1e-4
+        ):
+            reasons.append(
+                "vtail pair: measured root positions must be a mirrored +/-y "
+                "pair at one shared z"
+            )
+        y_root_m = actual["right_y"]
+        z_root_m = 0.5 * (actual["right_z"] + actual["left_z"])
+    else:
+        expected_y = float(attachment["y_m"])
+        expected_z = float(attachment["z_m"])
+        if (
+            abs(actual["right_y"] - expected_y) > 1e-4
+            or abs(actual["left_y"] + expected_y) > 1e-4
+            or abs(actual["right_z"] - expected_z) > 1e-4
+            or abs(actual["left_z"] - expected_z) > 1e-4
+        ):
+            reasons.append(
+                "vtail pair: root y/z positions are derived from the local "
+                "fuselage and cannot be edited directly"
+            )
+        y_root_m = seed_spec.vtail.y_root_m
+        z_root_m = seed_spec.vtail.z_root_m
     return {
         **right,
         "count": 2,
         "cant_deg": cant,
-        "y_root_m": seed_spec.vtail.y_root_m,
-        "z_root_m": seed_spec.vtail.z_root_m,
+        "root_attachment": seed_spec.vtail.root_attachment,
+        "y_root_m": y_root_m,
+        "z_root_m": z_root_m,
     }, reasons
 
 
@@ -419,29 +424,30 @@ def _import_single_vtail(
     if not 0.0 <= cant <= 75.0:
         reasons.append(f"vtail center: cant {cant:.6g} deg is outside 0–75 deg")
 
-    x_te = seed_spec.vtail.x_le_m + seed_spec.vtail.root_chord_m
-    sections = [
-        fuselage_section_wh(seed_spec, x)
-        for x in (
-            seed_spec.vtail.x_le_m,
-            0.5 * (seed_spec.vtail.x_le_m + x_te),
-            x_te,
-        )
-    ]
-    expected_z = min(section[2] + 0.60 * section[1] for section in sections)
+    attachment = fin_attachment(seed_spec)
     actual_y = _parm(vsp, center_id, "Y_Rel_Location", "XForm")
     actual_z = _parm(vsp, center_id, "Z_Rel_Location", "XForm")
-    if abs(actual_y) > 1e-4 or abs(actual_z - expected_z) > 1e-4:
-        reasons.append(
-            "vtail center: root y/z position is derived from the local "
-            "fuselage and cannot be edited directly"
-        )
+    if seed_spec.vtail.root_attachment == "measured":
+        if abs(actual_y) > 1e-4:
+            reasons.append("vtail center: measured root must remain at y=0")
+        y_root_m = 0.0
+        z_root_m = actual_z
+    else:
+        expected_z = float(attachment["z_m"])
+        if abs(actual_y) > 1e-4 or abs(actual_z - expected_z) > 1e-4:
+            reasons.append(
+                "vtail center: root y/z position is derived from the local "
+                "fuselage and cannot be edited directly"
+            )
+        y_root_m = seed_spec.vtail.y_root_m
+        z_root_m = seed_spec.vtail.z_root_m
     return {
         **center,
         "count": 1,
         "cant_deg": cant,
-        "y_root_m": seed_spec.vtail.y_root_m,
-        "z_root_m": seed_spec.vtail.z_root_m,
+        "root_attachment": seed_spec.vtail.root_attachment,
+        "y_root_m": y_root_m,
+        "z_root_m": z_root_m,
     }, reasons
 
 

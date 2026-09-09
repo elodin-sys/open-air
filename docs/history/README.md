@@ -83,6 +83,7 @@ non-claims. Do not turn calibration or post-hoc agreement into validation.
 
 - [11:45 — Elevon pitch trim for measured tailless airframes](2026-09-09-1145-elevon-pitch-trim.md): added an opt-in elevon pitch-trim control (frozen twist, travel-bounded OAS solve, thin-airfoil seed, VSPAERO cross-check) and closed the scan-grounded Dolphin at 12/12 gates.
 - [12:06 — VSPAERO derivative quality and shared flap theory](2026-09-09-1206-vspaero-derivatives-flap-theory.md): removed solver-noise-dominated finite differences and the complementary flap-angle bug, re-fit Diana 2 on training evidence, and proved the repair on the Dolphin and four-design smoke suite.
+- [14:15 — Measured fin-root attachment](2026-09-09-1415-measured-fin-attachment.md): made fin placement explicitly derived or measured, honoured the Dolphin scan junction, and reduced fin p95 from 20–21 mm to 3–4 mm.
 
 ## Adding an entry
 

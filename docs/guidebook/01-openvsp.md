@@ -56,6 +56,16 @@ paths come from
 [`src/openair/paths.py`](../../src/openair/paths.py) (extracted `.deb` under
 `tools/openvsp`, extra libs under `tools/libs`).
 
+Fin placement is explicit in `vtail.root_attachment`.
+`derived` (default) preserves the historical close-set rule at 60% of the
+smallest body half-section under the full root chord. `measured` uses
+`vtail.y_root_m/z_root_m` exactly (mirrored to ±y for twin fins), records both
+the selected and would-be derived coordinates in
+`geometry.json .openvsp.fin_attach`, and lets exported-mesh attachment QA fail
+if the simplified body cannot support the measured junction. The same helper
+drives OpenVSP construction and GUI import; the Studio preview follows the
+same mode.
+
 ## Check your work
 
 1. `geometry.json .openvsp.readback.matches_spec == true` and `rel_err` all
@@ -73,6 +83,11 @@ paths come from
    by root/tip twist; otherwise valid pitch-control twist is mistaken for a
    vertical wing (audit F18). All checks must pass; then look at
    `threeview.png` (rendered from the mesh).
+6b. Fin roots: confirm `fin_attach.mode` is the declared mode. For
+   `measured`, read-back y/z must equal the spec exactly and
+   `fin_*_attached` must still pass without widening eccentricity or proximity
+   limits. `root_section_eccentricity` is disclosure against the nominal
+   section at root LE; the artifact check remains the verdict.
 7. `reference_fidelity` (present when the concept has a measured reference
    model, chapter 13): point-sampled p95 deviation and silhouette IoU of the
    exported mesh against the aligned scan, with `reference_overlay.png`.
@@ -92,6 +107,11 @@ paths come from
   every later "component" file silently contains it.
 - A "successful" build with a wrong wing: every setter failed silently
   (audit F11). Read-back is the only guard for values, mesh checks for choices.
+- A schema value can be real and still be ignored: before F34,
+  `vtail.y_root_m/z_root_m` round-tripped in YAML while construction silently
+  replaced them with the 60%-body heuristic. Any measured attachment must
+  opt into `root_attachment: measured`; its read-back and mesh attachment are
+  separate checks.
 - `geometry.json` in the first run pointed at `_degen.csv`, a file that never
   existed — the analysis writes `_DegenGeom.csv`.
 - `ok: true` used to mean only "a .vsp3 file exists"; it now requires

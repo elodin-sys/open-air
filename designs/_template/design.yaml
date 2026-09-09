@@ -114,6 +114,7 @@ fuselage:
 
 vtail:
   count: 2
+  root_attachment: derived
   span_m: 0.50
   root_chord_m: 0.48
   taper: 0.55

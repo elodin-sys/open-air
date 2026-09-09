@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "atomrc-dolphin-v1-1",
-  "created_at": "2026-09-09T19:50:36+00:00",
+  "created_at": "2026-09-09T21:29:03+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -109,14 +109,14 @@
     "geometry_component_fin_l": {
       "path": "geometry/component_fin_l.stl",
       "role": "verified_geometry_component_fin_l",
-      "sha256": "648d460ebb8a868c2a48d0a3c8d6d87664ecc6958af6791c2e434b22b1c5e296",
-      "size_bytes": 164857
+      "sha256": "aa852977e1f70424c4f93ebc4656805d727cec9b458743fc2ac3c20bb6be9904",
+      "size_bytes": 164856
     },
     "geometry_component_fin_r": {
       "path": "geometry/component_fin_r.stl",
       "role": "verified_geometry_component_fin_r",
-      "sha256": "0af3e3858382c9e690b0d626eb1fcfd23e07fe705aa537dc427b239944830641",
-      "size_bytes": 163203
+      "sha256": "4d3e1c0c31f0bbe07d3f754e4c55e7e3e8bfb79a2bf3e14b48a2b77e058d7e3d",
+      "size_bytes": 163204
     },
     "geometry_component_fuselage": {
       "path": "geometry/component_fuselage.stl",
@@ -133,13 +133,13 @@
     "geometry_vsp3": {
       "path": "geometry/atomrc-dolphin-v1-1.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "a272df2219737dcbb465fbf41d5868bf77946d824a036b419c1a63c766143c30",
+      "sha256": "542b3c7c9ecdabc70cf7f8262066d89332f8eb2610b92f4819285b64b2cf8229",
       "size_bytes": 306894
     },
     "geometry_whole_stl": {
       "path": "geometry/atomrc-dolphin-v1-1.stl",
       "role": "verified_geometry_whole_stl",
-      "sha256": "7550232c4356fb66b9bf655915b67c7dbcf235267769e7d549ecf1774ede706c",
+      "sha256": "e85140f832dba9b4ec1a509e5023c36386f68713e30338a1d172ccee2f9b9faa",
       "size_bytes": 910222
     },
     "integration_guide": {
@@ -157,14 +157,14 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "06445e90d48415618f4ca75962caf14d8e7872bdb25aa8ca3bf8ec6591c2d926",
+      "sha256": "7f15a7abc2fbf9713f644aa42cd7fad79f9752101eef873b8c33b2efd46805e2",
       "size_bytes": 1002
     },
     "render_glb": {
       "path": "atomrc-dolphin-v1-1.glb",
       "role": "render_mesh_body_frame",
-      "sha256": "27df5f86a4dae7b0455050dd921062637eee1103b4e590ee6d3dac02baba8757",
-      "size_bytes": 52080
+      "sha256": "a3b7ed86810a063d03d75026093172e7a4ce1f91d40bcbffe2341630e9fa60f8",
+      "size_bytes": 52076
     },
     "trim_map": {
       "path": "trim_map.csv",
@@ -297,7 +297,7 @@
       "Propulsion map is evaluated from the analytic lapse/TSFC model, not an identified engine deck.",
       "No measured inertia tensor is available; consumers must not invent one from this package."
     ],
-    "design_sha256": "86372172e5fba5d3814dd566424f58bacb555fd6a7d6ceb338fc07b0271e50fe",
+    "design_sha256": "d19c623538f663694fdd6125309ebb9ba72eeddcc227b0272d0c1f9d7deb8ec6",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -305,16 +305,16 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "6c3af6d21fb25a724ab412268a7a3de73594bd1cd02e72206ae46ae50e857281",
-    "pipeline_run_id": "fc5d1b6ec27c44fb8af14df90529b425",
-    "source_git_commit": "770fd2c4c4b5d2ac91ea2ab39ec178b8bfe9269a",
+    "model_source_sha256": "3b4c86753d6827a8926c2480057057ff4852c6d97982c3e1e5b756626e6b2e7f",
+    "pipeline_run_id": "284d26d5ffe9418891a0f9a1ebeb92f1",
+    "source_git_commit": "dae80c7883bf7787168d80aaa7b24d2f0adb684f",
     "upstream_sha256": {
-      "aero.json": "a3465facf80a834bf5348fe9ae0c2cf26a5c8e488313b4af8cff2f360d1350c9",
-      "geometry.json": "da2d620ac15a98f1796e7838838a4ac5cd2ada175e146a7082bb2528674ab632",
+      "aero.json": "5c3a5de51a26819abba05bdb94a806a86b79584b3fd922fa1bc8c4848fb62071",
+      "geometry.json": "a5215266f634a8ec01f201f20578b2a266646a396d5954f1ae11bac82a7fb706",
       "mass_breakdown.json": "3437560e11b8070585b538ce77156a1f801faf99884535091d8725aead34e56a",
-      "sizing.json": "5b084c4fb41307455e1049a83ad7c12e4e14aa09376842011a2f8a1e3fb4cc63",
-      "structures.json": "109a4136acf8030ed6b9e3759963c2933b9d6a985802992e0d7455b7435b2484",
-      "validation.json": "1c504f6ecd969589f487193ea287043d7651046589b178a7ef58b4c514ed8529"
+      "sizing.json": "df238d756c36ad7758c98b86daffd6aaac478ef8d21b89632c1c83867b71ec46",
+      "structures.json": "4daf849591b17b37aeb20c22906a275a79bcdfe0b213b71aa8676a0bc39697c6",
+      "validation.json": "9f522d50ac815fcf2b9d7c11017337e1b3bfdca9163e6bbf76196b7f728376d6"
     }
   },
   "reference_geometry": {
@@ -434,6 +434,7 @@
       "cant_deg": 39.0,
       "count": 2,
       "le_sweep_deg": 29.4,
+      "root_attachment": "measured",
       "root_chord_m": 0.107,
       "span_m": 0.119,
       "t_over_c": 0.129,

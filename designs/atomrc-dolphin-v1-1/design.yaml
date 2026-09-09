@@ -18,7 +18,8 @@ notes: >-
   measured core sections except the two shoulder stations noted in brief.md,
   where the plan-view width of the canopy-plus-shoulder blend is used because
   the single-loft schema cannot represent a T-shaped section. Fins are twin
-  outward-canted plates measured at 39.0 deg cant. Propulsion (2307 motor +
+  outward-canted plates measured at 39.0 deg cant, rooted at the measured
+  deck/strake junction y +/-0.062 m and z +0.0496 m. Propulsion (2307 motor +
   ESC) is an internal aft package; the pusher disk is not lofted. Mass
   0.889 kg and CG 0.419 m are the owner's bench measurements (2026-09-09,
   flight configuration, single readings); they replace the 1.30 kg / 0.40 m
@@ -170,6 +171,7 @@ fuselage:
 
 vtail:
   count: 2
+  root_attachment: measured
   span_m: 0.119
   root_chord_m: 0.107
   taper: 0.559
@@ -177,8 +179,9 @@ vtail:
   cant_deg: 39.0
   t_over_c: 0.129
   x_le_m: 0.5426
-  # Measured root junction (deck edge); the builder derives its own
-  # attachment from the body sections (see brief.md section 7).
+  # Measured root junction at the deck/strake edge. Use it exactly; the
+  # exported-mesh attachment check verifies the simplified loft can support
+  # the root within its tessellation tolerance (see brief.md sections 5/7).
   y_root_m: 0.062
   z_root_m: 0.0496
 

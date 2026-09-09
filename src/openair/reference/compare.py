@@ -268,9 +268,10 @@ def compare_reference(
     # placement and shape the schema controls without a measured prior. The
     # wing and fins are already gated by the measured sketch priors (span,
     # chords, sweep, taper, station, fin geometry), and their remaining p95 is
-    # dominated by declared abstractions (equivalent-trapezoid tips, derived
-    # fin attachment); it is disclosed, not gating. Whole-aircraft p95 is
-    # disclosed as well. Silhouette IoU gates the planform and profile.
+    # dominated by declared abstractions (equivalent-trapezoid tips and, where
+    # selected, a derived fin attachment); it is disclosed, not gating.
+    # Whole-aircraft p95 is disclosed as well. Silhouette IoU gates the
+    # planform and profile.
     body_stats = components.get("fuselage") if "p95_m" in (components.get("fuselage") or {}) else None
     p95_gate_value = body_stats["p95_m"] if body_stats else m2r["p95_m"]
     p95_gate_basis = "fuselage component" if body_stats else "whole aircraft (no component STLs)"
@@ -284,12 +285,18 @@ def compare_reference(
         "iou_top": {"got": views["top"]["iou"], "limit": acceptance["iou_top"], "ok": bool(views["top"]["iou"] >= acceptance["iou_top"])},
         "iou_side": {"got": views["side"]["iou"], "limit": acceptance["iou_side"], "ok": bool(views["side"]["iou"] >= acceptance["iou_side"])},
     }
+    fin_attachment_note = (
+        "the measured fin root junction is honoured exactly"
+        if spec.vtail.root_attachment == "measured"
+        else "the fin attachment is derived from the local body"
+    )
     disclosed = {
         "p95_whole_aircraft_m": m2r["p95_m"],
         "p95_components_m": {name: stats.get("p95_m") for name, stats in components.items() if "p95_m" in stats},
         "note": (
-            "wing and fin deviations are gated by the measured sketch priors; their p95 reflects "
-            "declared abstractions (equivalent-trapezoid tips, derived fin attachment) and is disclosed"
+            "wing and fin deviations are gated by the measured sketch priors; "
+            "their p95 reflects declared abstractions (equivalent-trapezoid "
+            f"tips; {fin_attachment_note}) and is disclosed"
         ),
     }
     result: dict[str, Any] = {

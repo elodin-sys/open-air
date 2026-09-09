@@ -2,6 +2,7 @@ import pytest
 
 from conftest import BASELINE_DESIGN
 from openair.cli import load_spec
+from openair.geometry.fin_attachment import fin_attachment
 from openair.geometry.mesh import generate_oas_rect_mesh, naca4_coords
 from openair.geometry.packing import packing_report, wing_tank_volume_m3
 from openair.geometry.openvsp_model import run_geometry_stage
@@ -56,6 +57,12 @@ def test_geometry_stage(tmp_path):
         rb = vsp_info["readback"]
         assert rb["matches_spec"], rb
         assert max(rb["rel_err"].values()) <= 0.02
+        attachment = vsp_info["fin_attach"]
+        assert attachment["mode"] == "derived"
+        assert attachment["y_m"] == pytest.approx(
+            0.60 * attachment["min_half_width_m"]
+        )
+        assert attachment["z_m"] == pytest.approx(attachment["derived_z_m"])
         if vsp_info.get("stl_bbox"):
             assert vsp_info["stl_bbox"]["ok"], vsp_info["stl_bbox"]
         # Mesh-truth: the exported artifact must match the design intent
@@ -95,6 +102,37 @@ def test_single_centerline_fin_geometry_and_mesh_checks(tmp_path):
     assert checks["fin_c_attached"]["ok"]
     assert "fin_r_vertical_z_extent" not in checks
     assert "fin_l_vertical_z_extent" not in checks
+
+
+def test_measured_twin_fin_root_is_built_and_read_back_exactly(tmp_path):
+    spec = load_spec(BASELINE_DESIGN).model_copy(deep=True)
+    spec.name = "measured-twin-fin-root"
+    derived = fin_attachment(spec)
+    spec.vtail.root_attachment = "measured"
+    spec.vtail.y_root_m = float(derived["y_m"]) + 0.02
+    spec.vtail.z_root_m = float(derived["z_m"]) + 0.01
+
+    result = run_geometry_stage(spec, tmp_path)
+    vsp_info = result["openvsp"]
+    if vsp_info.get("reason") == "openvsp_import_failed":
+        pytest.skip("OpenVSP unavailable")
+
+    assert vsp_info["ok"], vsp_info.get("errors")
+    attachment = vsp_info["fin_attach"]
+    assert attachment["mode"] == "measured"
+    assert attachment["y_m"] == pytest.approx(spec.vtail.y_root_m)
+    assert attachment["z_m"] == pytest.approx(spec.vtail.z_root_m)
+    assert attachment["derived_y_m"] == pytest.approx(derived["y_m"])
+    assert attachment["derived_z_m"] == pytest.approx(derived["z_m"])
+    assert attachment["root_section_eccentricity"] > 0.0
+    right, left = vsp_info["readback"]["vtails"]
+    assert right["y_root_m"] == pytest.approx(spec.vtail.y_root_m)
+    assert left["y_root_m"] == pytest.approx(-spec.vtail.y_root_m)
+    assert right["z_root_m"] == pytest.approx(spec.vtail.z_root_m)
+    assert left["z_root_m"] == pytest.approx(spec.vtail.z_root_m)
+    checks = {item["name"]: item for item in vsp_info["mesh_checks"]["checks"]}
+    assert checks["fin_r_attached"]["ok"]
+    assert checks["fin_l_attached"]["ok"]
 
 
 def test_elevon_subsurface_and_control_group_round_trip(tmp_path):

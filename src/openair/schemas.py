@@ -266,6 +266,7 @@ class VerticalTailSpec(PhysicalModel):
     """One centerline fin or one member of a symmetric twin-fin pair."""
 
     count: Literal[1, 2] = 2
+    root_attachment: Literal["derived", "measured"] = "derived"
     span_m: float = Field(0.38, gt=0.01, lt=20.0)
     root_chord_m: float = Field(0.42, gt=0.02, lt=15.0)
     taper: float = Field(0.55, gt=0.03, le=1.0)
@@ -275,6 +276,21 @@ class VerticalTailSpec(PhysicalModel):
     x_le_m: float = Field(1.95, ge=0.0)
     y_root_m: float = 0.14
     z_root_m: float = 0.08
+
+    @model_validator(mode="after")
+    def measured_root_matches_topology(self) -> Self:
+        if self.root_attachment == "measured":
+            if self.count == 1 and abs(self.y_root_m) > 1e-9:
+                raise ValueError(
+                    "a measured single-fin root must lie on the centerline "
+                    "(y_root_m == 0)"
+                )
+            if self.count == 2 and self.y_root_m <= 0.0:
+                raise ValueError(
+                    "a measured twin-fin root requires positive y_root_m; "
+                    "the builder mirrors it to +/-y"
+                )
+        return self
 
     @computed_field
     @property

@@ -46,6 +46,56 @@ def test_default_spec_computed_fields():
     assert s.solver.vspaero_convergence_factor == 0.01
 
 
+def test_measured_fin_root_attachment_matches_tail_topology():
+    import pytest
+    from pydantic import ValidationError
+
+    center = VehicleSpec.model_validate(
+        {
+            "vtail": {
+                "count": 1,
+                "root_attachment": "measured",
+                "y_root_m": 0.0,
+                "z_root_m": 0.2,
+            }
+        }
+    )
+    assert center.vtail.root_attachment == "measured"
+
+    twins = VehicleSpec.model_validate(
+        {
+            "vtail": {
+                "count": 2,
+                "root_attachment": "measured",
+                "y_root_m": 0.12,
+                "z_root_m": 0.08,
+            }
+        }
+    )
+    assert twins.vtail.y_root_m == 0.12
+
+    with pytest.raises(ValidationError, match="single-fin root"):
+        VehicleSpec.model_validate(
+            {
+                "vtail": {
+                    "count": 1,
+                    "root_attachment": "measured",
+                    "y_root_m": 0.1,
+                }
+            }
+        )
+    with pytest.raises(ValidationError, match="positive y_root_m"):
+        VehicleSpec.model_validate(
+            {
+                "vtail": {
+                    "count": 2,
+                    "root_attachment": "measured",
+                    "y_root_m": 0.0,
+                }
+            }
+        )
+
+
 def test_physical_bounds_reject_nonsense():
     import pytest
     from pydantic import ValidationError

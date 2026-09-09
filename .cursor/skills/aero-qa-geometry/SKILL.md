@@ -27,6 +27,12 @@ Non-negotiables for this repo:
   LE sweep; `Update()` before any read-back or export.
 - MassProp `Total_Mass` is unitless volume-proxy unless densities were set —
   never quote it as kilograms.
+- Fin roots: `geometry.json .openvsp.fin_attach.mode` must match
+  `vtail.root_attachment`. In `measured` mode the selected y/z must equal the
+  spec exactly, read-back must verify both mirrored fins, and the unchanged
+  `fin_*_attached` mesh checks must pass. Do not project a measured junction
+  onto the body or widen attachment limits; disclose an omitted deck/strake
+  fairing through `root_section_eccentricity`.
 - Packing: payload bay must clear the engine compartment front
   (`L - 0.20 - engine_length - 0.05`) and fuel volume must fit wing tanks +
   fuselage leftover (`packing_report`).
