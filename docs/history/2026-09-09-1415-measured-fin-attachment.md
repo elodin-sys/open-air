@@ -2,7 +2,7 @@
 
 - Type: geometry-fidelity correction
 - Window: 2026-09-09
-- Commits: pending (this change set)
+- Commits: `5cbf9f7`
 - Resolves: QA audit F34 and the Dolphin geometry blocker recorded in
   iterations 1–2
 
