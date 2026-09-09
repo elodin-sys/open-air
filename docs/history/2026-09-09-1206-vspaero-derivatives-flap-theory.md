@@ -2,7 +2,7 @@
 
 - Type: corrective milestone + calibration revision
 - Window: 2026-09-09
-- Commits: pending (implementation freeze)
+- Commits: `770fd2c` (implementation); governance evidence follow-up pending
 - Supersedes: the two deferred anomalies in
   `2026-09-09-1145-elevon-pitch-trim.md`
 
@@ -98,8 +98,29 @@ failure mode, not a solver failure.
 
 ## Post-change governance
 
-The user explicitly authorized new one-shot scorer attempts for the existing
-Diana 2 and X8 external holdouts after the implementation commit. Those are
-post-change revalidations, not new blind primary claims; the 2026-08-22 V1
-scorecards remain frozen historical evidence. Attempt IDs, execution
-provenance, and outcomes are appended in the governance follow-up commit.
+After implementation commit `770fd2c`, the user explicitly authorized new
+one-shot scorer attempts for the existing external holdouts. Predictions and
+all eight same-run artifacts were hash-frozen first; only then did the scorer
+consume each attempt. Both used model-source SHA-256
+`5a042e3c85ce7ad5224ba6526facc9c684092589730ca48ac8dd9ee592d04970`.
+
+- `diana2-vspaero-flap-v2-20260909`, consumed
+  2026-09-09T19:46:44Z: **pass**, 8/8 within 2u, mean |z| 0.7983, maximum
+  1.7439 (outer-to-RO strain peak gain, -1.744u). This is weaker than the
+  frozen V1 primary (0.6088/1.0993) but remains inside the unchanged band.
+- `ntnu-x8-vspaero-tight-20260909`, consumed
+  2026-09-09T19:46:43Z: **pass**, 10/10 within 2u, mean |z| 0.5094, maximum
+  1.0210 (trim alpha, -1.021u), slightly better than the frozen primary
+  0.5355/1.1383.
+
+These are post-change revalidations, not new blind primary claims; inspecting
+their residuals after scoring means neither can become a tuning target.
+The 2026-08-22 scorecards remain frozen historical evidence, and FT09/X8
+icing reserves remain deferred and unopened.
+
+The first ledger validation after scoring exposed a governance-tool defect:
+`load_consumed_scorecard` assumed exactly one archived attempt per case.
+It now hash-validates every historical archive (so a newer pass cannot hide
+tampering of the primary), selects the archive matching a supplied live
+scorecard, and otherwise returns the most recently consumed attempt. The fix
+does not read a holdout and has a two-attempt/tampered-primary regression.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -302,6 +303,40 @@ def test_frozen_consumed_scorecard_survives_source_change_and_rejects_tamper(
     assert "frozen `444444444444`" in text
     assert f"consumed attempt `{attempt_id}`" in text
     assert recorded["model_source_sha256"] in text
+
+    second_id = "flight-case-post-change-v2"
+    second_consumed_at = "2026-09-09T12:00:00+00:00"
+    second_scorecard = copy.deepcopy(scorecard)
+    second_scorecard["generated_at"] = "2026-09-09T12:00:01+00:00"
+    second_scorecard["evidence"]["holdout_attempt_id"] = second_id
+    second_scorecard["evidence"]["holdout_consumed_at"] = second_consumed_at
+    second_path = claims_dir / f"flight-case--{second_id}.json"
+    second_path.write_text(
+        json.dumps(second_scorecard, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    ledger["attempts"].append(
+        {
+            **ledger["attempts"][0],
+            "id": second_id,
+            "authorized_at": "2026-09-09T11:59:00+00:00",
+            "consumed_at": second_consumed_at,
+            "scorecard_path": second_path.relative_to(truth_dir).as_posix(),
+            "scorecard_sha256": sha256_file(second_path),
+        }
+    )
+    ledger_path.write_text(
+        yaml.safe_dump(ledger, sort_keys=False),
+        encoding="utf-8",
+    )
+    latest_score, latest_attempt = holdout.load_consumed_scorecard("flight-case")
+    assert latest_score["generated_at"] == "2026-09-09T12:00:01+00:00"
+    assert latest_attempt["id"] == second_id
+    _, primary_attempt = holdout.load_consumed_scorecard(
+        "flight-case",
+        score_path,
+    )
+    assert primary_attempt["id"] == attempt_id
 
     score_path.write_text(
         score_path.read_text(encoding="utf-8").replace('"status": "pass"', '"status": "fail"'),

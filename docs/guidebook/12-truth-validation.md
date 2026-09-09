@@ -117,6 +117,16 @@ The 2026-08-22 corpus has two claim-eligible Class-A validation passes:
   2026-08-22 validation score remains a frozen historical claim at V1; any
   post-change score is a separately authorized revalidation, not a new blind
   primary claim.
+- Authorized post-change revalidation then passed without changing the frozen
+  bands: Diana V2 8/8 within 2u (mean |r|/u 0.798, maximum 1.744), and tight-
+  convergence X8 10/10 (mean 0.509, maximum 1.021). Attempt IDs and hashes
+  are recorded in the 2026-09-09 VSPAERO/flap-theory history entry. Because
+  their residuals have now been inspected, neither revalidation may be used
+  as a calibration target; FT09 and the X8 icing reserve remain unopened.
+  The ledger retains every consumed scorecard: all archives are hash-checked,
+  a supplied live scorecard selects its matching attempt, and reports without
+  a candidate select the latest. A later pass can never hide a tampered
+  primary archive.
 
 Every other physical dataset has been exposed during model development and is
 labeled calibration or post-hoc verification. In particular:

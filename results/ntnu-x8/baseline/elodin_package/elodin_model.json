@@ -133,7 +133,7 @@
     "validity_component_required": true
   },
   "concept": "ntnu-x8",
-  "created_at": "2026-09-09T19:36:14+00:00",
+  "created_at": "2026-09-09T19:53:44+00:00",
   "credibility": "geometry-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -224,7 +224,7 @@
     "geometry_vsp3": {
       "path": "geometry/ntnu-x8.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "cb51501beab90df8cd9d75b6d7e2a6465948ffef63b3473a59f12a6bb4e1a75b",
+      "sha256": "6af48d92603412e516a550ed6041175af68eff34b017c4a53207e8f5916a0459",
       "size_bytes": 254282
     },
     "geometry_whole_stl": {
@@ -248,7 +248,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "fe1ce6f962890933f09a886c619733bf8d8d89fa1a9742ac701bad52463b0ef1",
+      "sha256": "f49e9062676aa4bbf75d991cc2da0da28c51d88a16c9a39bdb9fe514e91f09c1",
       "size_bytes": 1218
     },
     "render_glb": {
@@ -476,17 +476,17 @@
       "propulsion": "C",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "5a042e3c85ce7ad5224ba6526facc9c684092589730ca48ac8dd9ee592d04970",
-    "pipeline_run_id": "efb9c065200f4e7880660a38aacc287c",
-    "source_git_commit": "123976299ceda1eefc1551a1d54c65d3888ddf57",
+    "model_source_sha256": "6c3af6d21fb25a724ab412268a7a3de73594bd1cd02e72206ae46ae50e857281",
+    "pipeline_run_id": "206affdd4c0946f595389b31bc9c6ae5",
+    "source_git_commit": "770fd2c4c4b5d2ac91ea2ab39ec178b8bfe9269a",
     "upstream_sha256": {
-      "aero.json": "404d258413535c467f8088eb061030cb9d427d448a2064bee4b6dd85fcb09f20",
-      "flightdyn.json": "49bc5a156c0fc6f923a641905ba007ee53cf7547d088f88a583f507baa36a517",
-      "geometry.json": "ac1b9cfe8c12063e5ed8a2beaa548bbcfcc3682e617db97a3c190760c0175cff",
+      "aero.json": "f420526e22e197cdefa60addd8c5e1cd5644d969e6dfd3d124fe3859a111b315",
+      "flightdyn.json": "cde0bb87a836a023b3b4ce1e322719e2853396b768085a6d2087a1de8f9f3424",
+      "geometry.json": "fa5410b78acc4b71b53cec559c1653bcfaa112ffaf7b4049f10f319b05579f1c",
       "mass_breakdown.json": "9cdb9c48a42d54711de556bbe5d264823355e2068d85d11f779294c25fe2728a",
-      "sizing.json": "a9414e2e0d93a1d91fddaac1594bc187bc81d9aa8bf5b62c34c0576773c4b310",
-      "structures.json": "583399052c15067ebe27498167005bd7fffc78b8792a6dd66881876424c3a5a2",
-      "validation.json": "6fde17426a79a5d5ee7aab353908359fd0b70d166da838689664136a4f192d16"
+      "sizing.json": "ff895ead5b5e492dd07573799016948443b8b08c238d03d550c83ab101554241",
+      "structures.json": "9ba82744f83071ac98357674a9851f3ac4d48fa0f1fa901812280e6100011ec8",
+      "validation.json": "b6e0d7e19a35fe94d461b70a7beb396af68d5fb3f8b7d8fe6e309466a9cb474b"
     }
   },
   "reference_geometry": {
