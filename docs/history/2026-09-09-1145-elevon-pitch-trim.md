@@ -81,14 +81,14 @@ a body-moment term can be calibrated.
 - OAS applies taper after the seed mesh is built and scales only x; a
   deflection written into the seed must be pre-scaled or the tips deflect
   1/taper too much. The forward-swept Dolphin made this visible.
-- VSPAERO's stability `CL_alpha` cannot be trusted blindly at every alpha;
-  compare fixed-alpha derivatives between solvers and treat trimmed
-  conversions as disclosure. The Dolphin's twin canted fins in the thin set
-  also changed the reported `CL_alpha` far more than their area explains —
-  worth a look before any Dolphin flight-dynamics run.
-- `flightdyn.aeroelastic.flap_effectiveness` uses `θ = acos(2x_h − 1)`, which
-  is the effectiveness of the complement flap (0.96 for a 20 % flap instead of
-  0.55). It is untouched here because the Diana 2 calibration may depend on
-  it; it should be reconciled with `mission.balance.plain_flap_theory`.
+- Follow-up resolution (2026-09-09): the VSPAERO `CL_alpha` anomaly was not
+  caused by the fins; a wing-only run reproduced it. Its 0.01° perturbation
+  sat inside the default GMRES noise. Tight convergence plus a small/large
+  step and symmetry-noise gate restores 4.50/rad and is documented in the
+  subsequent VSPAERO/flap-theory history entry.
+- Follow-up resolution (2026-09-09): the complement-flap formula was replaced
+  by the shared Glauert implementation. Diana 2 V1 is refused; V2 re-fits one
+  force scale on its designated training flights before any post-change
+  holdout attempt.
 - Deferred: the builder fin attachment on the measured root junction; a body
   pitching-moment term for blended flying wings; the Studio ghost overlay.

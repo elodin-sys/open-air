@@ -447,6 +447,73 @@ def test_validation_elevon_cross_check_is_not_applicable_without_elevon_trim(tmp
     assert "dCm/ddelta" in failed["reason"]
 
 
+def test_validation_elevon_cross_check_requires_derivative_quality(
+    tmp_path, monkeypatch
+):
+    import json
+
+    import openair.flightdyn.stability as stability
+    from openair.validation.runner import _elevon_pitch_derivative_cross_check
+
+    spec = _elevon_spec()
+    (tmp_path / "elevon.vsp3").touch()
+    (tmp_path / "aero.json").write_text(
+        json.dumps(
+            {
+                "trim": {
+                    "alpha_deg": 4.0,
+                    "dcm_ddelta_fixed_alpha_per_deg": 0.0035,
+                    "dcm_ddelta_per_deg": 0.0025,
+                    "dcl_ddelta_fixed_alpha_per_deg": -0.012,
+                },
+                "cruise": {"tas_mps": 18.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+    quality = {"ok": False}
+
+    def fake_probe(*args, **kwargs):
+        return {
+            "ok": True,
+            "vsp3_sha256": "abc",
+            "analysis": {
+                "derivative_quality": dict(quality),
+                "control_group_names": ["elevator", "aileron"],
+                "lifting_components": ["wing"],
+                "stab": {
+                    "references": {"x_cg_m": spec.wing.x_ac_m},
+                    "coefficients": {
+                        "Cm": {
+                            "derivatives": {
+                                "control_1": -0.20,
+                                "alpha": -0.40,
+                            }
+                        },
+                        "CL": {
+                            "derivatives": {
+                                "control_1": 0.70,
+                                "alpha": 4.50,
+                            }
+                        },
+                    },
+                },
+                "wake_convergence": {"converged": True},
+            },
+        }
+
+    monkeypatch.setattr(stability, "run_vspaero_control_derivatives", fake_probe)
+    sweep = {"vspaero_CL_alpha_per_deg": 4.50 * math.pi / 180.0}
+    failed = _elevon_pitch_derivative_cross_check(spec, tmp_path, None, sweep)
+    assert not failed["ok"]
+    assert not failed["derivative_quality"]["ok"]
+
+    quality["ok"] = True
+    passed = _elevon_pitch_derivative_cross_check(spec, tmp_path, None, sweep)
+    assert passed["ok"]
+    assert passed["CL_alpha_stability_over_sweep"] == pytest.approx(1.0)
+
+
 def test_geometry_serializes_declared_control_groups_without_flight_dynamics(tmp_path):
     from openair.geometry.openvsp_model import run_geometry_stage
 

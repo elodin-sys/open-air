@@ -299,7 +299,7 @@ flight_dynamics:
     frequency_points: 1000
     maximum_reduced_frequency: 0.30
     elastic_axis_fraction_chord: 0.40
-    calibration_id: diana2-training-aeroelastic-v1
+    calibration_id: diana2-training-aeroelastic-v2
   allow_diagonal_inertia_approximation: true
   calibration_id: none
 

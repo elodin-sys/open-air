@@ -17,10 +17,10 @@
       "rms_residual": 0.0008631022047644736
     },
     "linearization": {
-      "CL0": -0.046655661432477125,
-      "CL_alpha_per_rad": 5.008424611567833,
-      "Cm0": 0.1924958949993891,
-      "Cm_alpha_per_rad": -1.6804704898625231,
+      "CL0": -0.0466469270443961,
+      "CL_alpha_per_rad": 5.008348361159876,
+      "Cm0": 0.19250856726163604,
+      "Cm_alpha_per_rad": -1.6805811175512748,
       "cm_residual": 1.1942923072022493e-07,
       "coefficient_reference": {
         "angles": "radians",
@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "gtm-t2",
-  "created_at": "2026-08-24T01:23:21+00:00",
+  "created_at": "2026-09-09T19:34:48+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -145,7 +145,7 @@
     "geometry_vsp3": {
       "path": "geometry/gtm-t2.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "a0e424aabbe1b62382fb36284ea4b1dfe40eeddb219db032d13c45e6be710154",
+      "sha256": "5eeaa1388ddbb4cfa508c71ca74693be4b11f439da0e46ed79456d9747787ff2",
       "size_bytes": 262950
     },
     "geometry_whole_stl": {
@@ -157,7 +157,7 @@
     "integration_guide": {
       "path": "integration_guide.md",
       "role": "integration_guide",
-      "sha256": "ea4e713e59faa06396767694256497694ef1be2dcbdfec3a2d10aafc4f6d4ac1",
+      "sha256": "e8e3c1c5c495c61211159e36b52738151612badf80c35bf6bad0735b189c5bf6",
       "size_bytes": 4839
     },
     "propulsion_map": {
@@ -169,7 +169,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "6f4b2f3264732cda2d6d33718c3340e9642f1361f46d042e055e1d5249adbfc3",
+      "sha256": "e29df8c0b97fd5599c2235944b5f3416ad1a9201e0d890d9c51d18ad2be38259",
       "size_bytes": 991
     },
     "render_glb": {
@@ -258,8 +258,8 @@
     },
     "validation": {
       "ok": true,
-      "passed": 14,
-      "total": 14
+      "passed": 15,
+      "total": 15
     }
   },
   "phase": "optimized",
@@ -309,7 +309,7 @@
       "Propulsion map is evaluated from the analytic lapse/TSFC model, not an identified engine deck.",
       "No measured inertia tensor is available; consumers must not invent one from this package."
     ],
-    "design_sha256": "f8a681838d2178850b70d7fcc05e76dbecc981ae83310d4da94105e1012ba9c3",
+    "design_sha256": "c5c0dc212e0568ec7259f2caca53ebd369cd3ef10ef92c630aedfe7489946380",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -317,14 +317,14 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "a29cbe01221a4d05ef8633f91ce4ca144f29d89828e4dd8aa63e8352a6c6b122",
-    "pipeline_run_id": "e7a37fd5024a46e5a768add71c7287cf",
-    "source_git_commit": "65f48ec93494dc737e36e3501ba31f03bb5e47b6",
+    "model_source_sha256": "5a042e3c85ce7ad5224ba6526facc9c684092589730ca48ac8dd9ee592d04970",
+    "pipeline_run_id": "6227dfd0bd934aeb9c88cb04cca3d359",
+    "source_git_commit": "123976299ceda1eefc1551a1d54c65d3888ddf57",
     "upstream_sha256": {
-      "aero.json": "b79c1e999e27ce59675375bdde67c940036daee3bde2037726667b1117fe4e4f",
-      "geometry.json": "1df4f3bf7b8da06138f214ce61794be26cc5c4fc840ca533fbc2dc365e7fce15",
-      "structures.json": "d17f7c20c158b896e17b39ac47ab747925b8625b717458bc0d612a5edefd95f3",
-      "validation.json": "a8c8771734118795fa2261672530ca80fd508f79c13deb4e9c596a645329d4cf"
+      "aero.json": "927c0931765a2bbab647c3bdea72ab2817883c01aa43c707f85daacc93577eb6",
+      "geometry.json": "027927fa1a01e7f6c4fe273863185b2f68e45e9c7165a96ffde0bce8efde0c27",
+      "structures.json": "e0f523e0429d5940f0c002d56b77e249c3e33cccad7bcd2f3f9b1cfed6f9bf28",
+      "validation.json": "30a42ff0635aeaf57c461c4e6b9457393485bd06efcb9210cb6ab8b4d901a7fa"
     }
   },
   "reference_geometry": {

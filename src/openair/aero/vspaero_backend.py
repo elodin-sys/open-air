@@ -19,6 +19,33 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def set_vspaero_convergence_inputs(
+    vsp: Any,
+    analysis: str,
+    spec: VehicleSpec,
+    *,
+    fixed_wake: bool = False,
+) -> dict[str, Any]:
+    """Apply the repository-wide VSPAERO numerical-convergence contract."""
+    factor = float(spec.solver.vspaero_convergence_factor)
+    for name in (
+        "ForwardGMRESConvergenceFactor",
+        "NonLinearConvergenceFactor",
+    ):
+        vsp.SetDoubleAnalysisInput(analysis, name, [factor], 0)
+    vsp.SetIntAnalysisInput(
+        analysis,
+        "FixedWakeFlag",
+        [int(bool(fixed_wake))],
+        0,
+    )
+    return {
+        "forward_gmres_convergence_factor": factor,
+        "nonlinear_convergence_factor": factor,
+        "fixed_wake": bool(fixed_wake),
+    }
+
+
 def verify_hybrid_artifact(
     evidence: dict[str, Any],
     expected_directory: Path,
@@ -223,6 +250,7 @@ def _run_vspaero_unlocked(
         sweep = "VSPAEROSweep"
         vsp.SetAnalysisInputDefaults(sweep)
         manual_ref = getattr(vsp, "MANUAL_REF", 0)
+        solver_settings: dict[str, Any] = {}
         try:
             vsp.SetIntAnalysisInput(
                 sweep,
@@ -264,6 +292,9 @@ def _run_vspaero_unlocked(
             )
         except Exception:
             pass
+        # Numerical convergence is part of the evidence contract and must not
+        # be hidden by the legacy compatibility guard around optional inputs.
+        solver_settings = set_vspaero_convergence_inputs(vsp, sweep, spec)
         vsp.Update()
         vsp.ExecAnalysis(sweep)
 
@@ -323,6 +354,7 @@ def _run_vspaero_unlocked(
                 "wing_body_nacelles" if hybrid_wing_body_only else "full_vehicle"
             ),
             "wake_convergence": history,
+            "solver_settings": solver_settings,
             "vsp3": str(vsp3_path),
         }
     except Exception as exc:

@@ -31,6 +31,12 @@ drag. We use it purely as an **independent cross-check** on OpenAeroStruct.
   was our audit finding behind the old `100/S` rescale hack; the fix is
   `RefFlag=0` plus explicit `Sref/bref/cref/Xcg`.
 - Set `ReCref` to the flight Reynolds number or `CDo` is for Re = 1e7.
+- Stability derivatives use tiny built-in perturbations (alpha/beta 0.01°,
+  control groups 0.1°). The OpenVSP default
+  `ForwardGMRESConvergenceFactor = NonLinearConvergenceFactor = 1.0` can
+  leave coefficient noise as large as the perturbation signal. Every open-air
+  sweep sets both to `solver.vspaero_convergence_factor` (default 0.01).
+  Never publish a derivative table without the quality checks below.
 - Results live in named containers (`VSPAERO_Polar`, `VSPAERO_History`), not
   in the wrapper rid returned by `ExecAnalysis`. Empty vector = missing, never 0.
 - The `.polar` file next to the model is the same data on disk — a sound
@@ -61,6 +67,16 @@ trailing edge down positive and the derivative table is per radian; the check
 negates and converts to the spec convention (trailing edge up, per degree)
 before comparing.
 
+`flightdyn.stability.derivative_quality` parses the `.stab` Case/Delta table,
+checks mirror-symmetry noise (`CL_beta/CL_alpha`, `Cm_beta/Cm_alpha`,
+`CY_alpha`, `Cl_alpha`, `Cn_alpha`), and compares the 0.01° `CL_alpha` with
+two plain points one degree apart. Relaxed-wake flight-dynamics runs also
+require every perturbation case to reach L2 ≤ 1e-2; a failed quality check is
+rerun once with a fixed wake and recorded as an escalation. The standalone
+elevon validation probe uses tight convergence and a fixed wake by contract;
+fixed-wake history residuals are not treated as an outer wake convergence
+test.
+
 ## Check your work
 
 1. `validation.json` check `vspaero_vs_oas_CL`: `CL_alpha_ratio_*` in
@@ -77,22 +93,23 @@ before comparing.
    as `*_not_comparable` on purpose (audit F12).
 5. CM comparisons require identical `Xcg` and `cref` — verify before flagging.
 6. `elevon_cm_delta_vspaero_vs_oas`: same sign and OAS/VSPAERO ratio in
-   0.6–1.6 on the fixed-alpha derivative (the Dolphin: 0.82). Read the
+   0.6–1.6 on the fixed-alpha derivative. Require
+   `derivative_quality.ok`, all symmetry-noise metrics ≤ 0.02, and both the
+   small/large-step and stability/sweep CL-alpha ratios in 0.90–1.10. Read the
    disclosed `dcl_ratio_oas_over_vspaero` too — a lift-increment ratio near
    0.5 with a moment ratio near 1 means the two lattices place the flap load
-   differently, which is worth a note but not a gate failure.
+   differently, which is worth a note but not a gate failure. After the
+   convergence repair the Dolphin reports CL-alpha ratios 0.995/0.987,
+   OAS/VSPAERO dCm/dδ 0.953, and dCL/dδ 0.686.
 
 ## Known lies
-
-- The stability-run `CL_alpha` column can come out roughly twice the sweep
-  slope at some alphas (the Dolphin: 9.8/rad at α≈5.8° against 4.6/rad from
-  the α=3°/7° sweep, and 4.9/rad from the same stability solve at α=3°). Do
-  not build lift-trimmed conversions on it without checking it against the
-  sweep; the elevon check therefore gates on the fixed-alpha derivative and
-  only discloses the trimmed one.
 
 - API result vectors that read 0.0 while the `.polar` has real values —
   always treat empty as missing.
 - `Sref` silently 100 (audit): coefficients off by 34x on this vehicle.
 - Results accumulate across runs in the Results Manager; "latest" can be a
   previous case if the model isn't cleared.
+- A finite derivative table is not evidence that its finite difference rose
+  above solver noise. The Dolphin exposed this: default tolerances reported
+  CL-alpha 9.71/rad and the physically-zero CL-beta 5.22/rad. Tight solves
+  and the quality gate convert this former known lie into a hard failure.

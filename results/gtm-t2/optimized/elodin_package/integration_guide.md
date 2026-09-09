@@ -38,8 +38,8 @@ References: S = 0.548295 m^2, b = 2.08751 m, c = 0.278983 m (MAC). Mass state:
 radians and tail_incidence held at -5.05517 deg:
 
 ```text
-CL = -0.0466557 + 5.00842*alpha
-Cm = 0.192496 - 1.68047*alpha   (about the CG)
+CL = -0.0466469 + 5.00835*alpha
+Cm = 0.192509 - 1.68058*alpha   (about the CG)
 CD = 0.0429621 + 0.0285414*CL^2
 ```
 

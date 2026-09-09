@@ -40,6 +40,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from openair.aero.thin_airfoil import plain_flap_theory
 from openair.controls import (
     elevon_travel_deg,
     pitch_control_surface,
@@ -221,35 +222,6 @@ def tail_incidence_required_deg(
     alpha_tail = cl_tail / tail["tail_lift_slope_per_rad"]
     incidence_rad = alpha_tail - alpha_wing * (1.0 - tail["downwash_gradient"])
     return math.degrees(incidence_rad) + spec.solver.tail_incidence_offset_deg
-
-
-def plain_flap_theory(chord_fraction: float) -> dict[str, float]:
-    """Thin-airfoil plain-flap derivatives for a flap of ``chord_fraction`` c.
-
-    Glauert's result with the hinge at x_h = (1 - chord_fraction) c and
-    cos(theta_h) = 1 - 2 x_h / c:
-
-        dCl/ddelta      = 2 (pi - theta_h + sin theta_h)          [per rad]
-        dCm_c/4/ddelta  = -sin(theta_h) (1 - cos theta_h) / 2      [per rad]
-        tau             = (dCl/ddelta) / (2 pi)                    [flap effectiveness]
-
-    Trailing edge DOWN is positive (lift up, nose-down moment). Inviscid,
-    unsealed-gap and thickness effects are ignored, so the section values are
-    upper bounds; the ``elevon_effectiveness_factor`` in ``SolverSpec`` is the
-    only sanctioned correction and must cite a source.
-    """
-    if not 0.0 < chord_fraction < 1.0:
-        raise ValueError("chord_fraction must lie strictly between 0 and 1")
-    x_hinge = 1.0 - chord_fraction
-    theta_h = math.acos(1.0 - 2.0 * x_hinge)
-    dcl_ddelta = 2.0 * (math.pi - theta_h + math.sin(theta_h))
-    dcm_ddelta = -0.5 * math.sin(theta_h) * (1.0 - math.cos(theta_h))
-    return {
-        "theta_h_rad": theta_h,
-        "dcl_ddelta_per_rad": dcl_ddelta,
-        "dcm_ac_ddelta_per_rad": dcm_ddelta,
-        "tau": dcl_ddelta / (2.0 * math.pi),
-    }
 
 
 def elevon_pitch_derivative(

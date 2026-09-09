@@ -17,10 +17,10 @@
       "rms_residual": 0.0034263352856831455
     },
     "linearization": {
-      "CL0": 0.056353340543981,
-      "CL_alpha_per_rad": 6.645217021589064,
-      "Cm0": 0.14900873597963493,
-      "Cm_alpha_per_rad": -1.8788433349029887,
+      "CL0": 0.05635308480398227,
+      "CL_alpha_per_rad": 6.645220232969105,
+      "Cm0": 0.14900848117646404,
+      "Cm_alpha_per_rad": -1.8788401352868893,
       "cm_residual": -0.0006139763959259609,
       "coefficient_reference": {
         "angles": "radians",
@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "ceras-csr01",
-  "created_at": "2026-08-24T01:23:31+00:00",
+  "created_at": "2026-09-09T19:37:37+00:00",
   "credibility": "geometry-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -145,7 +145,7 @@
     "geometry_vsp3": {
       "path": "geometry/ceras-csr01.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "ef4c89a84e7d8aeed48f0a76191e3cff6d4b29ab2c72220c5631d205b1afa48f",
+      "sha256": "8dc90731ded20871809bb602fb4df82b4d23d7e7af9aeaea6d39801ea14ebf64",
       "size_bytes": 279410
     },
     "geometry_whole_stl": {
@@ -157,7 +157,7 @@
     "integration_guide": {
       "path": "integration_guide.md",
       "role": "integration_guide",
-      "sha256": "ff342e4d4c31fe8679ac4a2777ea3e40b1776efcf85790f4876bc20029f3751c",
+      "sha256": "ff6ade88b6f0aaa93040bae244aaa75d4faff67cd8a2c9e6880e7c7aa47daee3",
       "size_bytes": 4735
     },
     "propulsion_map": {
@@ -169,7 +169,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "0372ed5ba8f65193d102a924a675d53c551ebfe9c2c373db7d535fcb417ca446",
+      "sha256": "1ee2dc9d779bca3ca7a0ac1808a0d9f28f7c91fdb29e0a9bbe3f7e5761c1abaa",
       "size_bytes": 897
     },
     "render_glb": {
@@ -258,8 +258,8 @@
     },
     "validation": {
       "ok": false,
-      "passed": 10,
-      "total": 11
+      "passed": 11,
+      "total": 12
     }
   },
   "phase": "baseline",
@@ -366,16 +366,16 @@
       "propulsion": "C",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "a29cbe01221a4d05ef8633f91ce4ca144f29d89828e4dd8aa63e8352a6c6b122",
-    "pipeline_run_id": "9911022c16c240ada0b146cd4c345e03",
-    "source_git_commit": "65f48ec93494dc737e36e3501ba31f03bb5e47b6",
+    "model_source_sha256": "5a042e3c85ce7ad5224ba6526facc9c684092589730ca48ac8dd9ee592d04970",
+    "pipeline_run_id": "a8522b46e9074f48a92e55bbeb08f021",
+    "source_git_commit": "123976299ceda1eefc1551a1d54c65d3888ddf57",
     "upstream_sha256": {
-      "aero.json": "745c30b63d40d8a7c949c9ffc0985e175da6de762e37990ea8358ea4c7daa0e8",
-      "geometry.json": "43e48e5626ba890440c65505074ebd035684923c4e68947f568ba7f616211cb3",
+      "aero.json": "7b39cc2d3586a0e82f09d0ea53bb010e3d218016517984e69a2d6b16349a3a00",
+      "geometry.json": "36d92ea35a4fb5237741ed86cb7bdf76e007861b8f6d9ac8f2619772d88ed6b2",
       "mass_breakdown.json": "8786ff0b5b37a78bad1bf379162ad1ef477d3f5bbe1c2648aab4907ff78d8b10",
-      "sizing.json": "20c0449354f175a2f762dc5225f79df3c0b2e1bb637ce0c48d984e573ddce231",
-      "structures.json": "b4e27f107609f936bce4aba9054269017979465b6a2d24bf64c4a8bd523311f9",
-      "validation.json": "daaab6122da4d2dd72f61fa974a202e84fe5aa836763d1097938c137db171261"
+      "sizing.json": "df2f7a8600609f131ed96e224b65d2a4369d825826b32ccfe603556a631615df",
+      "structures.json": "6822ced116061e4efb923d15cdb4fe3a58ad226f9b090ae0d6a558d991f737e6",
+      "validation.json": "80a4d65268023144e5911686b14c335bcf142ea75c0198e0e2b6344cea3bea80"
     }
   },
   "reference_geometry": {

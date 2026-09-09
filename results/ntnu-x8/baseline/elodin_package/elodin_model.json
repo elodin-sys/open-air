@@ -7,11 +7,11 @@
     "derivative_source": "flightdyn.json .derivatives",
     "derivatives": {
       "base": {
-        "CD": 0.0143556,
-        "CL": 0.228975,
+        "CD": 0.0143555,
+        "CL": 0.2289741,
         "CY": -5e-07,
         "Cl": 1.14e-05,
-        "Cm": 0.0061721,
+        "Cm": 0.006173,
         "Cn": 2.7e-06
       },
       "coefficient_reference": {
@@ -24,75 +24,75 @@
       },
       "controls": {
         "collective_elevon": {
-          "CD": 0.01321035,
-          "CL": 0.61742865,
-          "CY": -1.35e-06,
-          "Cl": -2.6625000000000003e-05,
-          "Cm": -0.311838,
-          "Cn": 1.1550000000000001e-05
+          "CD": 0.013240425,
+          "CL": 0.6177876,
+          "CY": -1.5e-06,
+          "Cl": -2.5274999999999998e-05,
+          "Cm": -0.312257475,
+          "Cn": 1.2375000000000001e-05
         },
         "differential_elevon": {
-          "CD": 0.00140217,
-          "CL": -0.00631456,
-          "CY": 0.006069979999999999,
-          "Cl": -0.17202045,
-          "Cm": 0.00134659,
-          "Cn": 0.00127169
+          "CD": 0.00143052,
+          "CL": -0.005965889999999999,
+          "CY": 0.006055,
+          "Cl": -0.17201996,
+          "Cm": 0.0009526999999999999,
+          "Cn": 0.00127435
         }
       },
       "state": {
         "CD": {
-          "alpha": 0.1235104,
-          "beta": -0.000393,
-          "mach": 0.0003703,
-          "p": 0.006297,
-          "q": -0.2310397,
-          "r": 0.0098627,
-          "u": 1.96e-05
+          "alpha": 0.1239111,
+          "beta": 7.8e-06,
+          "mach": 0.000371,
+          "p": 0.0064163,
+          "q": -0.2303402,
+          "r": 0.0099801,
+          "u": 1.97e-05
         },
         "CL": {
-          "alpha": 4.3183314,
-          "beta": -0.0046651,
-          "mach": 0.0091876,
-          "p": 0.0425666,
-          "q": 4.2460985,
-          "r": 0.0396341,
-          "u": 0.0004869
+          "alpha": 4.3231173,
+          "beta": 0.0001208,
+          "mach": 0.009196,
+          "p": 0.0439625,
+          "q": 4.254451,
+          "r": 0.0409716,
+          "u": 0.0004874
         },
         "CY": {
-          "alpha": -1.62e-05,
-          "beta": -0.1354813,
+          "alpha": -1.84e-05,
+          "beta": -0.1354836,
           "mach": 5e-07,
-          "p": 0.0349741,
-          "q": 5.72e-05,
-          "r": 0.0526947,
+          "p": 0.034736,
+          "q": 5.34e-05,
+          "r": 0.0528915,
           "u": 0.0
         },
         "Cl": {
-          "alpha": 0.0001198,
-          "beta": -0.0573446,
-          "mach": 3.1e-06,
-          "p": -0.58921308,
-          "q": 0.0003451,
-          "r": 0.0282443,
+          "alpha": 0.0001378,
+          "beta": -0.0573266,
+          "mach": 3.2e-06,
+          "p": -0.58930608,
+          "q": 0.0003764,
+          "r": 0.0281942,
           "u": 2e-07
         },
         "Cm": {
-          "alpha": -0.267183,
-          "beta": 0.0055907,
-          "mach": 0.0014766,
-          "p": -0.0040962,
-          "q": -1.95944904,
-          "r": 0.0002343,
-          "u": 7.83e-05
+          "alpha": -0.2727757,
+          "beta": -1.9e-06,
+          "mach": 0.0014669,
+          "p": -0.0057515,
+          "q": -1.97116224,
+          "r": -0.0014151,
+          "u": 7.77e-05
         },
         "Cn": {
-          "alpha": 8.25e-05,
-          "beta": 0.0159366,
-          "mach": 5e-07,
-          "p": -0.0414449,
-          "q": 5.04e-05,
-          "r": -0.0095133,
+          "alpha": 9.36e-05,
+          "beta": 0.0159477,
+          "mach": 6e-07,
+          "p": -0.0414127,
+          "q": 6.97e-05,
+          "r": -0.0095359,
           "u": 0.0
         }
       }
@@ -133,7 +133,7 @@
     "validity_component_required": true
   },
   "concept": "ntnu-x8",
-  "created_at": "2026-08-24T01:23:23+00:00",
+  "created_at": "2026-09-09T19:36:14+00:00",
   "credibility": "geometry-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -194,8 +194,8 @@
     "aero_tables": {
       "path": "aero_tables.npz",
       "role": "aerodynamic_lookup_tables",
-      "sha256": "96ce39cf96e0a98121bb81140407cd0b31ae5c9af796a92474b19f656f09d995",
-      "size_bytes": 4554
+      "sha256": "ca3e71e2e87d68266518d9145cb238848744b9793a7b555cb3b2e6547b42e876",
+      "size_bytes": 4558
     },
     "geometry_component_fin_l": {
       "path": "geometry/component_fin_l.stl",
@@ -224,7 +224,7 @@
     "geometry_vsp3": {
       "path": "geometry/ntnu-x8.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "cd009746d5aedf921c923f9a2cfebe844b1b7f4496d2fb7f6fffb472c87452e6",
+      "sha256": "cb51501beab90df8cd9d75b6d7e2a6465948ffef63b3473a59f12a6bb4e1a75b",
       "size_bytes": 254282
     },
     "geometry_whole_stl": {
@@ -248,7 +248,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "c99bdd976f6d744081a28158ea41168a22cbddde57229e7c02ce6c09bde064c5",
+      "sha256": "fe1ce6f962890933f09a886c619733bf8d8d89fa1a9742ac701bad52463b0ef1",
       "size_bytes": 1218
     },
     "render_glb": {
@@ -357,8 +357,8 @@
     },
     "validation": {
       "ok": false,
-      "passed": 11,
-      "total": 12
+      "passed": 12,
+      "total": 13
     }
   },
   "phase": "baseline",
@@ -476,17 +476,17 @@
       "propulsion": "C",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "a29cbe01221a4d05ef8633f91ce4ca144f29d89828e4dd8aa63e8352a6c6b122",
-    "pipeline_run_id": "3a387c885ee14af480b91a7e79e962ae",
-    "source_git_commit": "65f48ec93494dc737e36e3501ba31f03bb5e47b6",
+    "model_source_sha256": "5a042e3c85ce7ad5224ba6526facc9c684092589730ca48ac8dd9ee592d04970",
+    "pipeline_run_id": "efb9c065200f4e7880660a38aacc287c",
+    "source_git_commit": "123976299ceda1eefc1551a1d54c65d3888ddf57",
     "upstream_sha256": {
-      "aero.json": "e0364dcb014816084bdd7fc5e0cbafacbc67b5f862ceee5135983584ce6df06e",
-      "flightdyn.json": "175c764c620dcdefce601303830b7db0d3fbcdda06a7af5f3078005f5684c025",
-      "geometry.json": "ea5c8102c2d73c351126d4cb21e4ecdd6fa8f0d19db4311a8395aa96481eff78",
+      "aero.json": "404d258413535c467f8088eb061030cb9d427d448a2064bee4b6dd85fcb09f20",
+      "flightdyn.json": "49bc5a156c0fc6f923a641905ba007ee53cf7547d088f88a583f507baa36a517",
+      "geometry.json": "ac1b9cfe8c12063e5ed8a2beaa548bbcfcc3682e617db97a3c190760c0175cff",
       "mass_breakdown.json": "9cdb9c48a42d54711de556bbe5d264823355e2068d85d11f779294c25fe2728a",
-      "sizing.json": "8615d975b9a2cbf58871ce3ec78a5c075825a29d63ab34c1a04f2a8c636f8b65",
-      "structures.json": "5e55f8c1ae117d4784339154ee56f1a791db851df39dddb009cd68bd1580f8e9",
-      "validation.json": "ab95bf4194fd6e401387af23ee30b4f8f88634899e961cd004ffb0dd791eab5f"
+      "sizing.json": "a9414e2e0d93a1d91fddaac1594bc187bc81d9aa8bf5b62c34c0576773c4b310",
+      "structures.json": "583399052c15067ebe27498167005bd7fffc78b8792a6dd66881876424c3a5a2",
+      "validation.json": "6fde17426a79a5d5ee7aab353908359fd0b70d166da838689664136a4f192d16"
     }
   },
   "reference_geometry": {

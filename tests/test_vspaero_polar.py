@@ -3,7 +3,10 @@ from pathlib import Path
 from openair.aero.vspaero_backend import (
     _parse_history_convergence,
     _parse_polar,
+    set_vspaero_convergence_inputs,
 )
+from openair.cli import load_spec
+from conftest import BASELINE_DESIGN
 
 
 def test_parse_polar_cltot(tmp_path: Path):
@@ -64,3 +67,31 @@ def test_parse_history_requires_completed_stable_wake(tmp_path: Path):
     early = _parse_history_convergence(path, 5)
     assert early["converged"], early
     assert early["criteria"]["early_residual_convergence"]
+
+
+def test_vspaero_convergence_inputs_are_tight_and_explicit():
+    class FakeVsp:
+        def __init__(self):
+            self.double = {}
+            self.integer = {}
+
+        def SetDoubleAnalysisInput(self, analysis, name, value, index):
+            self.double[(analysis, name, index)] = value
+
+        def SetIntAnalysisInput(self, analysis, name, value, index):
+            self.integer[(analysis, name, index)] = value
+
+    spec = load_spec(BASELINE_DESIGN)
+    fake = FakeVsp()
+    settings = set_vspaero_convergence_inputs(
+        fake, "VSPAEROSweep", spec, fixed_wake=True
+    )
+
+    assert settings["forward_gmres_convergence_factor"] == 0.01
+    assert fake.double[("VSPAEROSweep", "ForwardGMRESConvergenceFactor", 0)] == [
+        0.01
+    ]
+    assert fake.double[("VSPAEROSweep", "NonLinearConvergenceFactor", 0)] == [
+        0.01
+    ]
+    assert fake.integer[("VSPAEROSweep", "FixedWakeFlag", 0)] == [1]

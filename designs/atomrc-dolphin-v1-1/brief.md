@@ -211,7 +211,8 @@ refute the predicted trim deflection (section 8).
 | `mission.limit_positive_g/negative_g/safety_factor` | 4 / -2 / 1.5 | template screens; no published structural limits |
 | `mission.static_margin_min/max` | 0.03 / 0.10 | template tailless band |
 | `solver.np_shift_mac` / `cm_washout_per_deg` | 0.04305 / 0.00362 | OAS calibration constants; never retuned from a scan |
-| `solver.optimize_*`, `fd_step`, `vspaero_wake_iters`, `su2_maxiter`, `oas_with_viscous` | template | numerical controls |
+| `solver.optimize_*`, `fd_step`, `su2_maxiter`, `oas_with_viscous` | template | numerical controls |
+| `solver.vspaero_wake_iters` / `vspaero_convergence_factor` | 8 / 0.01 | derivative-quality repair (iteration 4): enough wake iterations for the steady slope and tight GMRES/nonlinear solves for VSPAERO's 0.01° stability perturbations |
 | `engine.nacelle_frontal_cd`, `fuel_density_kg_m3` | 0.08 / 800 | unused (internal installation, zero fuel) |
 | `structures.n_spanwise/n_chordwise`, `fem_model_type` | 15 / 3 / wingbox | discretization: 15 spanwise nodes resolve the elevon edges at η 0.37/0.97 (elevon trim moved < 0.5° between 15 and 31 nodes; the aero-only mesh adds hinge-aligned chord rows itself); gauges/material are declared placeholders |
 | `solver.elevon_effectiveness_factor` | 1.0 | uncalibrated; the OAS trim measures the real derivative and VSPAERO cross-checks it |
@@ -321,6 +322,26 @@ stretch solvers only).
   trimmed elevon angle at a known airspeed (form section 2) — with it,
   `solver.elevon_effectiveness_factor` or a body-moment term can be
   calibrated and cited; without it no claim about the flown trim is made.
+- Iteration 4 (2026-09-09): numerical-method repair, no physical design
+  change — `solver.vspaero_wake_iters` 3 -> 8 and repository-wide VSPAERO
+  GMRES/nonlinear convergence factors 1.0 -> 0.01. The iteration-3
+  VSPAERO stability derivative was solver-noise dominated: its built-in
+  0.01° alpha step gave CLα 9.71/rad while the 3°/7° sweep gave 4.55/rad,
+  and the physically-zero CLβ was 5.23/rad. The new quality contract parses
+  the Case/Delta table, checks mirror-symmetry noise, compares the 0.01°
+  derivative with two plain points 1° apart, and runs this wing-only elevon
+  probe with a fixed wake. Re-run: CLα 4.4956/rad against 4.5194/rad at the
+  large step (ratio 0.9947) and 4.5536/rad from the sweep (ratio 0.9873);
+  CLβ/CLα 0.000053, Cmβ/Cmα 0.000496, and CYα/Clα/Cnα zero (all <= 0.02).
+  OAS/VSPAERO fixed-alpha elevon dCm/dδ improved from 0.82 to **0.953**
+  (+0.003829/+0.004016 per degree, same sign), dCL/dδ ratio from 0.52 to
+  0.686, and the independently converted lift-trimmed VSPAERO dCm/dδ is
+  +0.002527/° against OAS +0.002632/°. The relaxed 3°/7° sweep converged in
+  8 iterations (final L2 log10 -1.686; coefficient spans inside limits).
+  OAS trim is unchanged at +16.299° trailing edge up, CM residual 0.00019,
+  static margin 0.0807 MAC. Validation 13/13 and the gate verdict remains
+  12/12. This closes both symptoms of the derivative anomaly without tuning
+  aircraft geometry, CG, trim, or an acceptance band.
 
 <!-- OPENAIR_SKETCH_WORKSHEET_START -->
 ## Sketch measurement worksheet

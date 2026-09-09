@@ -82,6 +82,7 @@ non-claims. Do not turn calibration or post-hoc agreement into validation.
 ### 2026-09-09 — Elevon trim
 
 - [11:45 — Elevon pitch trim for measured tailless airframes](2026-09-09-1145-elevon-pitch-trim.md): added an opt-in elevon pitch-trim control (frozen twist, travel-bounded OAS solve, thin-airfoil seed, VSPAERO cross-check) and closed the scan-grounded Dolphin at 12/12 gates.
+- [12:06 — VSPAERO derivative quality and shared flap theory](2026-09-09-1206-vspaero-derivatives-flap-theory.md): removed solver-noise-dominated finite differences and the complementary flap-angle bug, re-fit Diana 2 on training evidence, and proved the repair on the Dolphin and four-design smoke suite.
 
 ## Adding an entry
 

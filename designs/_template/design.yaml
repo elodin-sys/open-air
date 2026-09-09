@@ -180,7 +180,8 @@ solver:
   optimize_maxiter: 25
   optimize_tol: 1.0e-4
   fd_step: 1.0e-3
-  vspaero_wake_iters: 3
+  vspaero_wake_iters: 8
+  vspaero_convergence_factor: 0.01
   su2_maxiter: 200
   gmsh_lc_m: 0.10
   np_shift_mac: 0.04305

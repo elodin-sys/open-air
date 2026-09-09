@@ -104,7 +104,10 @@ A prototype passes QA only when all of these hold, in this order:
     flat and carries section moment separately. Hybrid component constants must
     carry the matching same-phase VSP3 SHA-256. Inspect the reported
     neutral-point method spread as a diagnostic; CLα agreement does not imply
-    pitching-moment agreement. Elevon-trim designs add
+    pitching-moment agreement. Every VSPAERO derivative table must also carry
+    `derivative_quality.ok`: symmetry-noise metrics ≤ 0.02, 0.01°/1° CLα
+    ratio in 0.90–1.10, and converged relaxed-wake perturbation histories (or
+    a recorded fixed-wake escalation). Elevon-trim designs add
     `elevon_cm_delta_vspaero_vs_oas`: the fixed-alpha OAS `dCm_cg/dδ` must
     agree in sign and within a 0.6–1.6 ratio with a wing-only VSPAERO control
     derivative from the serialized control groups (chapter 02); the

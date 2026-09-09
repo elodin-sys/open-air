@@ -38,7 +38,7 @@ kg with 18402 kg fuel aboard (`mass_properties`). With alpha in radians and
 tail_incidence held at -2.1116 deg:
 
 ```text
-CL = 0.0562191 + 6.64522*alpha
+CL = 0.0562189 + 6.64522*alpha
 Cm = 0.149665 - 1.87884*alpha   (about the CG)
 CD = 0.0188804 + 0.0355964*CL^2
 ```

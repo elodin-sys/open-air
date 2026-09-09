@@ -609,7 +609,11 @@ class AeroelasticSpec(PhysicalModel):
     maximum_reduced_frequency: float = Field(0.30, gt=0.05, le=1.0)
     elastic_axis_fraction_chord: float = Field(0.40, ge=0.20, le=0.60)
     lift_curve_slope_per_rad: float | None = Field(default=None, gt=1.0, le=8.0)
-    calibration_id: Literal["none", "diana2-training-aeroelastic-v1"] = "none"
+    calibration_id: Literal[
+        "none",
+        "diana2-training-aeroelastic-v1",
+        "diana2-training-aeroelastic-v2",
+    ] = "none"
 
     @model_validator(mode="after")
     def frequency_order(self) -> Self:
@@ -682,7 +686,11 @@ class SolverSpec(PhysicalModel):
     optimize_maxiter: int = 35
     optimize_tol: float = 1e-5
     fd_step: float = 1e-3
-    vspaero_wake_iters: int = 5
+    vspaero_wake_iters: int = 8
+    # VSPAERO stability perturbations are only 0.01 deg. The solver default
+    # (1.0) leaves coefficient noise comparable to that signal on small
+    # aircraft, so every sweep and derivative run uses this tighter factor.
+    vspaero_convergence_factor: float = Field(0.01, ge=1e-4, le=1.0)
     su2_maxiter: int = 200
     gmsh_lc_m: float = 0.08
     stability_method: Literal["lifting_surface", "hybrid_component"] = "lifting_surface"

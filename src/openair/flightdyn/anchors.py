@@ -28,6 +28,34 @@ def evaluate_derivative_anchors(
     state = flightdyn["derivatives"]["state"]
     controls = flightdyn["derivatives"]["controls"]
     checks: list[dict[str, Any]] = []
+    derivative_quality = (
+        (flightdyn.get("stability") or {})
+        .get("analysis", {})
+        .get("derivative_quality", {})
+    )
+    checks.extend(
+        [
+            {
+                "name": "vspaero_derivative_noise_floor",
+                "got": derivative_quality.get("noise_metrics"),
+                "want": (
+                    f"all symmetric cross-axis noise metrics <= "
+                    f"{derivative_quality.get('noise_limit', 0.02):.3f}"
+                ),
+                "ok": bool(derivative_quality.get("noise_ok")),
+            },
+            {
+                "name": "CL_alpha_vspaero_small_vs_large_step",
+                "got": derivative_quality.get(
+                    "CL_alpha_ratio_small_over_large"
+                ),
+                "want": derivative_quality.get(
+                    "CL_alpha_ratio_band", [0.90, 1.10]
+                ),
+                "ok": bool(derivative_quality.get("CL_alpha_ok")),
+            },
+        ]
+    )
 
     def sign(name: str, value: float, relation: str) -> None:
         ok = value > 0.0 if relation == "positive" else value < 0.0

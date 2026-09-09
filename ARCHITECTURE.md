@@ -314,6 +314,11 @@ cross-checks the fixed-alpha pitch derivative against a wing-only VSPAERO
 control derivative from the serialized control groups. `drag_buildup.py` adds the
 component parasite-drag buildup (Raymer/Hoerner conceptual fidelity).
 `vspaero_backend.py` is the independent VLM cross-check used by validation.
+Every VSPAERO sweep sets explicit 0.01 GMRES/nonlinear convergence factors;
+the stability path compares its 0.01° finite difference with a one-degree
+slope and gates mirror-symmetry noise. Relaxed-wake derivatives that fail
+quality escalate once to a fixed wake, while the wing-only elevon probe uses
+a fixed wake by contract.
 Deep dive: [guidebook 03](docs/guidebook/03-openaerostruct.md),
 [guidebook 02](docs/guidebook/02-vspaero.md).
 
@@ -332,6 +337,9 @@ bending/torsion beam modes, quasi-steady strip-theory generalized forces,
 control-to-station acceleration/strain FRFs, airspeed modal sweeps, and an
 explicit reduced-frequency validity boundary. It does not provide nonlinear
 loads, coupled T-tail modes, time-domain flexible replay, or flutter clearance.
+Its control effectiveness shares Glauert plain-flap theory with the balance
+model (`aero/thin_airfoil.py`); Diana V2 re-fits one grouped-aileron force
+scale on calibration flights after removing the former complement-angle bug.
 
 `sixdof.py` invokes the pinned isolated Elodin 0.18.0 runtime. The repository's
 own force model—not Elodin's RC-jet dynamics—maps the linear coefficients,

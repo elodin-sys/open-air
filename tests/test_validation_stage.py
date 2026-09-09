@@ -99,8 +99,8 @@ def test_vlm_cross_check_compares_slope_not_camber_offset():
     check = _lift_curve_slope_cross_check(
         {"CL": -0.05, "CM": [0.0, 0.10, 0.0]},
         {"CL": 0.27, "CM": [0.0, -0.10, 0.0]},
-        {"CL": 0.15, "CM": 0.05},
-        {"CL": 0.48, "CM": -0.15},
+        {"ok": True, "CL": 0.15, "CM": 0.05},
+        {"ok": True, "CL": 0.48, "CM": -0.15},
         3.0,
         7.0,
     )
@@ -111,3 +111,21 @@ def test_vlm_cross_check_compares_slope_not_camber_offset():
     assert check["vspaero_CL_points"][0] != check["oas_CL_points"][0]
     assert check["moment_diagnostic_only"]
     assert check["full_vehicle_neutral_point_disagreement_mac"] > 0.0
+
+
+def test_vlm_cross_check_rejects_a_nonconverged_vspaero_point():
+    check = _lift_curve_slope_cross_check(
+        {"CL": 0.1},
+        {"CL": 0.3},
+        {"ok": True, "CL": 0.11},
+        {
+            "ok": False,
+            "CL": 0.31,
+            "wake_convergence": {"converged": False},
+        },
+        3.0,
+        7.0,
+    )
+
+    assert not check["ok"]
+    assert check["reason"] == "VSPAERO lift-slope point did not converge"

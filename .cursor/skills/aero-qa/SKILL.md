@@ -58,6 +58,11 @@ guidebook — read it, do not improvise:
   For a `reproduction` the fidelity check is part of the Geometry-truth gate;
   open `reference_overlay.png` and trace every departure to a documented
   unrepresentable feature.
+- VSPAERO derivative evidence must carry
+  `analysis.derivative_quality.ok` (tight 0.01 convergence factors,
+  symmetry-noise floor, 0.01°/1° CLα agreement, and wake-quality evidence).
+  Reject a numerically finite derivative table when that block is absent or
+  false.
 
 ## Commands
 

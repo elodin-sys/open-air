@@ -30,6 +30,15 @@ Non-negotiables for this repo:
   positive and smaller than `dcm_ddelta_fixed_alpha_per_deg`; the wingbox
   keeps the undeflected mesh. Any spec copy turned into a synthetic test
   wing must reset `pitch_trim_control` and drop the control surfaces.
+- VSPAERO's built-in stability perturbation is only 0.01°. Require
+  `stability.analysis.derivative_quality.ok`: convergence factors 0.01,
+  symmetry-noise metrics ≤ 0.02, small/large-step CLα ratio 0.90–1.10, and
+  strict relaxed-wake residuals or a recorded fixed-wake escalation. A finite
+  `.stab` table alone is not evidence.
+- All plain-flap effectiveness comes from `openair.aero.thin_airfoil`
+  (Glauert: τ≈0.55 at 20% chord). Never reintroduce the complementary hinge
+  angle `acos(2*x_h-1)`; Diana 2's V1 force scale absorbed that bug and is
+  deliberately refused.
 - Wingbox `failure <= 0` at +4g is the pass criterion (KS of von Mises over
   allowable minus 1, safety factor 1.5). W0 excludes wing mass and OAS's
   internal fuel burn (keep `R` tiny).

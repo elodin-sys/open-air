@@ -1,6 +1,6 @@
 # open-air validation envelope
 
-Generated: 2026-08-22T21:37:16+00:00
+Generated: 2026-09-09T19:41:19+00:00
 
 This report scopes evidence by intended use and truth class. Agreement with
 class C/D references is verification or plausibility evidence, not independent
@@ -30,10 +30,10 @@ is not established, so `2u` must not be read as a statistical 2σ confidence ban
 | `nasa-crm-wingbody` | B — wind-tunnel / ground experiment | calibration | calibration pass | 1.026 | 1.251 | 100.0% |
 | `ceras-csr01-mission` | C — engineered reference solution | verification | verification pass | 0.258 | 1.408 | 100.0% |
 | `diana2-ground` | B — wind-tunnel / ground experiment | calibration | calibration pass | 0.000 | 0.006 | 100.0% |
-| `diana2-training` | A — flight measurement | calibration | calibration provisional | 0.698 | 1.264 | 100.0% |
+| `diana2-training` | A — flight measurement | calibration | calibration provisional | 0.612 | 1.264 | 100.0% |
 | `diana2-flight` | A — flight measurement | validation | pass (frozen `52e12a3ce477`) | 0.609 | 1.099 | 100.0% |
 | `diana2-reserve` | A — flight measurement | validation | deferred | — | — | — |
-| `ntnu-x8-training` | A — flight measurement | calibration | calibration provisional | 0.675 | 1.264 | 100.0% |
+| `ntnu-x8-training` | A — flight measurement | calibration | calibration provisional | 0.670 | 1.264 | 100.0% |
 | `ntnu-x8-flight` | A — flight measurement | validation | pass (frozen `8537a2fe7334`) | 0.535 | 1.138 | 100.0% |
 | `ntnu-x8-icing-reserve` | A — flight measurement | validation | deferred | — | — | — |
 
@@ -134,7 +134,7 @@ is not established, so `2u` must not be read as a statistical 2σ confidence ban
 - Intended uses: Fit one generalized-force scale and reject the over-damped quasi-steady velocity term, Freeze H1 estimator settings and experimental/input/numerical allowances, Quantify first-bending frequency, damping, acceleration, and strain repeatability
 - Source revision: Version 1, published 2026-05-20; frozen six-flight training split
 - Reference: https://doi.org/10.4121/0c3fcef0-5b63-480c-ae40-3ff726c657e9.v1
-- Verdict: **calibration benchmark provisional**; 8 observables, mean |r|/u 0.698, max |r|/u 1.264, 100.0% within 2u.
+- Verdict: **calibration benchmark provisional**; 8 observables, mean |r|/u 0.612, max |r|/u 1.264, 100.0% within 2u.
 - Within 2u: outer_to_ro_strain_bending_frequency_hz, outer_to_ro_strain_bending_damping_fraction, outer_to_ro_strain_peak_gain, outer_to_ro_accel_bending_frequency_hz, outer_to_ro_accel_bending_damping_fraction, outer_to_ro_accel_gain_at_mode, outer_to_rm_accel_bending_frequency_hz, outer_to_rm_accel_gain_at_mode.
 - Notes: This calibration role owns the six training-flight residuals; it cannot establish an independent Class-A claim. Exact local MAT hashes and the archive hash are committed in inputs/intake-record.yaml. Publisher *_calib strain values are already bias- and temperature-corrected.
 
@@ -166,7 +166,7 @@ is not established, so `2u` must not be read as a statistical 2σ confidence ban
 - Intended uses: Freeze low-Re elevon effectiveness and damping calibration before validation, Quantify repeatability, estimator, and replay-timestep allowances
 - Source revision: DataverseNO version 1.0, published 2024-11-26
 - Reference: https://doi.org/10.18710/U4TLYV
-- Verdict: **calibration benchmark provisional**; 10 observables, mean |r|/u 0.675, max |r|/u 1.264, 100.0% within 2u.
+- Verdict: **calibration benchmark provisional**; 10 observables, mean |r|/u 0.670, max |r|/u 1.264, 100.0% within 2u.
 - Within 2u: pitch_rate_peak_gain_doublet, pitch_rate_rms_gain_doublet, pitch_rate_peak_gain_3211, pitch_rate_rms_gain_3211, roll_rate_peak_gain_doublet, roll_rate_rms_gain_doublet, roll_rate_peak_gain_121, roll_rate_rms_gain_121, trim_alpha_rad, trim_normal_force_cl.
 - Notes: This role, not the validation manifest, owns every committed training-file hash. Its residuals informed the four-factor low-Re calibration and frozen uncertainty budget. Passing this case is calibration evidence only and cannot establish a Class-A validation claim.
 

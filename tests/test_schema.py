@@ -42,6 +42,8 @@ def test_default_spec_computed_fields():
     assert s.vtail.count == 2
     assert s.engine.x_m is None
     assert s.mass.fuel_mass_mode == "sized"
+    assert s.solver.vspaero_wake_iters == 8
+    assert s.solver.vspaero_convergence_factor == 0.01
 
 
 def test_physical_bounds_reject_nonsense():
@@ -59,6 +61,10 @@ def test_physical_bounds_reject_nonsense():
         VehicleSpec.model_validate({"mission": {"payload_kg": -5}})
     with pytest.raises(ValidationError):
         VehicleSpec.model_validate({"vtail": {"count": 3}})
+    with pytest.raises(ValidationError):
+        VehicleSpec.model_validate(
+            {"solver": {"vspaero_convergence_factor": 2.0}}
+        )
     with pytest.raises(ValidationError, match="must be supplied together"):
         VehicleSpec.model_validate({"mass": {"operating_empty_mass_kg": 20.0}})
     with pytest.raises(ValidationError, match="listed mass min/max/state"):

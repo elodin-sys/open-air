@@ -52,8 +52,10 @@ know their assumptions to catch them lying.
     across a concept's optimization envelope (absolute ratio for NP shift,
     signed ratio for trim effectiveness). This preserves the measured target
     and reverses washout effectiveness for forward sweep.
-  - elevon to trim (`mission.pitch_trim_control: elevon`): `plain_flap_theory`
-    is Glauert's thin-airfoil plain flap, `θ_h = acos(1 − 2 x_h/c)`,
+  - elevon to trim (`mission.pitch_trim_control: elevon`):
+    [`aero/thin_airfoil.py`](../../src/openair/aero/thin_airfoil.py) is the
+    single Glauert plain-flap implementation shared by conceptual balance and
+    aeroelastic response; `θ_h = acos(1 − 2 x_h/c)`,
     `dCl/dδ = 2(π − θ_h + sin θ_h)`, `dCm_c/4/dδ = −½ sin θ_h (1 − cos θ_h)`
     (τ ≈ 0.55 for a 20 % flap, 0.82 for 50 %); `elevon_pitch_derivative`
     strip-integrates it over the trapezoid between the surface's span
@@ -66,6 +68,10 @@ know their assumptions to catch them lying.
     over-predicts authority (the Dolphin: 0.0048/° closed form vs 0.0038/°
     OAS fixed-alpha) and only seeds the OAS solve; a source-cited
     `solver.elevon_effectiveness_factor` is the sanctioned correction.
+    The former aeroelastic formula used `acos(2x_h−1)`, the complementary
+    hinge angle (τ=0.953 instead of 0.574 for Diana 2's 22%-chord controls).
+    That path is removed; Diana's V1 force calibration is refused and V2 is
+    re-fitted on the designated training flights with the shared function.
   - optional horizontal-tail fallback: finite-wing lift-curve slopes weight
     wing and tail aerodynamic centers into the combined NP. Tail effectiveness
   uses a conservative conventional-tail dynamic-pressure ratio `ηq = 0.80`

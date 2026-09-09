@@ -15,7 +15,11 @@ from openair.flightdyn.sixdof import (
     replay_flightdyn,
     verify_elodin_linear_model,
 )
-from openair.flightdyn.stability import parse_stab, parse_stability_history
+from openair.flightdyn.stability import (
+    derivative_quality,
+    parse_stab,
+    parse_stability_history,
+)
 
 
 def test_parse_vspaero_stability_derivatives_and_control_group(tmp_path: Path):
@@ -42,6 +46,13 @@ AoA_ 8.0 deg
 Beta_ 0.0 deg
 Rho_ 1.225 Munit/Lunit^3
 Vinf_ 18.0 Lunit/Tunit
+Case Delta Units
+#
+Base_Aero +0.000 n/a
+Alpha +0.010 deg
+Beta +0.010 deg
+elevator +0.100 deg
+#
 #             Base    Derivative:
 Coef Total Alpha Beta p q r Mach U ConGrp_1
 # - per per per per per per per per
@@ -64,6 +75,11 @@ X_np 0.448 Lunit
         -0.3
     )
     assert parsed["results"]["static_margin"] == pytest.approx(0.05)
+    assert parsed["perturbations"]["alpha"] == {
+        "delta": pytest.approx(0.01),
+        "units": "deg",
+    }
+    assert parsed["perturbations"]["elevator"]["delta"] == pytest.approx(0.1)
 
 
 def test_stability_history_requires_each_perturbation_to_converge(tmp_path: Path):
@@ -97,6 +113,69 @@ def test_stability_history_requires_each_perturbation_to_converge(tmp_path: Path
 
     assert convergence["case_count"] == 2
     assert convergence["converged"]
+
+
+def test_derivative_quality_rejects_noise_dominated_small_step():
+    coefficients = {
+        "CL": {
+            "base": 0.4,
+            "derivatives": {"alpha": 4.5, "beta": 0.001},
+        },
+        "Cm": {
+            "base": -0.01,
+            "derivatives": {"alpha": -0.4, "beta": 0.001},
+        },
+        "CY": {"base": 0.0, "derivatives": {"alpha": 0.001}},
+        "Cl": {"base": 0.0, "derivatives": {"alpha": 0.001}},
+        "Cn": {"base": 0.0, "derivatives": {"alpha": 0.001}},
+    }
+    parsed = {"coefficients": coefficients, "perturbations": {}}
+    wake = {
+        "available": True,
+        "converged": True,
+        "cases": [{"final_l2_residual_log10": -2.5}],
+    }
+
+    clean = derivative_quality(
+        parsed,
+        4.48,
+        wake_convergence=wake,
+        fixed_wake=False,
+    )
+    assert clean["ok"]
+    assert clean["CL_alpha_ratio_small_over_large"] == pytest.approx(4.5 / 4.48)
+
+    coefficients["CL"]["derivatives"]["beta"] = 0.5
+    noisy = derivative_quality(
+        parsed,
+        4.48,
+        wake_convergence=wake,
+        fixed_wake=False,
+    )
+    assert not noisy["ok"]
+    assert not noisy["noise_ok"]
+
+    coefficients["CL"]["derivatives"]["beta"] = 0.001
+    stalled = derivative_quality(
+        parsed,
+        4.48,
+        wake_convergence={
+            **wake,
+            "cases": [{"final_l2_residual_log10": -1.4}],
+        },
+        fixed_wake=False,
+    )
+    assert not stalled["ok"]
+    assert not stalled["relaxed_wake_residual_ok"]
+
+
+def test_aeroelastic_flap_effectiveness_uses_shared_glauert_theory():
+    from openair.aero.thin_airfoil import flap_effectiveness as shared
+    from openair.flightdyn.aeroelastic import flap_effectiveness
+
+    assert flap_effectiveness(0.20) == pytest.approx(0.550, abs=0.005)
+    assert flap_effectiveness(0.50) == pytest.approx(0.818, abs=0.005)
+    assert flap_effectiveness(0.22) == shared(0.22)
 
 
 def test_tapered_strip_theory_roll_damping_has_damping_sign():

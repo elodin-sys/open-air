@@ -7,6 +7,7 @@ from typing import Any
 
 import numpy as np
 
+from openair.aero.thin_airfoil import flap_effectiveness as _flap_effectiveness
 from openair.atmosphere import isa
 from openair.schemas import VehicleSpec
 from openair.structures.modal import run_modal_analysis
@@ -20,12 +21,31 @@ DIANA2_TRAINING_AEROELASTIC_V1 = {
     "aerodynamic_stiffness_scale": 1.0,
 }
 
+DIANA2_TRAINING_AEROELASTIC_V2 = {
+    "id": "diana2-training-aeroelastic-v2",
+    "status": "training-refitted",
+    "supersedes": DIANA2_TRAINING_AEROELASTIC_V1["id"],
+    "flap_effectiveness_basis": "Glauert thin-airfoil plain flap",
+    "force_scale": {"aileron": 0.73},
+    "fit": {
+        "source_case": "diana2-training",
+        "method": (
+            "uncertainty-weighted least squares on three predeclared "
+            "response-gain observables"
+        ),
+        "seed_scale": 0.91,
+        "raw_scale": 0.7260620466321545,
+        "published_scale": 0.73,
+        "frequency_and_damping_fitted": False,
+    },
+    "aerodynamic_damping_scale": 0.0,
+    "aerodynamic_stiffness_scale": 1.0,
+}
+
 
 def flap_effectiveness(chord_fraction: float) -> float:
-    """Thin-airfoil trailing-edge flap effectiveness."""
-    hinge_x = 1.0 - chord_fraction
-    theta = math.acos(float(np.clip(2.0 * hinge_x - 1.0, -1.0, 1.0)))
-    return 1.0 - (theta - math.sin(theta)) / math.pi
+    """Compatibility wrapper for the shared Glauert flap model."""
+    return _flap_effectiveness(chord_fraction)
 
 
 def aeroelastic_section_matrices(
@@ -74,9 +94,14 @@ def _calibration(spec: VehicleSpec) -> dict[str, Any]:
             "aerodynamic_damping_scale": 1.0,
             "aerodynamic_stiffness_scale": 1.0,
         }
-    if calibration_id != DIANA2_TRAINING_AEROELASTIC_V1["id"]:
+    if calibration_id == DIANA2_TRAINING_AEROELASTIC_V1["id"]:
+        raise ValueError(
+            "diana2-training-aeroelastic-v1 is superseded: its force scale "
+            "was fitted against the complement-flap effectiveness"
+        )
+    if calibration_id != DIANA2_TRAINING_AEROELASTIC_V2["id"]:
         raise ValueError(f"unsupported aeroelastic calibration: {calibration_id}")
-    return DIANA2_TRAINING_AEROELASTIC_V1
+    return DIANA2_TRAINING_AEROELASTIC_V2
 
 
 def _modal_state(

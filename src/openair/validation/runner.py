@@ -78,6 +78,15 @@ def _lift_curve_slope_cross_check(
     alpha_hi: float,
 ) -> dict[str, Any]:
     """Compare CL-alpha while preserving absolute CL as diagnostic evidence."""
+    if not vsp_lo.get("ok") or not vsp_hi.get("ok"):
+        return {
+            "ok": False,
+            "reason": "VSPAERO lift-slope point did not converge",
+            "vspaero_low_ok": bool(vsp_lo.get("ok")),
+            "vspaero_high_ok": bool(vsp_hi.get("ok")),
+            "vspaero_low_wake_convergence": vsp_lo.get("wake_convergence"),
+            "vspaero_high_wake_convergence": vsp_hi.get("wake_convergence"),
+        }
     values = (
         oas_lo.get("CL"),
         oas_hi.get("CL"),
@@ -143,7 +152,10 @@ def _lift_curve_slope_cross_check(
 
 
 def _elevon_pitch_derivative_cross_check(
-    spec: VehicleSpec, outdir: Path, case_path: Path | None
+    spec: VehicleSpec,
+    outdir: Path,
+    case_path: Path | None,
+    vspaero_sweep: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Compare the OAS elevon pitch derivative with a wing-only VSPAERO solve.
 
@@ -213,12 +225,15 @@ def _elevon_pitch_derivative_cross_check(
         lifting_names={"wing"},
     )
     if not probe.get("ok"):
+        analysis = probe.get("analysis") or {}
         return {
             "name": name,
             "ok": False,
-            "reason": (probe.get("analysis") or {}).get("reason") or probe.get("reason"),
+            "reason": analysis.get("reason") or probe.get("reason"),
+            "derivative_quality": analysis.get("derivative_quality"),
         }
     analysis = probe["analysis"]
+    quality = analysis.get("derivative_quality") or {}
     names = list(analysis["control_group_names"])
     if group_id not in names:
         return {
@@ -245,6 +260,19 @@ def _elevon_pitch_derivative_cross_check(
         else float("inf")
     )
     same_sign = (float(oas_dcm) > 0.0) == (vsp_dcm_te_up_per_deg > 0.0)
+    sweep_cl_alpha_per_deg = (vspaero_sweep or {}).get(
+        "vspaero_CL_alpha_per_deg"
+    )
+    stab_vs_sweep_ratio = (
+        cl_alpha / (float(sweep_cl_alpha_per_deg) * 180.0 / math.pi)
+        if isinstance(sweep_cl_alpha_per_deg, (int, float))
+        and abs(float(sweep_cl_alpha_per_deg)) > 1e-12
+        else None
+    )
+    stab_vs_sweep_ok = bool(
+        isinstance(stab_vs_sweep_ratio, (int, float))
+        and 0.90 <= float(stab_vs_sweep_ratio) <= 1.10
+    )
     masses = _closed_mass(spec, spec.mass.fuel_mass_kg)
     bal = balance_report(spec, masses.mtow_kg, spec.mass.fuel_mass_kg)
     closed_form = elevon_pitch_derivative(spec, surface, bal.x_cg_full_m)
@@ -254,7 +282,12 @@ def _elevon_pitch_derivative_cross_check(
         "want": vsp_dcm_te_up_per_deg,
         "ratio_oas_over_vspaero": ratio,
         "same_sign": same_sign,
-        "ok": bool(same_sign and 0.6 <= ratio <= 1.6),
+        "ok": bool(
+            quality.get("ok")
+            and stab_vs_sweep_ok
+            and same_sign
+            and 0.6 <= ratio <= 1.6
+        ),
         "units": "dCm_cg/ddelta per degree, trailing edge up positive, fixed alpha",
         "comparison": "fixed_alpha_pitch_derivative_wing_only",
         "oas": {
@@ -283,6 +316,16 @@ def _elevon_pitch_derivative_cross_check(
             "thin_set": sorted(analysis.get("lifting_components") or []),
             "sign_note": "VSPAERO group command is trailing edge down positive; negated",
         },
+        "derivative_quality": quality,
+        "CL_alpha_stability_per_rad": cl_alpha,
+        "CL_alpha_sweep_per_rad": (
+            float(sweep_cl_alpha_per_deg) * 180.0 / math.pi
+            if isinstance(sweep_cl_alpha_per_deg, (int, float))
+            else None
+        ),
+        "CL_alpha_stability_over_sweep": stab_vs_sweep_ratio,
+        "CL_alpha_stability_over_sweep_band": [0.90, 1.10],
+        "CL_alpha_stability_over_sweep_ok": stab_vs_sweep_ok,
         "closed_form_thin_airfoil_per_deg": -float(closed_form["dcm_cg_ddelta_per_deg"]),
         "closed_form_note": (
             "thin-airfoil plain flap on the trapezoid strip, disclosed only; "
@@ -411,6 +454,7 @@ def run_validation_stage(
     # The analytical rectangle is a clean wing: no serialized elevon trim
     # deflection may be carried onto it.
     rect.mission.pitch_trim_control = "wing_twist"
+    rect.flight_dynamics.enabled = False
     rect.flight_dynamics.control_surfaces = []
     try:
         vlm = run_vlm(rect, 0.0, 50.0, 4.0)
@@ -768,7 +812,14 @@ def run_validation_stage(
     # Independent solver cross-check of the elevon pitch derivative that the
     # trim solve relies on (elevon pitch-trim designs only).
     try:
-        checks.append(_elevon_pitch_derivative_cross_check(spec, outdir, case_path))
+        checks.append(
+            _elevon_pitch_derivative_cross_check(
+                spec,
+                outdir,
+                case_path,
+                vsp_cross,
+            )
+        )
     except Exception as exc:
         checks.append(
             {"name": "elevon_cm_delta_vspaero_vs_oas", "ok": False, "error": str(exc)}

@@ -17,10 +17,10 @@
       "rms_residual": 0.002794796794222512
     },
     "linearization": {
-      "CL0": 0.056219135732656134,
-      "CL_alpha_per_rad": 6.645217021589064,
-      "Cm0": 0.1496650423294292,
-      "Cm_alpha_per_rad": -1.8788433349029887,
+      "CL0": 0.056218879917900866,
+      "CL_alpha_per_rad": 6.645220232969105,
+      "Cm0": 0.1496647874517757,
+      "Cm_alpha_per_rad": -1.8788401352868893,
       "cm_residual": -1.4069142492620368e-06,
       "coefficient_reference": {
         "angles": "radians",
@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "ceras-csr01",
-  "created_at": "2026-08-24T01:23:33+00:00",
+  "created_at": "2026-09-09T19:38:01+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -145,7 +145,7 @@
     "geometry_vsp3": {
       "path": "geometry/ceras-csr01.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "de2679d46b91522524bd804c0eef47b84e4ad0f383ee20a06f4cfd0d8d1abfec",
+      "sha256": "7093902c7760c1cd5f0dcb350bd2b87c146196ca637e7252595181baf86717d3",
       "size_bytes": 279412
     },
     "geometry_whole_stl": {
@@ -157,7 +157,7 @@
     "integration_guide": {
       "path": "integration_guide.md",
       "role": "integration_guide",
-      "sha256": "78cc1f50b3ab33287b304ec1de54eb795a6ff4f3ba42d52098fd2ff34dca2aa5",
+      "sha256": "a6ba6e1e72272818dcf2a7279e013eb6ff6ca1d9cb1f3ac62bc13ccdb3ed661a",
       "size_bytes": 4737
     },
     "propulsion_map": {
@@ -169,7 +169,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "cafc10b7ee6951385f84444f2e302b97e5ad1eb4ffc45a8ef4fd859ee704ddc7",
+      "sha256": "30ec7dcfd6897a19ad7b7c21779618acdd2f8864df3281e7677b644cd810767a",
       "size_bytes": 899
     },
     "render_glb": {
@@ -258,8 +258,8 @@
     },
     "validation": {
       "ok": true,
-      "passed": 13,
-      "total": 13
+      "passed": 14,
+      "total": 14
     }
   },
   "phase": "optimized",
@@ -358,7 +358,7 @@
       "Aero/structures solver agreement is verification, not physical-aircraft validation.",
       "No measured inertia tensor is available; consumers must not invent one from this package."
     ],
-    "design_sha256": "215e4050d00f1e45d306a7c144906b2ddc03cd386408372a5da5e3d859c6c641",
+    "design_sha256": "1c1d7efea28575480c93690c641d56f050cc959fd89f43959f779565d3c26017",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -366,14 +366,14 @@
       "propulsion": "C",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "a29cbe01221a4d05ef8633f91ce4ca144f29d89828e4dd8aa63e8352a6c6b122",
-    "pipeline_run_id": "9911022c16c240ada0b146cd4c345e03",
-    "source_git_commit": "65f48ec93494dc737e36e3501ba31f03bb5e47b6",
+    "model_source_sha256": "5a042e3c85ce7ad5224ba6526facc9c684092589730ca48ac8dd9ee592d04970",
+    "pipeline_run_id": "a8522b46e9074f48a92e55bbeb08f021",
+    "source_git_commit": "123976299ceda1eefc1551a1d54c65d3888ddf57",
     "upstream_sha256": {
-      "aero.json": "bfcea87286bdc985fcdaaa5b1d6b1207d084479c783adedff958e8f0fd1fcf51",
-      "geometry.json": "aac9ece9f061fbdd5beefba9e4001c76b725640f6f89b26c71a939a01cec78b6",
-      "structures.json": "6287503f13ecb807baf43a82dba2570bc479e0cefbe2501c10bc6f81c929dfcf",
-      "validation.json": "4b4a57c040cb00ade88dc6a3aec90d2743f50961233664c27c9717477ee04d6c"
+      "aero.json": "ce86d0184fdc6247b601ae3d02a8365a093df954d211be93eefd1373eb388b57",
+      "geometry.json": "bf3fc8955e17e2f9d3f45fb468eab04809b63d30753b71327057dca2ea31ff0a",
+      "structures.json": "edeeb88a6200c287cb39ee9a3eb4699c07bed5b0e0478cf655b1ea46ac750fc6",
+      "validation.json": "ae20982aef7eda9b30f14d9230baf7334b1b12f3dff56cbae2b4d177039cbd2f"
     }
   },
   "reference_geometry": {

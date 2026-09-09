@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "atomrc-dolphin-v1-1",
-  "created_at": "2026-09-09T17:20:02+00:00",
+  "created_at": "2026-09-09T19:24:24+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -133,7 +133,7 @@
     "geometry_vsp3": {
       "path": "geometry/atomrc-dolphin-v1-1.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "b4b3ef99e5b18ba9adff6761e308c766c137bb3e67e60446638e7a4af3af5e9a",
+      "sha256": "fe9e8fc1c3769c41ddf118913ae96dab676954831fa0c554fbd5bd811ac07426",
       "size_bytes": 306894
     },
     "geometry_whole_stl": {
@@ -157,7 +157,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "94ce0902a6288ad8e54b384085f54c70f1790f50dcec80cf5da4137582e78439",
+      "sha256": "6023cb700d38ff19bc8f3653f75db6404a64b3b662f211ff1888fe6cc417db14",
       "size_bytes": 1002
     },
     "render_glb": {
@@ -297,7 +297,7 @@
       "Propulsion map is evaluated from the analytic lapse/TSFC model, not an identified engine deck.",
       "No measured inertia tensor is available; consumers must not invent one from this package."
     ],
-    "design_sha256": "819a581441b4cfeeae14df593d6d32011d590830273258225d41bc02141dd1f9",
+    "design_sha256": "86372172e5fba5d3814dd566424f58bacb555fd6a7d6ceb338fc07b0271e50fe",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -305,16 +305,16 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "b808480a704bd7cf01b0ace584a1e51869ab3f85116c3f92e029fabc07d80051",
-    "pipeline_run_id": "ba28937183c74fe59e0fa478c24b036f",
-    "source_git_commit": "bf5767aa43b59e109a63ccff1a449ca16de886ca",
+    "model_source_sha256": "3acf0fd2c4e8f689b794b8bf63bf30ed98015c385ab6e6943d1cee5325d8eabd",
+    "pipeline_run_id": "623a52d43ac54cc6b036cb1b7d5c38b0",
+    "source_git_commit": "123976299ceda1eefc1551a1d54c65d3888ddf57",
     "upstream_sha256": {
-      "aero.json": "79b117c60332418aceb9ad3a71c16970d89e8ea9d6f2e6955f6ded4735b9d876",
-      "geometry.json": "da89e87a5cd675781f797e99d42a60d27ac74b79df8d3a8ba7d2c16cd9150d98",
+      "aero.json": "ce67635de63156bf9623394f1a84b3fbf79dda9f7551ff5fe37d1914e10c2a2f",
+      "geometry.json": "5b5d0bac43ec20ad2ea0a56a3ecadfd76be61ad70a042d86d625569ba1baf283",
       "mass_breakdown.json": "3437560e11b8070585b538ce77156a1f801faf99884535091d8725aead34e56a",
-      "sizing.json": "622f7cee587ce9291afa72696c72c24c6ffc95f091c8531bb8add19b0ec175c1",
-      "structures.json": "80bb12d6895b7b6e44b70bca28d420bc350933bf224ec10b2350435d455dedc5",
-      "validation.json": "aaa28f45ee7117c658347da064debf44cae9a8a67d8afc4f5abfb6aaa306caf3"
+      "sizing.json": "9ea7a9f0e54082f6abebcd590131efec180b7699ade896e38aac731d650575c8",
+      "structures.json": "fd354770cbcae3b4ed3c8010898b0a1059868b101cb1268476ac351cb42b342f",
+      "validation.json": "a3eb3aa5d464cb75671f39db796f3c33a070eba967931a5bc5b7a13ccc1dbf28"
     }
   },
   "reference_geometry": {
