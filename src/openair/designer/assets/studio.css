@@ -93,7 +93,7 @@
     .station-editor { grid-column: 1 / -1; overflow-x: auto; }
     .station-row {
       display: grid;
-      grid-template-columns: repeat(4, minmax(58px, 1fr)) repeat(3, minmax(50px, .86fr)) 26px;
+      grid-template-columns: repeat(4, minmax(58px, 1fr)) repeat(4, minmax(50px, .86fr)) 26px;
       gap: 3px; margin-bottom: 4px;
     }
     .station-row input {
@@ -146,7 +146,9 @@
     .viewport svg { touch-action: none; }
     .airframe { fill: rgba(31,102,125,.16); stroke: #1d5366; stroke-width: 2; vector-effect: non-scaling-stroke; }
     .body-shape { fill: rgba(51,75,84,.20); stroke: #314f5b; stroke-width: 2; vector-effect: non-scaling-stroke; }
+    .fairing-shape { fill: rgba(52,118,90,.12); stroke: #34765a; stroke-width: 1.6; stroke-dasharray: 7 4; vector-effect: non-scaling-stroke; }
     .fin-shape { fill: rgba(233,103,63,.20); stroke: #c94f2b; stroke-width: 2; vector-effect: non-scaling-stroke; }
+    .root-extension { opacity: .65; stroke-dasharray: 4 3; }
     .datum { stroke: #9dafb2; stroke-width: 1; stroke-dasharray: 5 5; vector-effect: non-scaling-stroke; }
     .trace-grid { stroke: #b9c8c7; stroke-width: .7; opacity: .35; vector-effect: non-scaling-stroke; }
     .bay { fill: rgba(52,118,90,.18); stroke: #34765a; stroke-width: 1.5; vector-effect: non-scaling-stroke; }

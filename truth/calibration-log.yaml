@@ -197,3 +197,33 @@ entries:
     evidence_boundary: >-
       Only FT05, FT07, FT08, FT10, FT11, and FT13 were parsed. FT06 and FT12
       remain external and unopened; FT09 remains a separately deferred reserve.
+  - id: 2026-09-09-diana2-training-aeroelastic-v2
+    case_id: diana2-training
+    source_role: calibration
+    observables_viewed:
+      - outer_to_ro_strain_bending_frequency_hz
+      - outer_to_ro_strain_bending_damping_fraction
+      - outer_to_ro_strain_peak_gain
+      - outer_to_ro_accel_bending_frequency_hz
+      - outer_to_ro_accel_bending_damping_fraction
+      - outer_to_ro_accel_gain_at_mode
+      - outer_to_rm_accel_bending_frequency_hz
+      - outer_to_rm_accel_gain_at_mode
+    changes:
+      - "Replace the complement-flap effectiveness with the shared Glauert thin-airfoil plain-flap value (tau 0.953 -> 0.574 at 22% chord)."
+      - "Supersede diana2-training-aeroelastic-v1 and refuse it in current runs because its 0.55 force scale absorbed the flap-theory bug."
+      - "Fit one grouped-aileron generalized-force scale by uncertainty-weighted least squares on the three predeclared gain observables only: raw 0.726062, published 0.73."
+      - "Retain aerodynamic_damping_scale 0.0, aerodynamic_stiffness_scale 1.0, all modal structure, H1 estimator settings, input mapping, and frozen acceptance bands."
+    rationale: >-
+      Correcting the hinge-angle convention reduced the 22%-chord section
+      effectiveness from 0.953 to 0.574, so the former force scale was no
+      longer interpretable. A scripted training-only fit at seed 0.91 used
+      the RO strain, RO acceleration, and RM acceleration gains with their
+      already-frozen uncertainties; frequency and damping were excluded from
+      the fit. The rounded 0.73 result passes all 8 provisional observables:
+      mean |z| 0.6123, maximum |z| 1.2640, and fraction within 2u 1.0.
+    untouched_validation_holdout: diana2-flight
+    evidence_boundary: >-
+      Only FT05, FT07, FT08, FT10, FT11, and FT13 were parsed during this
+      refit. FT06 and FT12 were not opened before the V2 model, fit rule,
+      scale, tests, and bands were frozen; FT09 remains the deferred reserve.

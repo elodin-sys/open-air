@@ -6,7 +6,14 @@ import numpy as np
 
 from openair.aero.drag_buildup import parasite_cd0
 from openair.atmosphere import isa, reynolds_per_m
+from openair.controls import (
+    pitch_control_surface,
+    pitch_trim_control,
+    te_down_deg,
+)
 from openair.geometry.mesh import (
+    deflect_trailing_edge,
+    elevon_chord_fractions,
     generate_oas_htail_rect_mesh,
     generate_oas_rect_mesh,
     naca4_coords,
@@ -60,8 +67,63 @@ def oas_shear_for_le_sweep_deg(
     return float(np.degrees(np.arctan2(wanted_le_offset - taper_le_offset, semispan)))
 
 
-def wing_surface_dict(spec: VehicleSpec, *, aero_only: bool, cd0_extra: float) -> dict:
+def elevon_wing_mesh(
+    spec: VehicleSpec, deflection_te_up_deg: float | None = None
+) -> tuple[np.ndarray, dict[str, float]] | None:
+    """Hinge-aligned, deflected aero seed mesh when elevon trim is selected.
+
+    Returns ``None`` for every other trim control so callers keep the plain
+    seed. The deflection defaults to the serialized
+    ``trim_deflection_deg`` of the pitch control surface (trailing edge up
+    positive); the trim solver overrides it while searching.
+    """
+    if pitch_trim_control(spec) != "elevon":
+        return None
+    surface = pitch_control_surface(spec)
+    if surface is None:
+        return None
+    hinge = 1.0 - surface.chord_fraction
+    te_up = (
+        float(surface.trim_deflection_deg)
+        if deflection_te_up_deg is None
+        else float(deflection_te_up_deg)
+    )
+    mesh = generate_oas_rect_mesh(spec, chord_fractions=elevon_chord_fractions(hinge))
+    mesh = deflect_trailing_edge(
+        mesh,
+        hinge_fraction=hinge,
+        span_start_fraction=surface.span_start_fraction,
+        span_end_fraction=surface.span_end_fraction,
+        deflection_te_down_deg=te_down_deg(te_up),
+        # Sectioned meshes already carry their local chord. Scalar wings are
+        # still tapered later by the OAS Geometry group and need the historical
+        # pre-scaling.
+        taper=1.0 if spec.wing.sections is not None else spec.wing.taper,
+    )
+    return mesh, {
+        "surface_id": surface.id,
+        "hinge_fraction": hinge,
+        "span_start_fraction": surface.span_start_fraction,
+        "span_end_fraction": surface.span_end_fraction,
+        "deflection_te_up_deg": te_up,
+    }
+
+
+def wing_surface_dict(
+    spec: VehicleSpec,
+    *,
+    aero_only: bool,
+    cd0_extra: float,
+    elevon_deflection_deg: float | None = None,
+) -> dict:
     mesh = generate_oas_rect_mesh(spec)
+    if aero_only:
+        # The aero-only VLM carries the deflected elevon; the coupled
+        # aerostructural wingbox keeps the undeflected seed because its FEM
+        # nodes are derived from the same mesh.
+        deflected = elevon_wing_mesh(spec, elevon_deflection_deg)
+        if deflected is not None:
+            mesh = deflected[0]
     coords = naca4_coords(spec.wing.airfoil)
     ncp = 3
     twist = np.linspace(spec.wing.twist_tip_deg, spec.wing.twist_root_deg, ncp)
@@ -71,14 +133,6 @@ def wing_surface_dict(spec: VehicleSpec, *, aero_only: bool, cd0_extra: float) -
         "symmetry": True,
         "S_ref_type": "projected",
         "mesh": mesh,
-        "taper": spec.wing.taper,
-        "sweep": oas_shear_for_le_sweep_deg(
-            spec.wing.root_chord_m,
-            spec.wing.taper,
-            spec.wing.span_m,
-            spec.wing.le_sweep_deg,
-        ),
-        "dihedral": spec.wing.dihedral_deg,
         "twist_cp": twist,
         "t_over_c_cp": np.array(
             [spec.wing.t_over_c, spec.wing.t_over_c, spec.wing.t_over_c]
@@ -90,6 +144,19 @@ def wing_surface_dict(spec: VehicleSpec, *, aero_only: bool, cd0_extra: float) -
         "with_viscous": spec.solver.oas_with_viscous,
         "with_wave": spec.solver.oas_with_wave,
     }
+    if spec.wing.sections is None:
+        surf.update(
+            {
+                "taper": spec.wing.taper,
+                "sweep": oas_shear_for_le_sweep_deg(
+                    spec.wing.root_chord_m,
+                    spec.wing.taper,
+                    spec.wing.span_m,
+                    spec.wing.le_sweep_deg,
+                ),
+                "dihedral": spec.wing.dihedral_deg,
+            }
+        )
     if aero_only:
         return surf
 

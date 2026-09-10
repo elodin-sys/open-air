@@ -282,12 +282,7 @@ def _longitudinal_linearization(
     cl0 = float(cruise["CL"]) - cl_alpha * alpha_rad
     cm_residual = float(trim.get("cm_residual") or 0.0)
     cm0 = cm_residual - cm_alpha * alpha_rad
-    control = str(trim.get("control") or "none")
-    control_value = (
-        float(trim.get("tail_incidence_trim_deg") or 0.0)
-        if control == "tail_incidence"
-        else float(trim.get("twist_tip_trim_deg") or 0.0)
-    )
+    control, control_value = _trim_control(trim)
     return LongitudinalLinearization(
         reference_alpha_deg=alpha_deg,
         reference_beta_deg=0.0,
@@ -470,11 +465,14 @@ def _write_propulsion_map(path: Path, spec: VehicleSpec) -> None:
 
 
 def _trim_control(trim: dict[str, Any]) -> tuple[str, float]:
+    """Active trim control and its solved setting (elevon: trailing edge up +)."""
     control = str(trim.get("control") or "none")
     if control == "tail_incidence":
         return control, float(trim.get("tail_incidence_trim_deg") or 0.0)
     if control in {"wing_twist", "twist_tip"}:
         return control, float(trim.get("twist_tip_trim_deg") or 0.0)
+    if control == "elevon":
+        return control, float(trim.get("elevon_trim_deg") or 0.0)
     return control, 0.0
 
 
@@ -853,7 +851,13 @@ def _write_integration_guide(
             f" Mass state: {fmt(mtow_kg)} kg with {fmt(fuel_mass_kg)} kg fuel"
             " aboard (`mass_properties`). With alpha in radians and"
             f" {linearization.trim_control} held at"
-            f" {fmt(linearization.trim_control_value_deg)} deg:"
+            f" {fmt(linearization.trim_control_value_deg)} deg"
+            + (
+                " (trailing edge up positive; solver trim, not a measured neutral)"
+                if linearization.trim_control == "elevon"
+                else ""
+            )
+            + ":"
         ),
         "",
         "```text",
@@ -1022,6 +1026,7 @@ def load_elodin_package(
 
 def build_elodin_package(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
     """Compose and atomically publish one phase's Elodin package."""
+    spec.assert_cross_model_invariants()
     outdir = outdir.resolve()
     payloads = {
         "sizing": _read_json(outdir / "sizing.json", required=False),

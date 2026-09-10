@@ -4,7 +4,13 @@ from pathlib import Path
 import openair.paths as paths
 from conftest import BASELINE_DESIGN
 from openair.cli import load_spec
-from openair.reporting.presentation import _brief_html, _topology_label, build_presentation
+from openair.reporting.presentation import (
+    PAGE_TEMPLATE,
+    _brief_html,
+    _topology_label,
+    build_presentation,
+)
+from openair.theme import REPORT_CSS
 
 SAMPLE_BRIEF = """# Demo concept
 
@@ -22,6 +28,12 @@ BDX** RC jet and the Elodin `rc-jet` example.
 Worksheet body stays visible.
 <!-- OPENAIR_SKETCH_WORKSHEET_END -->
 """
+
+
+def test_shared_report_css_preserves_the_published_template():
+    embedded = PAGE_TEMPLATE.split("<style>\n", 1)[1].split("\n</style>", 1)[0]
+
+    assert embedded == REPORT_CSS
 
 
 def test_brief_html_renders_markdown_instead_of_escaping_it():

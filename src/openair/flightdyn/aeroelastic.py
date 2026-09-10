@@ -7,6 +7,7 @@ from typing import Any
 
 import numpy as np
 
+from openair.aero.thin_airfoil import flap_effectiveness as _flap_effectiveness
 from openair.atmosphere import isa
 from openair.schemas import VehicleSpec
 from openair.structures.modal import run_modal_analysis
@@ -20,12 +21,31 @@ DIANA2_TRAINING_AEROELASTIC_V1 = {
     "aerodynamic_stiffness_scale": 1.0,
 }
 
+DIANA2_TRAINING_AEROELASTIC_V2 = {
+    "id": "diana2-training-aeroelastic-v2",
+    "status": "training-refitted",
+    "supersedes": DIANA2_TRAINING_AEROELASTIC_V1["id"],
+    "flap_effectiveness_basis": "Glauert thin-airfoil plain flap",
+    "force_scale": {"aileron": 0.73},
+    "fit": {
+        "source_case": "diana2-training",
+        "method": (
+            "uncertainty-weighted least squares on three predeclared "
+            "response-gain observables"
+        ),
+        "seed_scale": 0.91,
+        "raw_scale": 0.7260620466321545,
+        "published_scale": 0.73,
+        "frequency_and_damping_fitted": False,
+    },
+    "aerodynamic_damping_scale": 0.0,
+    "aerodynamic_stiffness_scale": 1.0,
+}
+
 
 def flap_effectiveness(chord_fraction: float) -> float:
-    """Thin-airfoil trailing-edge flap effectiveness."""
-    hinge_x = 1.0 - chord_fraction
-    theta = math.acos(float(np.clip(2.0 * hinge_x - 1.0, -1.0, 1.0)))
-    return 1.0 - (theta - math.sin(theta)) / math.pi
+    """Compatibility wrapper for the shared Glauert flap model."""
+    return _flap_effectiveness(chord_fraction)
 
 
 def aeroelastic_section_matrices(
@@ -44,9 +64,7 @@ def aeroelastic_section_matrices(
     if reference_dynamic_pressure_pa <= 0.0 or dynamic_pressure_pa < 0.0:
         raise ValueError("aeroelastic dynamic pressures are invalid")
     ratio = dynamic_pressure_pa / reference_dynamic_pressure_pa
-    effective_stiffness = (
-        stiffness - stiffness_scale * ratio * aerodynamic_position
-    )
+    effective_stiffness = stiffness - stiffness_scale * ratio * aerodynamic_position
     effective_damping = damping - damping_scale * ratio * aerodynamic_velocity
     return {
         "mass": np.asarray(mass, dtype=float),
@@ -74,9 +92,14 @@ def _calibration(spec: VehicleSpec) -> dict[str, Any]:
             "aerodynamic_damping_scale": 1.0,
             "aerodynamic_stiffness_scale": 1.0,
         }
-    if calibration_id != DIANA2_TRAINING_AEROELASTIC_V1["id"]:
+    if calibration_id == DIANA2_TRAINING_AEROELASTIC_V1["id"]:
+        raise ValueError(
+            "diana2-training-aeroelastic-v1 is superseded: its force scale "
+            "was fitted against the complement-flap effectiveness"
+        )
+    if calibration_id != DIANA2_TRAINING_AEROELASTIC_V2["id"]:
         raise ValueError(f"unsupported aeroelastic calibration: {calibration_id}")
-    return DIANA2_TRAINING_AEROELASTIC_V1
+    return DIANA2_TRAINING_AEROELASTIC_V2
 
 
 def _modal_state(
@@ -131,9 +154,7 @@ def run_aeroelastic_model(
 
     eta = np.linspace(0.0, 1.0, config.strip_count)
     y = eta * 0.5 * spec.wing.span_m
-    chord = spec.wing.root_chord_m * (
-        1.0 - eta * (1.0 - spec.wing.taper)
-    )
+    chord = np.asarray([spec.wing.chord_at(value) for value in eta])
     bending_shapes = np.vstack(
         [
             np.interp(eta, modal["node_eta"], np.asarray(mode["shape"]))
@@ -152,14 +173,9 @@ def run_aeroelastic_model(
     lift_slope = (
         config.lift_curve_slope_per_rad
         if config.lift_curve_slope_per_rad is not None
-        else 2.0
-        * math.pi
-        * spec.wing.aspect_ratio
-        / (spec.wing.aspect_ratio + 2.0)
+        else 2.0 * math.pi * spec.wing.aspect_ratio / (spec.wing.aspect_ratio + 2.0)
     )
-    moment_arm = (
-        config.elastic_axis_fraction_chord - 0.25
-    ) * chord
+    moment_arm = (config.elastic_axis_fraction_chord - 0.25) * chord
 
     size = 2 * mode_count
     mass = np.zeros((size, size))
@@ -306,9 +322,8 @@ def run_aeroelastic_model(
         for surface, mix in members:
             scale = float(calibration["force_scale"].get(command, 1.0)) * mix.gain
             if surface.host == "wing":
-                active = (
-                    (eta >= surface.span_start_fraction)
-                    & (eta <= surface.span_end_fraction)
+                active = (eta >= surface.span_start_fraction) & (
+                    eta <= surface.span_end_fraction
                 )
                 effectiveness = flap_effectiveness(surface.chord_fraction)
                 for index in range(mode_count):
@@ -340,8 +355,7 @@ def run_aeroelastic_model(
                 derivatives = controls[command]
                 for index in range(mode_count):
                     participation = float(
-                        np.trapezoid(bending_shapes[index], y)
-                        / max(y[-1], 1e-9)
+                        np.trapezoid(bending_shapes[index], y) / max(y[-1], 1e-9)
                     )
                     force[index] += (
                         dynamic_pressure
@@ -366,10 +380,9 @@ def run_aeroelastic_model(
         config.frequency_points,
     )
     omega = 2.0 * math.pi * frequency_hz
-    stations = (
-        {station.id: station.eta for station in spec.structures.sensor_stations}
-        or {"I": 0.20, "M": 0.50, "O": 0.80}
-    )
+    stations = {
+        station.id: station.eta for station in spec.structures.sensor_stations
+    } or {"I": 0.20, "M": 0.50, "O": 0.80}
     strain_coefficients = modal["strain_mapping"]["mode_coefficients"]
     frfs: dict[str, Any] = {}
     for command, force in control_forces.items():
@@ -385,9 +398,7 @@ def run_aeroelastic_model(
                 force,
             )
         parity = (
-            "antisymmetric"
-            if command_mode[command] == "differential"
-            else "symmetric"
+            "antisymmetric" if command_mode[command] == "differential" else "symmetric"
         )
         acceleration = {}
         for side, side_sign in (
@@ -401,16 +412,14 @@ def run_aeroelastic_model(
                     for index in range(mode_count)
                 )
                 acceleration[f"{side}{station}_normal_accel"] = _complex_payload(
-                    -omega**2 * side_sign * displacement
+                    -(omega**2) * side_sign * displacement
                 )
         gauge = {}
         for channel in modal["strain_mapping"]["channels"]:
             channel_id = str(channel["id"])
             response = np.zeros(len(omega), dtype=complex)
             for index, label in enumerate(labels):
-                coefficient = float(
-                    strain_coefficients[label].get(channel_id, 0.0)
-                )
+                coefficient = float(strain_coefficients[label].get(channel_id, 0.0))
                 if channel_id.startswith("L") and parity == "antisymmetric":
                     coefficient *= -1.0
                 response += coefficient * modal_response[index]

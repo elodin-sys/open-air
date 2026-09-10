@@ -56,3 +56,59 @@ attempts:
     gate_feedback: 90381c793de5092549db69da86f4139d1f714fea884732a199ce3e08ff692e96
   scorecard_path: frozen-claims/diana2-flight--diana2-primary-20260822-v1.json
   scorecard_sha256: e99c97e432956ec06740dceab53c15eb7adb3dc339b19ad1c486c74327f7b5df
+- id: diana2-vspaero-flap-v2-20260909
+  case_id: diana2-flight
+  status: consumed
+  authorized_at: '2026-09-09T19:46:29+00:00'
+  consumed_at: '2026-09-09T19:46:44+00:00'
+  execution_provenance:
+    manifest_sha256: 6c2d2b70fa3bcf9427c55b838dc895a0e4ccb09319e294e973d83355ca27d406
+    registry_entry_sha256: 7c47a1ee90accf20f846d365b33d7495679652e8f65c7003a83faf37b5275a08
+    public_inputs_sha256: 3bd6b1127a3ee4e905ba12d320b6a3d6b2f0e5678e7bf36684d5b4b27f799482
+    model_source_sha256: 5a042e3c85ce7ad5224ba6526facc9c684092589730ca48ac8dd9ee592d04970
+    project_config_sha256: ea1eb6df4b95134d25a8bf14ed7d4e6cbf3f65627fcb4aa2b498ccd1bb566866
+    runtime_sha256: 4cb78b5fa01a4e5ef2eda76744ffe7a85183272028d3c1a6b885562185f9feab
+  holdout_sha256:
+    FT06.mat: 528ecbcf5536d24c9f4eaeea4eb750012095ff460eea57b2b67b0fd5c5fc0c4a
+    FT12.mat: 10900fa598edd94377607499f65a824213eee6b8193950108ffacf77a89fd485
+  prediction_sha256: df74e25c011a8b118ed6078c53b44fea12ebe43ffcc993b0bb573bf7775339cb
+  artifact_sha256:
+    design: e262888e26cb296524e5a07f41a8721a409ea6d82f45c6ccffd7538b48d0127e
+    geometry: 82971ce557b6ae3b913bd93f68b417c0353c9da426b01ae80b36db677aeb5a3e
+    aero: 5c91af1d748c25607e4be7e417f76c805217ad7073a50f2fb371ee3a1ba07200
+    flightdyn: 16997ee687c79ed53669282b162734c449bd04fb6339e9e0a516aad18d795d76
+    structures: 24da9514ab426c182e144454fb2728d2adc179d42032b92442486229aac8e66e
+    validation: c0d6a65e994a1ddaf4df61c11a034e273fa2d6246b1b1acf09e8781b41f1ca14
+    report: c32b69519292ff03308350be60fd8f5a882c2b12e6d6482f41396e8adb033469
+    gate_feedback: 5ba63ea700b3ac226f7322c6a508b03d17747331027bcee2f556f5ffde4c43a4
+  scorecard_path: frozen-claims/diana2-flight--diana2-vspaero-flap-v2-20260909.json
+  scorecard_sha256: ead0e7991a7278b0b54cdaab8be619432dbb0087afecb300aa35f659a234946b
+- id: ntnu-x8-vspaero-tight-20260909
+  case_id: ntnu-x8-flight
+  status: consumed
+  authorized_at: '2026-09-09T19:46:32+00:00'
+  consumed_at: '2026-09-09T19:46:43+00:00'
+  execution_provenance:
+    manifest_sha256: fb7f16785cbe6626618ba6a810107e5996be0760df07a4bc693e7b5498bc84b5
+    registry_entry_sha256: dada38413d4769a14acb32f83531f4bf9a52a87968e8cd66491a32aa92e87b4c
+    public_inputs_sha256: fb5484496ed40f8c7c82b0f8cf55427a7e9d96e1b97ef8561454349ef0fec337
+    model_source_sha256: 5a042e3c85ce7ad5224ba6526facc9c684092589730ca48ac8dd9ee592d04970
+    project_config_sha256: ea1eb6df4b95134d25a8bf14ed7d4e6cbf3f65627fcb4aa2b498ccd1bb566866
+    runtime_sha256: 4cb78b5fa01a4e5ef2eda76744ffe7a85183272028d3c1a6b885562185f9feab
+  holdout_sha256:
+    validation/lateral_121_4.csv: 4755ebaf04ec3f3dd68fad11a730617495191783149a120b8c2350120ee9d916
+    validation/lateral_doublet_4.csv: cd1329d642f7b34afe4c227e7dbea40cee6985f1877d4366072d0b1158a25da2
+    validation/longitudinal_3211_5.csv: 36674dd64dcfa407b5420f90d15ee93fec5b352c823fc2ee7fb78d3f98573daf
+    validation/longitudinal_doublet_4.csv: 5fac85cc4027b94509242ba95da85ace9398edd677f416d6f39be8f8070c4c87
+  prediction_sha256: 98e2b4f6f84fc5e2d91239c5604ecac22b3ac23c33aacec3eb61955d9ab7438a
+  artifact_sha256:
+    design: 384cc8db2c188aeb8600bbdf86427b18c5602ebd9c7281cb02e1cc8722d0c9c3
+    geometry: 9ccbeace250c3534aebc65fabeb08038ab5305c1b55f56432f6f685b998403e6
+    aero: 4afad039f1b43a4193d1e84f60c57ba15db457d37bcd8db9f13d9cf56e0b5f0b
+    flightdyn: 94d8449c1e5ab97d255419664b06fae03f28e8eb858c5b97ca0e4bd928dce9e1
+    structures: ffaa207ca66956176b2e1ec3c7c3c2c9648095abeb1cfc3b25f05dfdacaa4317
+    validation: 1ac55acbf18e32c4cfaea8115100d908165a9864598dc8a0c94d62e5ace4ef57
+    report: 37fc87e0a0267df833ef38aec1e4d39e632ebefafef3ed542747261d9b9e53ed
+    gate_feedback: 2b8fac4161ef39f259f2e18713c36712d1d151a26c3b2b6b3bc922cfda2afce1
+  scorecard_path: frozen-claims/ntnu-x8-flight--ntnu-x8-vspaero-tight-20260909.json
+  scorecard_sha256: 0942b1aec147707cf6b5e84f2fc246ee6fd1ebb9693fc8cf34382b39f2a8a8ac

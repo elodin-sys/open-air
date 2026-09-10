@@ -15,7 +15,7 @@ guidebook — read it, do not improvise:
 
 1. Read `docs/guidebook/00-qa-workflow.md` and walk its 12-gate list in order.
 2. For each stage that changed (or that you are asked to judge), read the
-   matching chapter (`docs/guidebook/01-openvsp.md` … `11-environment.md`)
+   matching chapter (`docs/guidebook/01-openvsp.md` … `13-reference-models.md`)
    and execute its "Check your work" section literally.
 3. Consult `docs/guidebook/_research/qa-audit.md` for the failure classes
    (F1–F15) already caught once — check each one is not back.
@@ -30,7 +30,9 @@ guidebook — read it, do not improvise:
 - A prototype is flight-worthy only if ALL of: geometry read-back matches,
   packing ok, static margin in band at full AND reserve fuel, pitch trim
   converged (tailless: washout within ~1° of spec; htail fallback: incidence
-  within ~1° of spec; either way |CM residual| < 0.005),
+  within ~1° of spec; `pitch_trim_control: elevon`: deflection within ~1° of
+  the serialized `trim_deflection_deg`, at least 0.5° inside the declared
+  travel, twist frozen; either way |CM residual| < 0.005),
   stall speed under the limit, structures failure <= 0 at +4g, endurance
   >= 2.00 h, thrust >= drag, MDO `oas_verify.ok`, fins in the Vv band with
   trailing edges inside the body, and validation core checks green.
@@ -43,6 +45,40 @@ guidebook — read it, do not improvise:
   altitude is the classic — audit F10).
 - Stretch solvers (TACS `backend`, SU2 `converged`) are calibration data,
   never pass/fail evidence for the design.
+- A reference model (`designs/<concept>/reference/`, guidebook chapter 13) is
+  **measured design input**, the same evidence class as graph-paper sketches:
+  it grounds geometry and the `geometry.json .reference_fidelity` check, and
+  it never becomes validation truth, mass, CG, or control-neutral evidence.
+- An elevon trim deflection in `results/<concept>/optimized/design.yaml` is a
+  solver prediction written back by the reproduction closure
+  (`mdo.json .reference_closure.allowed_control == "elevon_deflection"`), not
+  a measurement. Check `validation.json` `elevon_cm_delta_vspaero_vs_oas`
+  (sign and 0.6–1.6 ratio) and, when `neutral_deg` is reported, compare the
+  prediction against it in the brief.
+  For a `reproduction` the fidelity check is part of the Geometry-truth gate;
+  open `reference_overlay.png` and trace every departure to a documented
+  unrepresentable feature.
+- For `wing.sections`, verify section-integrated area/MAC, per-panel OpenVSP
+  read-back, the baked OAS mesh, and Studio parity. The disclosed exposed-wing
+  p95 is model-to-reference only; use it with silhouette reference-only area
+  so omitted geometry cannot hide. Retain full component p95 as buried
+  carry-through disclosure.
+- For `fuselage.fairings`, require reproduction treatment and trace every
+  station to `reference.json .measurements.fairings`. Verify shifted
+  max-width, actual transform, and zero interpolation-strength read-back, a
+  reopened VSP3, `fairing_*_contained` support ≥95% with a 2 mm inward
+  margin, and any `vtail*_root` extension at LE/mid/TE eccentricity ≤0.8 with
+  zero signed tip-junction gap. Confirm fairings/root extensions are absent
+  from VSPAERO/OAS lifting sets and buried roots are excluded from component
+  fidelity rather than used to improve a score; fairings remain in the
+  body-union fidelity gate.
+- VSPAERO derivative evidence must carry
+  `analysis.derivative_quality.ok` (tight 0.01 convergence factors,
+  symmetry-noise floor, 0.01°/1° CLα agreement, and wake-quality evidence).
+  Reject a numerically finite derivative table when that block is absent or
+  false. A source-locked Vv miss may pass authority only with same-run
+  quality-green `Cn_beta > 0`, `Cn_r < 0`, `CY_beta < 0`; a central ±1° beta
+  escalation may repair only documented small-step symmetry noise.
 
 ## Commands
 

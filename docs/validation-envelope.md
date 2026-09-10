@@ -1,6 +1,6 @@
 # open-air validation envelope
 
-Generated: 2026-08-22T21:37:16+00:00
+Generated: 2026-09-10T15:32:04+00:00
 
 This report scopes evidence by intended use and truth class. Agreement with
 class C/D references is verification or plausibility evidence, not independent
@@ -30,11 +30,11 @@ is not established, so `2u` must not be read as a statistical 2σ confidence ban
 | `nasa-crm-wingbody` | B — wind-tunnel / ground experiment | calibration | calibration pass | 1.026 | 1.251 | 100.0% |
 | `ceras-csr01-mission` | C — engineered reference solution | verification | verification pass | 0.258 | 1.408 | 100.0% |
 | `diana2-ground` | B — wind-tunnel / ground experiment | calibration | calibration pass | 0.000 | 0.006 | 100.0% |
-| `diana2-training` | A — flight measurement | calibration | calibration provisional | 0.698 | 1.264 | 100.0% |
-| `diana2-flight` | A — flight measurement | validation | pass (frozen `52e12a3ce477`) | 0.609 | 1.099 | 100.0% |
+| `diana2-training` | A — flight measurement | calibration | calibration provisional | 0.612 | 1.264 | 100.0% |
+| `diana2-flight` | A — flight measurement | validation | pass (frozen `5a042e3c85ce`) | 0.798 | 1.744 | 100.0% |
 | `diana2-reserve` | A — flight measurement | validation | deferred | — | — | — |
-| `ntnu-x8-training` | A — flight measurement | calibration | calibration provisional | 0.675 | 1.264 | 100.0% |
-| `ntnu-x8-flight` | A — flight measurement | validation | pass (frozen `8537a2fe7334`) | 0.535 | 1.138 | 100.0% |
+| `ntnu-x8-training` | A — flight measurement | calibration | calibration provisional | 0.670 | 1.264 | 100.0% |
+| `ntnu-x8-flight` | A — flight measurement | validation | pass (frozen `5a042e3c85ce`) | 0.509 | 1.021 | 100.0% |
 | `ntnu-x8-icing-reserve` | A — flight measurement | validation | deferred | — | — | — |
 
 ## Synthetic analytic self-case
@@ -134,7 +134,7 @@ is not established, so `2u` must not be read as a statistical 2σ confidence ban
 - Intended uses: Fit one generalized-force scale and reject the over-damped quasi-steady velocity term, Freeze H1 estimator settings and experimental/input/numerical allowances, Quantify first-bending frequency, damping, acceleration, and strain repeatability
 - Source revision: Version 1, published 2026-05-20; frozen six-flight training split
 - Reference: https://doi.org/10.4121/0c3fcef0-5b63-480c-ae40-3ff726c657e9.v1
-- Verdict: **calibration benchmark provisional**; 8 observables, mean |r|/u 0.698, max |r|/u 1.264, 100.0% within 2u.
+- Verdict: **calibration benchmark provisional**; 8 observables, mean |r|/u 0.612, max |r|/u 1.264, 100.0% within 2u.
 - Within 2u: outer_to_ro_strain_bending_frequency_hz, outer_to_ro_strain_bending_damping_fraction, outer_to_ro_strain_peak_gain, outer_to_ro_accel_bending_frequency_hz, outer_to_ro_accel_bending_damping_fraction, outer_to_ro_accel_gain_at_mode, outer_to_rm_accel_bending_frequency_hz, outer_to_rm_accel_gain_at_mode.
 - Notes: This calibration role owns the six training-flight residuals; it cannot establish an independent Class-A claim. Exact local MAT hashes and the archive hash are committed in inputs/intake-record.yaml. Publisher *_calib strain values are already bias- and temperature-corrected.
 
@@ -145,8 +145,8 @@ is not established, so `2u` must not be read as a statistical 2σ confidence ban
 - Intended uses: First flexible-wing bending frequency and damping in engine-off UAV flight, Encoder-forced outer-aileron to distributed wing acceleration and strain FRFs, Aircraft-specific quasi-steady L2 aeroelastic response near the tested envelope
 - Source revision: Version 1, published 2026-05-20; frozen FT06 and FT12 split
 - Reference: https://doi.org/10.4121/0c3fcef0-5b63-480c-ae40-3ff726c657e9.v1
-- Verdict: **pass**; 8 observables, mean |r|/u 0.609, max |r|/u 1.099, 100.0% within 2u.
-- Frozen historical claim: consumed attempt `diana2-primary-20260822-v1` at model-source revision `52e12a3ce477f8df5ac8a1b403421bc88ea04563fabf82db5591927fa7132305`; the archived scorecard and ledger hashes were verified without re-reading regenerated model artifacts.
+- Verdict: **pass**; 8 observables, mean |r|/u 0.798, max |r|/u 1.744, 100.0% within 2u.
+- Frozen historical claim: consumed attempt `diana2-vspaero-flap-v2-20260909` at model-source revision `5a042e3c85ce7ad5224ba6526facc9c684092589730ca48ac8dd9ee592d04970`; the archived scorecard and ledger hashes were verified without re-reading regenerated model artifacts.
 - Within 2u: outer_to_ro_strain_bending_frequency_hz, outer_to_ro_strain_bending_damping_fraction, outer_to_ro_strain_peak_gain, outer_to_ro_accel_bending_frequency_hz, outer_to_ro_accel_bending_damping_fraction, outer_to_ro_accel_gain_at_mode, outer_to_rm_accel_bending_frequency_hz, outer_to_rm_accel_gain_at_mode.
 - Notes: FT06 and FT12 were selected by committed salted hashes before any flight payload was downloaded. The scorer opens both files only after authorization has bound model artifacts and source/runtime provenance. The model was calibrated only on FT05, FT07, FT08, FT10, FT11, and FT13 plus visible L1 ground evidence. The claim excludes T-tail coupling, higher modes, flutter clearance, nonlinear response, and cross-aircraft generality.
 
@@ -166,7 +166,7 @@ is not established, so `2u` must not be read as a statistical 2σ confidence ban
 - Intended uses: Freeze low-Re elevon effectiveness and damping calibration before validation, Quantify repeatability, estimator, and replay-timestep allowances
 - Source revision: DataverseNO version 1.0, published 2024-11-26
 - Reference: https://doi.org/10.18710/U4TLYV
-- Verdict: **calibration benchmark provisional**; 10 observables, mean |r|/u 0.675, max |r|/u 1.264, 100.0% within 2u.
+- Verdict: **calibration benchmark provisional**; 10 observables, mean |r|/u 0.670, max |r|/u 1.264, 100.0% within 2u.
 - Within 2u: pitch_rate_peak_gain_doublet, pitch_rate_rms_gain_doublet, pitch_rate_peak_gain_3211, pitch_rate_rms_gain_3211, roll_rate_peak_gain_doublet, roll_rate_rms_gain_doublet, roll_rate_peak_gain_121, roll_rate_rms_gain_121, trim_alpha_rad, trim_normal_force_cl.
 - Notes: This role, not the validation manifest, owns every committed training-file hash. Its residuals informed the four-factor low-Re calibration and frozen uncertainty budget. Passing this case is calibration evidence only and cannot establish a Class-A validation claim.
 
@@ -177,8 +177,8 @@ is not established, so `2u` must not be read as a statistical 2σ confidence ban
 - Intended uses: Low-Re tailless UAV trim and control-response prediction, VSPAERO stability derivatives coupled to deterministic Elodin 6-DOF replay
 - Source revision: DataverseNO version 1.0, published 2024-11-26
 - Reference: https://doi.org/10.18710/U4TLYV
-- Verdict: **pass**; 10 observables, mean |r|/u 0.535, max |r|/u 1.138, 100.0% within 2u.
-- Frozen historical claim: consumed attempt `ntnu-x8-primary-20260822-v1` at model-source revision `8537a2fe7334a2f9c98b755ee84af0182bd9b6d09732e947d9c467090a3357ee`; the archived scorecard and ledger hashes were verified without re-reading regenerated model artifacts.
+- Verdict: **pass**; 10 observables, mean |r|/u 0.509, max |r|/u 1.021, 100.0% within 2u.
+- Frozen historical claim: consumed attempt `ntnu-x8-vspaero-tight-20260909` at model-source revision `5a042e3c85ce7ad5224ba6526facc9c684092589730ca48ac8dd9ee592d04970`; the archived scorecard and ledger hashes were verified without re-reading regenerated model artifacts.
 - Within 2u: pitch_rate_peak_gain_doublet, pitch_rate_rms_gain_doublet, pitch_rate_peak_gain_3211, pitch_rate_rms_gain_3211, roll_rate_peak_gain_doublet, roll_rate_rms_gain_doublet, roll_rate_peak_gain_121, roll_rate_rms_gain_121, trim_alpha_rad, trim_normal_force_cl.
 - Notes: The four publisher-designated validation maneuvers are checksum-pinned outside the repository and may be opened only by an authorized scorer attempt. The 13 training maneuvers are a separate calibration-role registry entry even though both manifests share this source directory. Recorded controls and indicated airspeed force both measured and simulated estimators; temporary scorer replays are destroyed. Strong three-dimensional wind, unknown molded airfoil, low Reynolds number, and diagonalized Ixz are frozen u_input allowances. Published identified aerodynamic coefficients and modal poles were not copied into the model; public availability remains a disclosed blindness limitation.
 

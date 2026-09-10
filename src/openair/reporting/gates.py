@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from openair.atmosphere import isa
+from openair.controls import trim_control_values
 from openair.design_intent import shape_fidelity_report
 from openair.io import load_yaml
 from openair.paths import optimized_design_for, resolve_design, results_dir_for
@@ -102,12 +103,33 @@ def _fmt(value: Any, digits: int = 3) -> str:
     return str(value)
 
 
+# Fields a reproduction closure may legitimately change. A ``"*"`` element
+# matches every item of a list at that position (the elevon trim deflection
+# lives inside ``flight_dynamics.control_surfaces[]``).
 _REPRODUCTION_ALLOWED_CHANGES = {
     ("htail", "incidence_deg"),
+    ("flight_dynamics", "control_surfaces", "*", "trim_deflection_deg"),
     ("solver", "np_shift_mac"),
     ("solver", "wing_body_np_mac"),
     ("solver", "wing_body_cl_alpha_per_deg"),
 }
+
+
+def _pop_allowed_path(node: Any, path: tuple[str, ...]) -> None:
+    if not path:
+        return
+    key, rest = path[0], path[1:]
+    if key == "*":
+        if isinstance(node, list):
+            for item in node:
+                _pop_allowed_path(item, rest)
+        return
+    if not isinstance(node, dict):
+        return
+    if not rest:
+        node.pop(key, None)
+        return
+    _pop_allowed_path(node.get(key), rest)
 
 
 def _reproduction_changed_paths(
@@ -119,11 +141,7 @@ def _reproduction_changed_paths(
     delivered_data = delivered.model_dump(mode="json", exclude_computed_fields=True)
     for path in _REPRODUCTION_ALLOWED_CHANGES:
         for data in (source_data, delivered_data):
-            node: Any = data
-            for key in path[:-1]:
-                node = node.get(key, {}) if isinstance(node, dict) else {}
-            if isinstance(node, dict):
-                node.pop(path[-1], None)
+            _pop_allowed_path(data, path)
 
     changed: list[str] = []
 
@@ -205,6 +223,10 @@ def evaluate_gates(
     mesh = openvsp.get("mesh_checks") or {}
     readback = openvsp.get("readback") or {}
     bbox = openvsp.get("stl_bbox") or {}
+    reference = geometry.get("reference_fidelity") or {}
+    reference_gates = bool(
+        reference.get("available") and reference.get("gates_stage_ok")
+    )
     packing = geometry.get("packing") or {}
     stability = aero.get("stability") or {}
     balance = aero.get("balance") or {}
@@ -330,22 +352,37 @@ def evaluate_gates(
     vv = balance.get("vv")
     vstall = balance.get("vstall_mps")
     cm_residual = trim.get("cm_residual")
-    tail_enabled = spec.htail.span_m > 0.05
-    if tail_enabled:
-        trim_value = trim.get("tail_incidence_trim_deg")
-        trim_spec = spec.htail.incidence_deg
-        trim_control = "tail incidence"
-    else:
-        trim_value = trim.get("washout_trim_deg")
-        trim_spec = spec.wing.twist_root_deg - spec.wing.twist_tip_deg
-        trim_control = "washout"
+    trim_values = trim_control_values(spec, trim)
+    trim_value = trim_values["solved_deg"]
+    trim_spec = trim_values["spec_deg"]
+    trim_control = trim_values["label"]
+    elevon_trim = trim_values["control"] == "elevon"
+    elevon_travel = trim.get("elevon_travel_deg") or []
+    elevon_travel_ok = bool(trim.get("elevon_within_travel")) if elevon_trim else True
     trim_ok = (
         bool(trim.get("converged"))
         and cm_residual is not None
         and abs(float(cm_residual)) < 0.005
         and trim_value is not None
-        and abs(float(trim_value) - trim_spec) <= 1.0
+        and trim_spec is not None
+        and abs(float(trim_value) - float(trim_spec)) <= 1.0
+        and elevon_travel_ok
+        and (not elevon_trim or bool(trim.get("twist_frozen")))
     )
+    if elevon_trim:
+        neutral = trim.get("elevon_neutral_measured_deg")
+        trim_evidence = (
+            f"{trim_control} {_fmt(trim_value)}° vs spec {_fmt(trim_spec)}°"
+            f" within travel {elevon_travel if elevon_travel else 'n/a'}°; "
+            f"twist frozen; dCm/dδ {_fmt(trim.get('dcm_ddelta_per_deg'), 5)}/°; "
+            f"measured neutral {_fmt(neutral) if neutral is not None else 'not reported'}; "
+            f"CM residual {_fmt(cm_residual, 4)}"
+        )
+    else:
+        trim_evidence = (
+            f"{trim_control} {_fmt(trim_value)}° vs spec {_fmt(trim_spec)}°; "
+            f"CM residual {_fmt(cm_residual, 4)}"
+        )
     inspiration = bool(
         spec.sketch is not None and spec.sketch.treatment == "inspiration"
     )
@@ -438,9 +475,30 @@ def evaluate_gates(
         row(
             "geometry_truth",
             "Geometry truth",
-            bool(readback.get("matches_spec") and bbox.get("ok") and mesh.get("ok")),
-            f"read-back={_fmt(readback.get('matches_spec'))}; bbox={_fmt(bbox.get('ok'))}; mesh checks={len(mesh.get('checks') or [])}",
+            bool(
+                readback.get("matches_spec")
+                and bbox.get("ok")
+                and mesh.get("ok")
+                and (not reference_gates or reference.get("ok"))
+            ),
+            f"read-back={_fmt(readback.get('matches_spec'))}; bbox={_fmt(bbox.get('ok'))}; mesh checks={len(mesh.get('checks') or [])}"
+            + (
+                f"; reference model body p95 {_fmt(1000.0 * float(((reference.get('checks') or {}).get('p95_body') or {}).get('got') or (reference.get('distance_model_to_reference') or {}).get('p95_m') or 0.0), 1)} mm "
+                f"(whole aircraft {_fmt(1000.0 * float((reference.get('distance_model_to_reference') or {}).get('p95_m') or 0.0), 1)} mm), "
+                f"IoU top {_fmt((reference.get('silhouettes') or {}).get('top', {}).get('iou'))} / "
+                f"side {_fmt((reference.get('silhouettes') or {}).get('side', {}).get('iou'))} -> "
+                f"{'ok' if reference.get('ok') else 'outside band'}"
+                + ("" if reference_gates else " (recorded, not gating)")
+                if reference.get("available")
+                else ""
+            ),
             "optimized/geometry.json",
+            meaning=(
+                "The exported mesh matches the requested aircraft and stays inside the "
+                "declared deviation band of the measured reference model."
+                if reference.get("available")
+                else None
+            ),
         ),
         row(
             "packing",
@@ -472,8 +530,22 @@ def evaluate_gates(
             "pitch_trim",
             "Pitch trim",
             trim_ok,
-            f"{trim_control} {_fmt(trim_value)}° vs spec {_fmt(trim_spec)}°; CM residual {_fmt(cm_residual, 4)}",
+            trim_evidence,
             "optimized/aero.json",
+            meaning=(
+                "Cruise trim is closed by the wing control surface within its "
+                "measured travel while the scanned twist stays frozen; the "
+                "deflection is a solver result, compared against the measured "
+                "neutral when one was reported."
+                if elevon_trim
+                else None
+            ),
+            upstream_knob=(
+                "Check CG, elevon geometry, and the travel measurement before "
+                "touching twist; a reproduction may not re-twist the wing."
+                if elevon_trim
+                else None
+            ),
         ),
         row(
             "stall",
@@ -501,7 +573,11 @@ def evaluate_gates(
                 else f"cant-corrected fin volume Vv {_fmt(vv, 4)} in "
                 f"{balance.get('vv_band') or [0.02, 0.09]}"
             ),
-            "optimized/aero.json",
+            (
+                "optimized/validation.json"
+                if (directional.get("directional_derivative_evidence") or {}).get("ok")
+                else "optimized/aero.json"
+            ),
             meaning=(
                 "Source-locked geometry clears either the minimum conceptual "
                 "fin-volume screen or same-run restoring/damping derivative "

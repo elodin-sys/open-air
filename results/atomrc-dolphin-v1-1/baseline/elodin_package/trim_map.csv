@@ -1,0 +1,3 @@
+condition,altitude_m,tas_mps,mach,alpha_deg,beta_deg,control_name,control_deg,throttle,fuel_flow_kg_s,valid
+cruise,100,17.9990269358,0.0529523377097,5.61836011318,0,elevon,9.63842818245,0.3,0,true
+dash,100,37.3900954912,0.110000000029,2.52637139079,0,elevon,9.63842818245,0.472622388802,0,true

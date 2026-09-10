@@ -1,6 +1,6 @@
 ---
 name: initialize-aero
-description: Bootstraps a complete open-air source concept from an intent, requirement documents, and aircraft sketches, then checks the baseline mesh against the source shape. Use only when explicitly invoked as /initialize-aero.
+description: Bootstraps a complete open-air source concept from an intent, requirement documents, aircraft sketches, and optionally a reference 3D model (triangle mesh of the real aircraft), then checks the baseline mesh against the source shape. Use only when explicitly invoked as /initialize-aero.
 disable-model-invocation: true
 ---
 
@@ -9,13 +9,14 @@ disable-model-invocation: true
 Interpret the invocation as:
 
 ```text
-/initialize-aero <concept> "<intent>" @requirement-docs @sketch-images
+/initialize-aero <concept> "<intent>" @requirement-docs @sketch-images @reference-model
 ```
 
 Create the reviewable source bundle in `designs/<concept>/`; do not run the
 full pipeline, invoke MDO, create a commit, or modify the source documents.
-In particular, never invoke `python -m openair run`; the only solver stage
-authorized here is `python -m openair.geometry run`.
+In particular, never invoke `python -m openair run`; the only solver stages
+authorized here are `python -m openair.reference ingest` and
+`python -m openair.geometry run`.
 
 ## 1. Resolve and guard
 
@@ -66,6 +67,101 @@ conversion, record the conversion in the brief, and verify each output starts
 with the PNG signature `89 50 4E 47 0D 0A 1A 0A`. These names are the Design
 Studio save whitelist and report contract.
 
+## 2b. Ingest a reference model (when one is attached)
+
+A reference model is a triangle mesh of the real aircraft (3D scan or CAD
+export). Read `docs/guidebook/13-reference-models.md`; it is the contract and
+is tool-agnostic on purpose.
+
+1. Accept only triangle meshes (STL, PLY, OBJ, 3MF, GLB/glTF, OFF). If the
+   attachment is a native CAD, scan-project, or point-cloud file, stop and ask
+   the user to export a triangle mesh from their tool with an explicit length
+   unit, optionally with a `<stem>.reference.json` sidecar. Give no
+   vendor-specific instructions; the repository does not know or care which
+   tool produced the mesh.
+2. Establish the unit (`--units` or sidecar `units`), the source frame
+   (`--axes`, open-air axis <- signed source axis), and one anchor dimension
+   (`--expect-span-m`, or the sidecar's `measured_span_mm`). Never guess a
+   unit: the anchor cross-check exists to abort on a wrong one.
+3. Dry-run first, from the repository root with the environment of section 5:
+
+   ```bash
+   python -m openair.reference ingest <mesh> --concept <name> --units mm \
+       --axes "<mapping>" --expect-span-m <anchor> \
+       --treatment <reproduction|inspiration|requirement> \
+       --out <staging>/reference --dry-run
+   ```
+
+   View `reference-sections-dryrun.png`. Confirm the body edge excludes the
+   wing, LE/TE stations follow the fitted lines, station envelopes match their
+   fitted super-ellipses, airfoil sections have the expected thickness and
+   camber sign, and fins sit on the deck. Fix `--axes`/`--datum` and repeat
+   until the figure is right; then run without `--dry-run`, with
+   `--sketch-dir <staging>` so the silhouettes land beside `design.yaml`.
+4. Treat everything under `reference.json .suggested` as **measured
+   (reference model)** with the tolerances in `.tolerances`: planform (span,
+   root chord by centreline extrapolation, measured `wing.sections`, and their
+   area/MAC-locus-equivalent sweep/taper/dihedral descriptors), body stations
+   with section powers,
+   fin geometry, `t_over_c` plus the NACA four-digit fit, and, when resolved,
+   the hinge line and as-scanned control deflection. Read the `notes`, the
+   per-station `fill_method`/`width_clamped`/`top_overridden` flags, and the
+   `width_core_m` versus `width_blended_m` choice; decide deliberately and
+   write the reason in the brief.
+4a. For a reproduction with measured wing stations, copy the complete
+    `suggested.wing.sections` list and its scalar equivalents together; never
+    hand-pick one without re-deriving the other. Inspect
+    `disclosures.wing_planform` and the solid section outline in
+    `reference-sections.png`: confirm the body-exclusion width, mandatory
+    root/straight-band/tip breakpoints, gross area, and simplification
+    tolerance. Section-local t/c is an inferred absolute-thickness loft
+    control, not another airfoil cut; keep the measured global
+    `wing.t_over_c` for OAS/wingbox physics.
+    For inspiration or requirement intent, pass that treatment to ingest;
+    sections remain disclosed as a reproduction alternative but
+    `suggested.wing` stays scalar and valid for MDO.
+4aa. When `measurements.fairings.aft_shoulder.ok`, inspect its fin-point
+    exclusion, fit RMS/acceptance, dimensional and contour simplification
+    residuals, skin penetration, nominal/effective hidden skirt, support
+    adjustment, total burial, and junction crease in
+    `reference-sections.png`. For a reproduction copy the
+    complete `suggested.fuselage.fairings` list; do not hand-tune its stations.
+    `max_width_loc: -1` is the measured dome convention. Inspiration and
+    requirement modes keep the candidate disclosed but do not emit it.
+4b. When the fin measurement resolves a root junction, write its mirrored
+   absolute y and shared z into `vtail.y_root_m/z_root_m` and set
+   `vtail.root_attachment: measured`. The default `derived` mode intentionally
+   ignores those coordinates and applies the legacy 60%-body rule; never use
+   it for a measured reference-model reproduction. If the measured junction
+   needs a shoulder fairing, require the generated fairing plus derived buried
+   root extension; never project the exposed fin inward or relax attachment QA.
+5. The scan silhouettes (`sketch-top/side/front.png`) are the primary views:
+   orthographic, rectified by construction, 10 mm grid, mm/px in the PNG
+   metadata. Keep any photographs or renders in the source list as secondary
+   evidence only; never let a render overrule the scan.
+6. What a reference model cannot supply stays placeholder or comes from the
+   measurement documents: mass, CG, inertia, control travel and trimmed
+   neutral, thrust, materials, solver constants. The as-scanned control
+   deflection is a control position at scan time, not a trim.
+6b. When the scan resolves a hinge line, write the control surface into
+   `flight_dynamics.control_surfaces` (hinge → `chord_fraction`, first/last
+   detection → span fractions, provenance `measured (reference model)`), put
+   the measured travel in `max_up_deg`/`max_down_deg`, the flown neutral in
+   `neutral_deg` (or `null` when nobody measured it), and the as-scanned
+   position as the starting `trim_deflection_deg`. For a tailless airframe
+   whose twist is a measurement, set `mission.pitch_trim_control: elevon` so
+   the pipeline trims with the elevon instead of re-twisting the wing
+   (guidebook chapters 03, 09). Trailing edge up is positive everywhere.
+7. A reference-model reproduction defaults to `sketch.treatment:
+   reproduction` with `hard_scale: 1.0`; use `inspiration` only when the
+   intent asks for a redesign grounded on the scan.
+8. Record in the brief: source file, sha256, declared unit, anchor check,
+   axes mapping, symmetry residual, pitch rotation applied to reach the
+   root-chord datum, shells dropped, and every scan weakness the ingest
+   flagged (open noses, incomplete leading edges, repaired hatches, mirrored
+   halves). The reference is measured design input; it is never validation
+   truth.
+
 ## 3. Measure before authoring
 
 Use a common coordinate convention: `x/L=0` at the nose, `x/L=1` at the tail,
@@ -73,9 +169,12 @@ positive `y` from centerline to wingtip, and a documented vertical datum for
 `z`. Measure the silhouette, not shading or perspective margins.
 
 Record source, image-space endpoints/contour coordinates, method, scale,
-value, tolerance, and provenance (`measured`, `inferred`, or `defaulted`) for
-every item below. Pixel coordinates are evidence, not false precision: label
-agent-read coordinates approximate and preserve wider physical tolerances.
+value, tolerance, and provenance (`measured`, `measured (reference model)`,
+`inferred`, or `defaulted`) for every item below. Pixel coordinates are
+evidence, not false precision: label agent-read coordinates approximate and
+preserve wider physical tolerances. When a reference model was ingested, its
+measurement record replaces pixel reading for every quantity it covers; use
+pixel measurements only for what the mesh does not show.
 
 ### Planform
 
@@ -123,8 +222,10 @@ slab / box:       side 4–8, top 4–8, bottom 4–8
 ```
 
 Powers control section curvature, not top/side silhouette dimensions. Do not
-invent unsupported canopy, inlet, multi-panel-wing, or section fields. Record
-visible but unrepresentable features as limitations in the brief.
+invent unsupported canopy or inlet fields. A multi-section wing is permitted
+only for a source-locked reproduction and only from measured/reference station
+evidence; use the ingest-generated list rather than tracing arbitrary panels.
+Record visible but still unrepresentable features as limitations in the brief.
 
 ### Tolerance discipline
 
@@ -143,7 +244,9 @@ visible but unrepresentable features as limitations in the brief.
 Create a temporary sibling staging directory under `designs/` only after the
 guard and source review. Author the complete bundle there. Before publication,
 validate the YAML, concept name, brief markers, canonical PNG names/signatures,
-and allowed file set; also reject unchanged template placeholders such as
+and allowed file set (`design.yaml`, `brief.md`, `sketch-*.png`, and the
+optional `reference/` directory with `reference.json`, `reference.ply`, and
+`reference-sections.png`); also reject unchanged template placeholders such as
 `new-aero-concept` or its starter notes. Publish with one same-filesystem
 `os.replace(staging_dir, designs/<name>)` only while the target is still
 absent. Remove the staging directory on any failure. Never expose a partially
@@ -211,7 +314,9 @@ Short generated-compatible summary of the current geometry.
 
 Inside the worksheet, record unsupplied rectification honestly, for example
 `not rectified (bootstrap — approximate agent image-space measurement)`.
-Never fabricate four-point controls or grid scale.
+Never fabricate four-point controls or grid scale. For scan silhouettes write
+`orthographic projection of the reference mesh, <mm/px> mm/px, 10 mm grid
+(rectified by construction)` and cite `reference.json`.
 
 ## 5. Validate and run the bounded geometry loop
 
@@ -244,12 +349,23 @@ Run at most three total geometry iterations. After each run:
    - `.packing.ok == true`
    - `.openvsp.errors` is empty
    - `_shape_fidelity(spec)["ok"] == true`
+   - when a reference model exists: `.reference_fidelity.available == true`
+     and, for a `reproduction`, `.reference_fidelity.ok == true` (body p95
+     surface deviation and top/side silhouette IoU inside the acceptance
+     recorded in `reference.json`; wing/fin and whole-aircraft p95 are
+     disclosed under `.reference_fidelity.disclosed`).
 2. Open `results/<name>/baseline/threeview.png` beside all source sketches.
    Compare span/length, chord ratios, sweep sign/magnitude, wing station,
    fuselage top/side silhouettes, deck/belly centerline, and fin placement
-   against the recorded tolerances.
+   against the recorded tolerances. When a reference model exists, also open
+   `results/<name>/baseline/reference_overlay.png` and read
+   `reference_fidelity.silhouettes` (reference-only versus model-only area)
+   and `.stations`/`.planform` deltas: every departure must correspond to a
+   feature the brief already lists as unrepresentable (strakes, root blends,
+   rounded tips, open hatches), never to a measurement you could correct.
 3. Append the observed mismatch and source-level adjustment to the brief's
-   iteration log. Adjust `design.yaml`, never result artifacts.
+   iteration log. Adjust `design.yaml`, never result artifacts or
+   `reference/`.
 4. Repeat only when the source bundle changed. Stop when checks pass and the
    visible shape is within tolerance, or after iteration three.
 
@@ -263,10 +379,13 @@ for a tooling reason, report the blocker rather than weakening the check.
 Report:
 
 - files created;
-- a concise table separating measured, inferred, and defaulted values;
-- remaining unsupported or low-confidence shape features;
+- a concise table separating measured, measured (reference model), inferred,
+  and defaulted values;
+- remaining unsupported or low-confidence shape features, including every
+  scan weakness the ingest flagged;
 - geometry JSON evidence and whether the three-view is within tolerance;
-- the baseline `threeview.png` inline;
+- the baseline `threeview.png` inline, and `reference_overlay.png` with the
+  `reference_fidelity` numbers when a reference model exists;
 - whether the three-iteration limit was reached.
 
 State explicitly that initialization is a geometry checkpoint, not full

@@ -25,8 +25,43 @@ Non-negotiables for this repo:
   spec. If you change the builder, look at it before trusting any number.
 - Set wing driver groups before planform parms; pin `Sweep_Location` to 0 for
   LE sweep; `Update()` before any read-back or export.
+- A `wing.sections` reproduction needs one driver group per panel, exact
+  per-section read-back, and a reopened-VSP3 check. OpenVSP 3.51 retains a
+  stale aggregate area after XSec insertion unless `TotalSpan` is nudged and
+  restored; without that recomputation the saved wing rescales on reopen.
+  Require `geometry.json .wing.planform_mode == "sections"`,
+  `.openvsp.readback.wing_sections.matches`, and the true section polygon in
+  `.planform.planform_xy`.
 - MassProp `Total_Mass` is unitless volume-proxy unless densities were set —
   never quote it as kilograms.
+- Fin roots: `geometry.json .openvsp.fin_attach.mode` must match
+  `vtail.root_attachment`. In `measured` mode the selected y/z must equal the
+  spec exactly and read-back must verify both mirrored fins. If the visible
+  root is outside the core body, require a source-measured
+  `fuselage.fairings` loft plus derived `vtail*_root` extensions:
+  actual-transform `fairings_match`, `vtail_root_extensions_match`, zero
+  signed extension-tip junction gap, buried LE/mid/TE eccentricities ≤0.8,
+  `fin_*_attached`, and `fairing_*_contained` (≥95% at least 2 mm inside the
+  independent body/wing solids) must all pass after VSP3 reopen. The
+  attachment verdict uses the authoritative
+  body/fairing section at root x and a 10 mm or 0.2%-length proximity floor;
+  never restore the old ±0.12 m bounding slab / 60 mm floor. Extensions are
+  reproduction-only. Fairings and root extensions are loft-only and must be
+  absent from VSPAERO lifting sets.
 - Packing: payload bay must clear the engine compartment front
   (`L - 0.20 - engine_length - 0.05`) and fuel volume must fit wing tanks +
   fuselage leftover (`packing_report`).
+- Reference model (guidebook chapter 13): when
+  `designs/<concept>/reference/reference.json` exists, `geometry.json` carries
+  `reference_fidelity` (gating: body p95 surface deviation and top/side
+  silhouette IoU; disclosed: whole-aircraft and wing/fin p95, station and
+  planform deltas; `reference_sha256`) and the phase directory holds
+  `reference_overlay.png`. For `sketch.treatment: reproduction` the stage
+  `ok` and the Geometry-truth gate require `reference_fidelity.ok`; otherwise
+  it is disclosed evidence. Open the overlay. Any departure must trace to a
+  documented unrepresentable feature in the brief, never to measurement error.
+  For a sectioned wing, the disclosed exposed-wing p95 is model-to-reference
+  outside the scan-derived body exclusion; pair it with silhouette
+  reference-only area so omitted geometry cannot hide. Retain full component
+  p95 as buried carry-through disclosure. The reference is measured design
+  input — not validation truth.

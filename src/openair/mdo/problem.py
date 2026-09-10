@@ -29,6 +29,13 @@ from openair.design_intent import (
     fin_trailing_edge_overhang_m,
     sketch_prior_rows,
 )
+from openair.controls import (
+    pitch_control_surface,
+    pitch_trim_control,
+    set_pitch_trim_deflection,
+    trim_control_values,
+    within_travel,
+)
 from openair.geometry.packing import packing_report
 from openair.mission.balance import balance_report
 from openair.mission.engine import breguet_endurance_s
@@ -303,11 +310,12 @@ def evaluate_design(spec: VehicleSpec) -> dict[str, float]:
     bay_clearance = engine_bay_front - (f.payload_bay_x_m + f.payload_bay_length_m)
     wash_req = bal.washout_required_deg
     washout = spec.wing.twist_root_deg - spec.wing.twist_tip_deg
-    trim_gap = (
-        spec.htail.incidence_deg - bal.tail_incidence_required_deg
-        if bal.tail_incidence_required_deg is not None
-        else washout - wash_req
-    )
+    if bal.trim_control == "elevon" and bal.elevon_required_deg is not None:
+        trim_gap = float(bal.elevon_spec_deg or 0.0) - float(bal.elevon_required_deg)
+    elif bal.tail_incidence_required_deg is not None:
+        trim_gap = spec.htail.incidence_deg - bal.tail_incidence_required_deg
+    else:
+        trim_gap = washout - wash_req
     vv_lo, vv_hi = bal.vv_band
     return {
         "mtow_kg": mtow,
@@ -336,6 +344,9 @@ def evaluate_design(spec: VehicleSpec) -> dict[str, float]:
             bal.tail_incidence_required_deg
             if bal.tail_incidence_required_deg is not None
             else 0.0
+        ),
+        "elevon_required_deg": (
+            bal.elevon_required_deg if bal.elevon_required_deg is not None else 0.0
         ),
         "vv_lower_violation": vv_lo - bal.vv,
         "vv_upper_violation": bal.vv - vv_hi,
@@ -509,8 +520,13 @@ def _is_feasible(c: dict[str, Any], spec: VehicleSpec | None = None) -> bool:
     # The wing+tail balance model is deliberately low order, while the
     # delivered incidence is replaced by the independently OAS-trimmed value.
     # Keep this post-verify check aligned with balance_report.trim_ok; SLSQP
-    # still drives its pre-verify tail-incidence gap inside ±0.5 degree.
-    trim_gap_limit = 1.5 if spec is not None and spec.htail.span_m > 0.05 else 0.75
+    # still drives its pre-verify tail-incidence gap inside ±0.5 degree. The
+    # closed-form elevon model shares the wider band for the same reason.
+    trim_gap_limit = (
+        1.5
+        if spec is not None and pitch_trim_control(spec) in {"tail_incidence", "elevon"}
+        else 0.75
+    )
     reproduction = bool(
         spec is not None
         and spec.sketch is not None
@@ -1027,18 +1043,36 @@ def _run_calibrated_branch(
     trim_data = verify.get("aero_trim") or {}
     trim_washout = trim_data.get("washout_trim_deg")
     trim_incidence = trim_data.get("tail_incidence_trim_deg")
+    trim_elevon = trim_data.get("elevon_trim_deg")
     published_control = False
+    branch_control = pitch_trim_control(opt_spec)
+    branch_surface = (
+        pitch_control_surface(opt_spec) if branch_control == "elevon" else None
+    )
     if (
         best is not None
         and verify.get("ok")
-        and opt_spec.htail.span_m > 0.05
+        and branch_control == "tail_incidence"
         and isinstance(trim_incidence, (int, float))
     ):
         opt_spec.htail.incidence_deg = float(round(trim_incidence, 2))
         best["dvs"]["htail_incidence"] = opt_spec.htail.incidence_deg
         published_control = True
     elif (
-        best is not None and verify.get("ok") and isinstance(trim_washout, (int, float))
+        best is not None
+        and verify.get("ok")
+        and branch_control == "elevon"
+        and branch_surface is not None
+        and isinstance(trim_elevon, (int, float))
+        and within_travel(branch_surface, float(trim_elevon), 0.5)
+    ):
+        set_pitch_trim_deflection(opt_spec, float(round(trim_elevon, 2)))
+        published_control = True
+    elif (
+        best is not None
+        and verify.get("ok")
+        and branch_control == "wing_twist"
+        and isinstance(trim_washout, (int, float))
     ):
         opt_spec.wing.twist_tip_deg = float(
             round(opt_spec.wing.twist_root_deg - trim_washout, 2)
@@ -1484,6 +1518,8 @@ def _run_reproduction_branch(
 ) -> dict[str, Any]:
     """Freeze source design coordinates and close only trim deterministically."""
     delivered = spec.model_copy(deep=True)
+    control = pitch_trim_control(delivered)
+    pitch_surface = pitch_control_surface(delivered) if control == "elevon" else None
     initial = evaluate_design(delivered)
     bal = balance_report(
         delivered,
@@ -1491,11 +1527,20 @@ def _run_reproduction_branch(
         delivered.mass.fuel_mass_kg,
     )
     if (
-        delivered.htail.span_m > 0.05
+        control == "tail_incidence"
         and isinstance(bal.tail_incidence_required_deg, (int, float))
         and abs(float(bal.tail_incidence_required_deg)) <= 10.0
     ):
         delivered.htail.incidence_deg = float(bal.tail_incidence_required_deg)
+    elif (
+        control == "elevon"
+        and pitch_surface is not None
+        and isinstance(bal.elevon_required_deg, (int, float))
+        and within_travel(pitch_surface, float(bal.elevon_required_deg), 0.5)
+    ):
+        # Closed-form thin-airfoil starting point; the OAS trim below is the
+        # value that gets published.
+        set_pitch_trim_deflection(delivered, float(bal.elevon_required_deg))
 
     metrics = evaluate_design(delivered)
     best: dict[str, Any] = {
@@ -1555,16 +1600,30 @@ def _run_reproduction_branch(
             "converged": final_error_mac <= 0.05,
         }
 
-    # Publish the independently solved OAS trim incidence, the one explicitly
+    # Publish the independently solved OAS trim setting, the one explicitly
     # permitted control closure in reproduction mode, then verify that exact
     # serialized setting.
-    trim_incidence = (verify.get("aero_trim") or {}).get("tail_incidence_trim_deg")
+    aero_trim = verify.get("aero_trim") or {}
+    trim_incidence = aero_trim.get("tail_incidence_trim_deg")
+    trim_elevon = aero_trim.get("elevon_trim_deg")
     if (
-        delivered.htail.span_m > 0.05
+        control == "tail_incidence"
         and isinstance(trim_incidence, (int, float))
         and abs(float(trim_incidence)) <= 10.0
     ):
         delivered.htail.incidence_deg = float(round(trim_incidence, 4))
+        metrics = evaluate_design(delivered)
+        best.update(metrics)
+        best["dvs"] = _spec_dvs(delivered)
+        best["feasible"] = _is_feasible(best, delivered)
+        verify = _verify_with_oas(delivered, best, source_spec)
+    elif (
+        control == "elevon"
+        and pitch_surface is not None
+        and isinstance(trim_elevon, (int, float))
+        and within_travel(pitch_surface, float(trim_elevon), 0.5)
+    ):
+        set_pitch_trim_deflection(delivered, float(round(trim_elevon, 4)))
         metrics = evaluate_design(delivered)
         best.update(metrics)
         best["dvs"] = _spec_dvs(delivered)
@@ -1594,9 +1653,21 @@ def _run_reproduction_branch(
         "dv_bounds": {},
         "reference_closure": {
             "frozen_coordinates": [
-                key for key in _spec_dvs(source_spec) if key != "htail_incidence"
+                key
+                for key in _spec_dvs(source_spec)
+                if not (control == "tail_incidence" and key == "htail_incidence")
             ],
-            "allowed_control": "htail_incidence",
+            "allowed_control": {
+                "tail_incidence": "htail_incidence",
+                "elevon": "elevon_deflection",
+                "wing_twist": None,
+            }[control],
+            "pitch_trim_control": control,
+            "elevon_surface_id": pitch_surface.id if pitch_surface else None,
+            "elevon_trim_deflection_deg": (
+                float(pitch_surface.trim_deflection_deg) if pitch_surface else None
+            ),
+            "twist_frozen": control != "wing_twist",
         },
         "_optimized_spec": delivered,
     }
@@ -1608,6 +1679,7 @@ def run_mdo_stage(
     case_path: Path | None = None,
 ) -> dict[str, Any]:
     """Evaluate discrete repair branches and publish the best verified design."""
+    spec.assert_cross_model_invariants()
     outdir.mkdir(parents=True, exist_ok=True)
     inspiration = bool(
         spec.sketch is not None and spec.sketch.treatment == "inspiration"
@@ -1796,16 +1868,8 @@ def _verify_with_oas(
             best["dvs"]["fuel"],
         )
         tail_enabled = opt_spec.htail.span_m > 0.05
-        trim_control_gap = (
-            abs(
-                trim.get("tail_incidence_trim_deg", 99.0) - opt_spec.htail.incidence_deg
-            )
-            if tail_enabled
-            else abs(
-                trim.get("washout_trim_deg", 99.0)
-                - (opt_spec.wing.twist_root_deg - opt_spec.wing.twist_tip_deg)
-            )
-        )
+        trim_values = trim_control_values(opt_spec, trim)
+        trim_control_gap = float(trim_values["gap_deg"])
         return {
             "aero_trim": {
                 "converged": trim.get("trim_converged"),
@@ -1818,6 +1882,16 @@ def _verify_with_oas(
                 "tail_incidence_spec_deg": (
                     opt_spec.htail.incidence_deg if tail_enabled else None
                 ),
+                "elevon_trim_deg": trim.get("elevon_trim_deg"),
+                "elevon_spec_deg": (
+                    trim_values["spec_deg"]
+                    if trim_values["control"] == "elevon"
+                    else None
+                ),
+                "elevon_travel_deg": trim.get("elevon_travel_deg"),
+                "elevon_within_travel": trim.get("elevon_within_travel"),
+                "dcm_ddelta_per_deg": trim.get("dcm_ddelta_per_deg"),
+                "twist_frozen": bool(trim.get("twist_frozen", False)),
                 "control_gap_deg": trim_control_gap,
                 "cm_residual": trim.get("cm_residual"),
                 "CL": trim.get("CL"),

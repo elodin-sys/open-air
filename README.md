@@ -33,10 +33,16 @@ libraries it needs into `tools/` from official archives.
 
    ```text
    /initialize-aero my-concept "Forward-swept model aircraft" @desires.md @top.png @side.png
+   /initialize-aero my-scan "Reproduce the scanned airframe" @desires.md @scan.stl
    ```
 
    This creates the complete source bundle and checks its baseline three-view;
-   it does not run the full aircraft pipeline.
+   it does not run the full aircraft pipeline. A reference 3D model of a real
+   aircraft (any triangle mesh — STL/PLY/OBJ/3MF/GLB — exported from your
+   scanner or CAD tool with a known unit) is measured into the bundle by
+   `python -m openair.reference ingest`; see
+   [guidebook chapter 13](docs/guidebook/13-reference-models.md) for the
+   contract. Native CAD project files are not accepted.
 
 1. Open the concept in the Design Studio:
 
@@ -89,6 +95,13 @@ same change that alters what they show. GitHub renders the PDF and PNGs
 in-browser; `report.html` is a download (GitHub shows the HTML as source).
 Baseline and optimized packages are different aircraft — do not mix them.
 
+The committed preview set is also assembled into the
+[open-air design review site](https://elodin-sys.github.io/open-air/).
+Its landing page indexes every published concept; each design page serves a
+publication copy of the self-contained `report.html` committed here, with
+site navigation and any necessary historical-artifact notice added. The
+native GitHub Pages workflow builds from `main` without rerunning any solver.
+
 - **bdx** — Elite Aerosports BDX RC sport-jet reconstruction.
   [executive brief](results/bdx/executive_brief.pdf) ·
   [baseline vs optimized](results/bdx/baseline_vs_optimized.png) ·
@@ -126,6 +139,14 @@ Baseline and optimized packages are different aircraft — do not mix them.
   [report.html](results/ceras-csr01/report.html) ·
   [optimized package](results/ceras-csr01/optimized/elodin_package/) ·
   [baseline package](results/ceras-csr01/baseline/elodin_package/)
+- **atomrc-dolphin-v1-1** — AtomRC Dolphin V1.1 scan-grounded reproduction
+  (reference model, measured mass/CG, elevon pitch trim with frozen twist).
+  [executive brief](results/atomrc-dolphin-v1-1/executive_brief.pdf) ·
+  [baseline vs optimized](results/atomrc-dolphin-v1-1/baseline_vs_optimized.png) ·
+  [CG / NP](results/atomrc-dolphin-v1-1/cg_np_balance.png) ·
+  [report.html](results/atomrc-dolphin-v1-1/report.html) ·
+  [optimized package](results/atomrc-dolphin-v1-1/optimized/elodin_package/) ·
+  [baseline package](results/atomrc-dolphin-v1-1/baseline/elodin_package/)
 - **openair-x8-capstone** — sealed NTNU X8 Class-A holdout reconstruction.
   The 2026-08-22 report, brief, and charts are committed as-is. No Elodin
   package: the frozen YAML carries `flight_dynamics.elevon`, which the

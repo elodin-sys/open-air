@@ -131,6 +131,32 @@ def test_unified_gate_contract_has_tiers_and_actions():
     assert "12/12 gates pass" in table
 
 
+def test_geometry_truth_gate_folds_in_reference_fidelity():
+    spec, data, metrics = _passing_context()
+    fidelity = {
+        "available": True,
+        "ok": False,
+        "gates_stage_ok": False,
+        "distance_model_to_reference": {"p95_m": 0.0177},
+        "silhouettes": {"top": {"iou": 0.85}, "side": {"iou": 0.78}},
+    }
+    data["geometry"]["reference_fidelity"] = fidelity
+    gates = evaluate_gates(spec, data, metrics)
+    geometry = next(gate for gate in gates if gate["id"] == "geometry_truth")
+    # Recorded only: an inspiration/requirement design still passes on
+    # read-back, bbox, and mesh checks, but the evidence is disclosed.
+    assert geometry["ok"]
+    assert "whole aircraft 17.7 mm" in geometry["evidence"]
+    assert "not gating" in geometry["evidence"]
+
+    fidelity["gates_stage_ok"] = True
+    gates = evaluate_gates(spec, data, metrics)
+    geometry = next(gate for gate in gates if gate["id"] == "geometry_truth")
+    assert not geometry["ok"]
+    assert "outside band" in geometry["evidence"]
+    assert len(gates) == 12
+
+
 def test_mdo_gate_rejects_failed_driver_even_when_candidate_is_feasible():
     spec, data, metrics = _passing_context()
     data["mdo"]["best"]["driver_success"] = False

@@ -31,6 +31,12 @@ drag. We use it purely as an **independent cross-check** on OpenAeroStruct.
   was our audit finding behind the old `100/S` rescale hack; the fix is
   `RefFlag=0` plus explicit `Sref/bref/cref/Xcg`.
 - Set `ReCref` to the flight Reynolds number or `CDo` is for Re = 1e7.
+- Stability derivatives use tiny built-in perturbations (alpha/beta 0.01°,
+  control groups 0.1°). The OpenVSP default
+  `ForwardGMRESConvergenceFactor = NonLinearConvergenceFactor = 1.0` can
+  leave coefficient noise as large as the perturbation signal. Every open-air
+  sweep sets both to `solver.vspaero_convergence_factor` (default 0.01).
+  Never publish a derivative table without the quality checks below.
 - Results live in named containers (`VSPAERO_Polar`, `VSPAERO_History`), not
   in the wrapper rid returned by `ExecAnalysis`. Empty vector = missing, never 0.
 - The `.polar` file next to the model is the same data on disk — a sound
@@ -48,6 +54,41 @@ and flight `ReCref`; reads `VSPAERO_Polar` and falls back to parsing the
 [`src/openair/validation/runner.py`](../../src/openair/validation/runner.py)
 compares ΔCL/Δα to OAS on the same wing plus optional horizontal-tail set.
 
+Control derivatives: the geometry stage serializes every declared
+`flight_dynamics.control_surfaces` entry as an `SS_CONTROL` subsurface and its
+mixing as VSPAERO control groups whether or not the flight-dynamics stage is
+enabled. For `mission.pitch_trim_control: elevon` designs,
+`flightdyn.stability.run_vspaero_control_derivatives` runs one steady
+stability solve (`UnsteadyType = STABILITY_DEFAULT`, wake iterations ≥ 8) on
+the **wing-only** thin set at the OAS trim alpha and cruise speed, and the
+validation check `elevon_cm_delta_vspaero_vs_oas` compares the pitch group's
+`Cm` column with the fixed-alpha OAS `dCm_cg/dδ`. VSPAERO's group command is
+trailing edge down positive and the derivative table is per radian; the check
+negates and converts to the spec convention (trailing edge up, per degree)
+before comparing.
+
+`flightdyn.stability.derivative_quality` parses the `.stab` Case/Delta table,
+checks mirror-symmetry noise (`CL_beta/CL_alpha`, `Cm_beta/Cm_alpha`,
+`CY_alpha`, `Cl_alpha`, `Cn_alpha`), and compares the 0.01° `CL_alpha` with
+two plain points one degree apart. Relaxed-wake flight-dynamics runs also
+require every perturbation case to reach L2 ≤ 1e-2; a failed quality check is
+rerun once with a fixed wake and recorded as an escalation. The standalone
+elevon validation probe uses tight convergence and a fixed wake by contract;
+fixed-wake history residuals are not treated as an outer wake convergence
+test. If its 0.01° beta column remains symmetry-noise dominated, the checker
+runs independent points at beta ±1° and replaces only the two beta
+cross-axis noise estimates with their central derivative; the original
+small-step metrics remain disclosed. This is an escalation, not a relaxed
+band: the same ≤0.02 criterion still applies to an estimate with 200 times
+the coefficient separation.
+
+A source-locked reproduction whose measured fin falls just below the generic
+`Vv >= 0.02` screen may run the same fixed-wake derivative probe on the full
+wing+fin set without enabling six-DOF flight dynamics or inventing inertia.
+It passes directional authority only when derivative quality is green and
+`Cn_beta > 0`, `Cn_r < 0`, and `CY_beta < 0` in same-run, artifact-bound
+evidence.
+
 ## Check your work
 
 1. `validation.json` check `vspaero_vs_oas_CL`: `CL_alpha_ratio_*` in
@@ -63,6 +104,18 @@ compares ΔCL/Δα to OAS on the same wing plus optional horizontal-tail set.
    `CDo` with the fuselage absent is meaningless; validation stores CD fields
    as `*_not_comparable` on purpose (audit F12).
 5. CM comparisons require identical `Xcg` and `cref` — verify before flagging.
+6. `elevon_cm_delta_vspaero_vs_oas`: same sign and OAS/VSPAERO ratio in
+   0.6–1.6 on the fixed-alpha derivative. Require
+   `derivative_quality.ok`, all symmetry-noise metrics ≤ 0.02, and both the
+   small/large-step and stability/sweep CL-alpha ratios in 0.90–1.10. Read the
+   disclosed `dcl_ratio_oas_over_vspaero` too — a lift-increment ratio near
+   0.5 with a moment ratio near 1 means the two lattices place the flap load
+   differently, which is worth a note but not a gate failure. The first
+   convergence repair gave the trapezoid Dolphin CL-alpha ratios 0.995/0.987,
+   OAS/VSPAERO dCm/dδ 0.953, and dCL/dδ 0.686. With the sectioned wing the
+   ratios are 0.991 and 1.036. After a central-beta escalation, inspect both
+   `small_step_noise_metrics` and the final `noise_metrics`; do not describe
+   the former as a physical beta derivative.
 
 ## Known lies
 
@@ -71,3 +124,7 @@ compares ΔCL/Δα to OAS on the same wing plus optional horizontal-tail set.
 - `Sref` silently 100 (audit): coefficients off by 34x on this vehicle.
 - Results accumulate across runs in the Results Manager; "latest" can be a
   previous case if the model isn't cleared.
+- A finite derivative table is not evidence that its finite difference rose
+  above solver noise. The Dolphin exposed this: default tolerances reported
+  CL-alpha 9.71/rad and the physically-zero CL-beta 5.22/rad. Tight solves
+  and the quality gate convert this former known lie into a hard failure.

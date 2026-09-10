@@ -58,6 +58,7 @@ def _normalized_derivatives(stability: dict[str, Any]) -> dict[str, Any]:
 
 
 def run_flightdyn_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
+    spec.assert_cross_model_invariants()
     if not spec.flight_dynamics.enabled:
         return {
             "ok": True,
@@ -66,7 +67,13 @@ def run_flightdyn_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
         }
     geometry = _json(outdir / "geometry.json")
     aero = _json(outdir / "aero.json")
-    vsp3_raw = (geometry.get("openvsp") or {}).get("vsp3")
+    openvsp = geometry.get("openvsp") or {}
+    if not geometry.get("ok") or not openvsp.get("ok"):
+        return {
+            "ok": False,
+            "reason": "geometry/OpenVSP stage did not pass",
+        }
+    vsp3_raw = openvsp.get("vsp3")
     if not vsp3_raw:
         return {"ok": False, "reason": "geometry stage has no serialized VSP3"}
     vsp3 = Path(str(vsp3_raw))
@@ -103,9 +110,7 @@ def run_flightdyn_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
         key = f"stability_{name}"
         artifacts[key] = str(path)
         if name in stability["analysis"]["artifact_sha256"]:
-            artifact_sha256[key] = str(
-                stability["analysis"]["artifact_sha256"][name]
-            )
+            artifact_sha256[key] = str(stability["analysis"]["artifact_sha256"][name])
 
     products = {
         "ixy_kg_m2": inertia.ixy_kg_m2,

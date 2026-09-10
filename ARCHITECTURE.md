@@ -96,12 +96,15 @@ python -m openair.designer [concept] [-o out.html] # static, download-only page
 There are two supported entry paths. Studio-first authoring seeds a complete
 six-station fuselage loft from `designs/_template/`; the legacy simple-envelope
 body remains an explicit fallback, not the default. For source-driven
-authoring, `/initialize-aero <concept> "<intent>" @requirements @sketches`
-classifies and measures the supplied views, records measured/inferred/defaulted
+authoring, `/initialize-aero <concept> "<intent>" @requirements @sketches
+@reference-mesh` classifies and measures the supplied views, ingests an
+optional reference model (a triangle mesh of the real aircraft) into measured
+values with scan-derived tolerances, records measured/inferred/defaulted
 provenance in `brief.md`, writes the same canonical source bundle, and runs at
 most three geometry-only checkpoint iterations against the exported-mesh
-three-view. It never runs MDO or the full pipeline. The initialized source then
-opens through the shorter existing-workspace command above for human review.
+three-view (and the reference-fidelity overlay when a reference exists). It
+never runs MDO or the full pipeline. The initialized source then opens through
+the shorter existing-workspace command above for human review.
 
 The Studio is one self-contained HTML document generated from
 `VehicleSpec.model_json_schema()` — every form field, bound, and unit comes
@@ -129,15 +132,19 @@ a calibrated grid gives the metres-per-square scale.
 The fourth view is an orbitable Three.js confirmation viewport. A pure
 client-side builder lofts disposable triangle render data from the current
 schema values (split super-ellipse fuselage rings plus NACA-thickness
-wing/tail surfaces); it never becomes editable state and is rebuilt after
+wing/tail surfaces, measured body fairings, and buried fin-root extensions);
+it never becomes editable state and is rebuilt after
 each patch. Explicit fuselage stations carry side, top, and bottom powers:
 2.0 preserves an ellipse, while independently sharper or flatter shoulders,
-deck, and belly represent blade and bubble-over-hull bodies. The dominant
+deck, and belly represent blade and bubble-over-hull bodies.
+`max_width_loc` shifts the widest line vertically; `-1` forms the lower-edge
+base of a measured shoulder dome. The dominant
 section is sampled into the Front view rather than approximated by an ellipse.
 Shaded/wireframe layers share CG, reserve-CG, neutral-point, payload-bay, and
 fuel-tank overlays with the 2D views. Its span, area, and three-axis bounding
 box are tested against OpenVSP read-back and exported STL geometry for the
-default, forward-swept, station-loft, and blade/bubble designs; the browser
+default, forward-swept, station-loft, blade/bubble, measured-fin, fairing, and
+sectioned-wing designs; the browser
 and Python section-area factors are also compared directly. If WebGL is
 unavailable, the 2D editor and pure-JavaScript mesh checks continue to work.
 
@@ -145,11 +152,13 @@ The served Studio retains **Advanced: OpenVSP** as an escape hatch. The
 server builds a read-back-verified `.vsp3` plus a `.des` whitelist in a
 temporary session directory, launches the installed OpenVSP GUI, and watches
 the model for saves. A restricted importer accepts only geometry that
-`VehicleSpec` can represent (one trapezoidal NACA four-series wing, 4–8
-point/ellipse/split-super-ellipse fuselage stations, one centerline fin or a
-symmetric fin pair, and the optional single-section horizontal tail).
-Asymmetric upper/lower lateral
-powers, nonzero super-ellipse width bias, rounded/general sections,
+`VehicleSpec` can represent (one scalar trapezoid or 3–12-section measured
+NACA four-series wing, 4–8 point/ellipse/split-super-ellipse fuselage stations,
+reproduction-only measured fairing lofts, their derived fin-root extensions,
+one centerline fin or a symmetric fin pair, and the optional single-section
+horizontal tail). Fairing fields remain scan-derived/read-only and candidate
+fin edits are rejected when their derived extension is stale. Asymmetric upper/lower lateral
+powers, rounded/general sections,
 unsupported components, extra wing sections, mixed airfoils, or
 unrepresentable transforms are rejected with actionable feedback and leave
 the Studio unchanged. Accepted saves emit one
@@ -180,6 +189,16 @@ contain:
   table, and the fuselage-station dimensions and section powers.
 - `sketch-<view>.png` and `sketch-<view>-rectified.png`, which the report
   embeds beside the produced three-view.
+- Optionally `reference/` — a measured reference model (guidebook chapter 13):
+  `reference.json` (provenance, alignment transform, full measurement record,
+  schema-ready values with tolerances), `reference.ply` (aligned, decimated
+  scan), and `reference-sections.png`. `python -m openair.reference ingest`
+  writes it from any triangle mesh (STL/PLY/OBJ/3MF/GLB) with a declared unit;
+  native CAD or scan project files are refused so every tool chain meets the
+  same contract. Its silhouettes become the concept's `sketch-*.png`, and the
+  geometry stage scores every exported artifact against it
+  (`geometry.json .reference_fidelity`, `reference_overlay.png`). The
+  reference is measured design input, never `truth/` evidence.
 
 ### 2. Orchestration (`src/openair/cli.py`)
 
@@ -234,8 +253,11 @@ three-view comparison before MDO) and the full AERO QA review afterwards.
 
 ### Schema — `src/openair/schemas.py`
 
-`VehicleSpec` composes `EngineSpec`, `WingSpec`, `FuselageSpec` (with an
-optional 4–8 section `FuselageStation` loft), `VerticalTailSpec` (one
+`VehicleSpec` composes `EngineSpec`, `WingSpec` (scalar trapezoid plus optional
+3–12-station `WingSectionSpec` measured-reproduction loft),
+`FuselageSpec` (optional 4–8 section `FuselageStation` core loft plus
+reproduction-only `BodyFairingSpec` lofts with shifted maximum width),
+`VerticalTailSpec` (one
 centerline fin or a symmetric pair), optional `HorizontalTailSpec`,
 `MissionSpec`, `StructureSpec`/`MaterialSpec`,
 `SketchEnvelopeSpec`, `MassGuessSpec`, and `SolverSpec`. Field bounds and
@@ -258,7 +280,12 @@ panel wing mass (skins + spar webs at the specified gauges) that replaced the
 MDO, aero, structures, validation, and report MTOW identical (F20).
 `balance.py` computes the component-CG buildup,
 calibrated neutral point, static margin at full and reserve fuel,
-thin-airfoil trim/washout, stall speed, and fin volume coefficient.
+thin-airfoil trim (washout, tail incidence, or — for
+`mission.pitch_trim_control: elevon` — a Glauert plain-flap elevon
+deflection with twist frozen), stall speed, and fin volume coefficient.
+`src/openair/controls.py` is the single place that resolves the active
+pitch-trim control, names the pitch surface, and owns the trailing-edge-up
+sign convention for every stage.
 Per QA audit F13, the sizing overlay (`target_sized.yaml`) carries **only**
 the closed fuel mass back into later stages — the source YAML stays
 authoritative for everything else.
@@ -266,20 +293,29 @@ Deep dive: [guidebook 09](docs/guidebook/09-sizing-aero-buildup.md).
 
 ### Geometry — `src/openair/geometry/`
 
-`openvsp_model.py` builds the OpenVSP model (wing, station-loft or legacy
-fuselage, and one or two fins attached to the local body section), verifies every
-parameter by API read-back, and exports `.vsp3` plus whole-model and
-per-component STLs. When flight dynamics is enabled it also creates and
-read-back verifies generalized wing/horizontal-tail/vertical-tail control
-subsurfaces and overlapping logical groups. `fuselage.py` is the
+`openvsp_model.py` builds the OpenVSP model (scalar or measured-section wing,
+station-loft or legacy fuselage, measured body fairings, and one or two fins
+with derived non-lifting buried root extensions), verifies every
+parameter—including actual fairing transforms and signed extension-tip
+coincidence—by API read-back, and exports `.vsp3` plus whole-model and
+per-component STLs. Whenever control surfaces are declared it also creates
+and read-back verifies generalized wing/horizontal-tail/vertical-tail control
+subsurfaces and overlapping logical groups (the flight-dynamics stage and the
+validation elevon cross-check both consume them). `fuselage.py` is the
 single station-interpolation source
 shared by geometry, packing, drag, plots, and mesh checks. It samples the same
 split super-ellipse equation as OpenVSP and supplies polygon area, perimeter,
-and generalized containment; powers of 2 retain the historical ellipse
-formulas exactly. `packing.py` checks engine, payload-bay, and fuel volumes
+and generalized containment, including shifted maximum-width location; powers
+of 2 at zero shift retain the historical ellipse
+formulas exactly. `fin_attachment.py` is the shared builder/GUI policy:
+`derived` preserves the 60%-body default, while `measured` honours declared
+root y/z exactly, then marches a continuation of the fin LE/TE lines inboard
+until the core-body/fairing union contains the whole root chord.
+`packing.py` checks engine, payload-bay, and fuel volumes
 against local body sections.
 `mesh_checks.py` re-measures the *exported STL* — component extents, fin
-verticality, root attachment inside the local section — because read-back
+verticality, fairing-base support two millimetres inside independent body/wing
+solids, and attachment inside the authoritative local body union — because read-back
 alone let rotated fins pass (F11/F14). `threeview.png` is rendered from the
 mesh, not the spec (F15).
 Deep dive: [guidebook 01](docs/guidebook/01-openvsp.md).
@@ -287,10 +323,19 @@ Deep dive: [guidebook 01](docs/guidebook/01-openvsp.md).
 ### Aero — `src/openair/aero/`
 
 `oas_backend.py` runs the OpenAeroStruct VLM: pitch trim closes lift *and*
-moment (alpha + washout), stability is measured from dCM/dCL (not assumed
-25% MAC — F2), and the polar feeds endurance/dash. `drag_buildup.py` adds the
+moment (alpha plus washout, tail incidence, or a travel-bounded elevon
+deflection on a hinge-aligned deflected mesh with the measured twist
+frozen), stability is measured from dCM/dCL (not assumed 25% MAC — F2), and
+the polar feeds endurance/dash. For elevon trim the validation stage
+cross-checks the fixed-alpha pitch derivative against a wing-only VSPAERO
+control derivative from the serialized control groups. `drag_buildup.py` adds the
 component parasite-drag buildup (Raymer/Hoerner conceptual fidelity).
 `vspaero_backend.py` is the independent VLM cross-check used by validation.
+Every VSPAERO sweep sets explicit 0.01 GMRES/nonlinear convergence factors;
+the stability path compares its 0.01° finite difference with a one-degree
+slope and gates mirror-symmetry noise. Relaxed-wake derivatives that fail
+quality escalate once to a fixed wake, while the wing-only elevon probe uses
+a fixed wake by contract.
 Deep dive: [guidebook 03](docs/guidebook/03-openaerostruct.md),
 [guidebook 02](docs/guidebook/02-vspaero.md).
 
@@ -309,6 +354,9 @@ bending/torsion beam modes, quasi-steady strip-theory generalized forces,
 control-to-station acceleration/strain FRFs, airspeed modal sweeps, and an
 explicit reduced-frequency validity boundary. It does not provide nonlinear
 loads, coupled T-tail modes, time-domain flexible replay, or flutter clearance.
+Its control effectiveness shares Glauert plain-flap theory with the balance
+model (`aero/thin_airfoil.py`); Diana V2 re-fits one grouped-aileron force
+scale on calibration flights after removing the former complement-angle bug.
 
 `sixdof.py` invokes the pinned isolated Elodin 0.18.0 runtime. The repository's
 own force model—not Elodin's RC-jet dynamics—maps the linear coefficients,
@@ -404,6 +452,31 @@ figures and sketches, WebGL drag/orbit STL viewer of the optimized mesh,
 requirement scorecard, evidence-backed gate table with feedback, MDO
 evolution, V&V summary, engineering appendix) and the five-page
 `executive_brief.pdf`.
+
+### Static publishing — `src/openair/site/`
+
+`python -m openair.site build --out _site` assembles the committed preview
+subset into a GitHub Pages artifact; it never runs a solver or reads ignored
+stage JSONs. `site/designs.yaml` supplies curated titles and summaries while
+the builder reads treatment from source YAML and phase-labeled optimized
+dimensions/provenance from committed Elodin manifests. Every source, report,
+PDF, PNG, and package-manifest input used for publication must be a regular
+Git blob matching the exact build revision. The site manifest and
+`results/*/report.html` set must match exactly, and every generated local link
+and HTML fragment is checked before publication.
+
+Published reports remain self-contained. The builder copies each one to
+`designs/<concept>/index.html`, adds a return link, and rewrites repository
+guidebook links to the exact build commit. For landing/card artwork it extracts
+the optimized exported-mesh three-view already embedded in that tracked report
+and composes its top and side columns into a 2:1 `optimized-threeview.png`;
+ignored stage images never become publish inputs. `src/openair/theme.py` is
+shared by the report generator and landing page so both use one visual
+contract. The sealed X8 capstone receives a publication-only warning because
+its original report named source/generated YAML paths that were never
+committed. The native Pages workflow (`.github/workflows/deploy-site.yml`)
+builds on relevant pull requests and deploys only from `main`; `_site/` itself
+is generated and gitignored.
 
 ## Quality system
 
@@ -512,6 +585,11 @@ raise fidelity, trust, or speed.
 - **Mission segments.** Sizing closes on cruise + dash point conditions.
   Takeoff, climb, descent, and reserve segments would make endurance and
   fuel margins honest for real sorties.
+- **Body pitching moment.** Both lattices see the wing alone. A blended
+  fuselage that is a large fraction of the span (the Dolphin) adds a nose-up
+  moment and a forward neutral-point shift, so elevon trim predictions for
+  such airframes are wing-only upper bounds until a body term, calibrated
+  against a flown trimmed neutral, exists.
 - **Automated planform calibration.** The MDO loop learns per-design
   neutral-point, washout, and fallback-tail-incidence residuals from OAS, but
   the initial family priors are still calibrated by hand (aft-swept,
@@ -585,10 +663,11 @@ raise fidelity, trust, or speed.
   sketch layers, snapping, and EXIF-based scale hints are small additions
   with outsized authoring-speed payoff.
 - **Richer bounded geometry.** Split super-ellipse fuselage stations now
-  cover blade edges, bubble crowns, and flat bellies. Multi-panel wings,
-  separate canopy/inlet components, or further section controls should be
-  added only by extending `VehicleSpec`, the handle registry, preview builder,
-  physics consumers, OpenVSP importer, and parity fixtures together.
+  cover blade edges, bubble crowns, and flat bellies. Measured multi-section
+  wings now follow that same end-to-end admission rule. Separate canopy/inlet
+  components, section-aware MDO variables, or further section controls should
+  be added only by extending `VehicleSpec`, the handle registry, preview
+  builder, physics consumers, OpenVSP importer, and parity fixtures together.
 
 ### Infrastructure and process
 

@@ -16,6 +16,13 @@ from openair.aero.oas_common import (
     wing_surface_dict,
 )
 from openair.atmosphere import isa
+from openair.controls import (
+    elevon_travel_deg,
+    pitch_control_surface,
+    pitch_trim_control,
+    set_pitch_trim_deflection,
+    trim_control_values,
+)
 from openair.mission.engine import operate
 from openair.mission.mass import closed_mass_breakdown
 from openair.schemas import VehicleSpec
@@ -39,6 +46,7 @@ def run_vlm(
     x_ref_m: float | None = None,
     mach_number: float | None = None,
     reynolds_per_m: float | None = None,
+    elevon_deflection_deg: float | None = None,
 ) -> dict[str, Any]:
     """Single VLM evaluation. CM is taken about x_ref_m (default: wing 25% MAC).
 
@@ -49,6 +57,10 @@ def run_vlm(
     ``mach_number`` and ``reynolds_per_m`` support pressurized wind-tunnel
     validation points whose independent Mach/Re combination cannot be
     reproduced by the ISA state implied by ``altitude_m`` and ``tas_mps``.
+
+    ``elevon_deflection_deg`` (trailing edge up positive) overrides the
+    serialized trim deflection when the mission selects elevon pitch trim; it
+    is ignored for every other trim control.
     """
     from openaerostruct.aerodynamics.aero_groups import AeroPoint
     from openaerostruct.geometry.geometry_group import Geometry
@@ -63,7 +75,12 @@ def run_vlm(
             raise ValueError("reynolds_per_m must be positive")
         flt["re"] = float(reynolds_per_m)
     cd0 = extra_cd0(spec, altitude_m, tas_mps)
-    surf = wing_surface_dict(spec, aero_only=True, cd0_extra=cd0)
+    surf = wing_surface_dict(
+        spec,
+        aero_only=True,
+        cd0_extra=cd0,
+        elevon_deflection_deg=elevon_deflection_deg,
+    )
     surfaces = [surf]
     if spec.htail.span_m > 0.05:
         surfaces.append(htail_surface_dict(spec))
@@ -138,6 +155,16 @@ def run_vlm(
         "rho": flt["rho"],
         "x_ref_m": x_ref,
         "surfaces": surface_results,
+        "elevon_deflection_deg": (
+            float(elevon_deflection_deg)
+            if elevon_deflection_deg is not None
+            else (
+                float(pitch_control_surface(spec).trim_deflection_deg)
+                if pitch_trim_control(spec) == "elevon"
+                and pitch_control_surface(spec) is not None
+                else None
+            )
+        ),
     }
 
 
@@ -161,17 +188,27 @@ def trim_pitch(
     cm_offset: float = 0.0,
     max_washout_deg: float = 10.0,
 ) -> dict[str, Any]:
-    """Solve lift and pitch using wing twist or fallback-tail incidence.
+    """Solve lift and pitch using wing twist, tail incidence, or an elevon.
 
     cm_offset carries the section cm_ac (camber) that the flat VLM cannot see.
-    Outer secant on twist_tip, inner lift trim via trim_alpha.
+    Outer secant on the active control, inner lift trim via trim_alpha. The
+    control is ``mission.pitch_trim_control``: tail incidence when a
+    horizontal tail exists, otherwise wing twist, unless ``elevon`` is
+    selected, in which case the measured twist stays frozen and the wing
+    control surface is deflected within its declared travel.
 
     Forward sweep reverses twist's pitching-moment derivative relative to aft
     sweep. The final trim sign also depends on CG and the untwisted moment, so
     the search allows ``twist_tip`` on both sides of the root.
     """
-    tail_enabled = spec.htail.span_m > 0.05
+    control_mode = pitch_trim_control(spec)
+    tail_enabled = control_mode == "tail_incidence"
     section_scale = 1.0
+
+    if control_mode == "elevon":
+        return _trim_pitch_elevon(
+            spec, altitude_m, tas_mps, lift_n, x_cg_m, cm_offset=cm_offset
+        )
 
     def cm_at(twist_tip: float) -> tuple[float, dict[str, Any]]:
         s = spec.model_copy(deep=True)
@@ -267,6 +304,132 @@ def trim_pitch(
     }
 
 
+def _trim_pitch_elevon(
+    spec: VehicleSpec,
+    altitude_m: float,
+    tas_mps: float,
+    lift_n: float,
+    x_cg_m: float,
+    *,
+    cm_offset: float,
+) -> dict[str, Any]:
+    """Secant on the elevon deflection (TE up positive) with twist frozen.
+
+    The search is clamped to the declared travel; a solution pinned at a
+    travel limit is reported as not converged. ``dcm_ddelta_per_deg`` is the
+    lift-trimmed pitching-moment derivative measured about the CG from a
+    +/-2 degree probe around the solution, the number the VSPAERO
+    cross-check and the closed-form flap theory are compared against.
+    """
+    surface = pitch_control_surface(spec)
+    if surface is None:
+        raise ValueError("elevon pitch trim requires a collective-pitch wing surface")
+    lo_d, hi_d = elevon_travel_deg(surface)
+    washout = spec.wing.twist_root_deg - spec.wing.twist_tip_deg
+
+    def clamp(value: float) -> float:
+        return min(max(value, lo_d), hi_d)
+
+    evaluations: dict[float, tuple[float, dict[str, Any]]] = {}
+
+    def cm_at_elevon(delta_te_up: float) -> tuple[float, dict[str, Any]]:
+        key = round(delta_te_up, 6)
+        if key not in evaluations:
+            res = trim_alpha(
+                spec,
+                altitude_m,
+                tas_mps,
+                lift_n,
+                alpha0=3.0,
+                x_ref_m=x_cg_m,
+                elevon_deflection_deg=delta_te_up,
+            )
+            evaluations[key] = (res["CM"][1] + cm_offset, res)
+        return evaluations[key]
+
+    d0 = clamp(float(surface.trim_deflection_deg))
+    c0, r0 = cm_at_elevon(d0)
+    best_d, best_c, best_r = d0, c0, r0
+    if abs(best_c) >= 2e-3:
+        # A nose-down residual (CM < 0) needs trailing edge up (positive).
+        d1 = clamp(d0 + (2.0 if c0 < 0.0 else -2.0))
+        if abs(d1 - d0) < 1e-9:
+            d1 = clamp(d0 - (2.0 if c0 < 0.0 else -2.0))
+        c1, r1 = cm_at_elevon(d1)
+        if abs(c1) < abs(best_c):
+            best_d, best_c, best_r = d1, c1, r1
+        for _ in range(14):
+            if abs(c1 - c0) < 1e-8:
+                break
+            d2 = clamp(d1 - c1 * (d1 - d0) / (c1 - c0))
+            c2, r2 = cm_at_elevon(d2)
+            d0, c0, d1, c1 = d1, c1, d2, c2
+            if abs(c2) < abs(best_c):
+                best_d, best_c, best_r = d2, c2, r2
+            if abs(c2) < 2e-3:
+                break
+
+    probe_lo = clamp(best_d - 2.0)
+    probe_hi = clamp(best_d + 2.0)
+    if probe_hi - probe_lo < 1e-6:
+        dcm_ddelta = None
+        dcm_ddelta_fixed = None
+        dcl_ddelta_fixed = None
+    else:
+        cm_lo, _ = cm_at_elevon(probe_lo)
+        cm_hi, _ = cm_at_elevon(probe_hi)
+        dcm_ddelta = float((cm_hi - cm_lo) / (probe_hi - probe_lo))
+        # Fixed-alpha derivatives at the trimmed alpha: the quantity a
+        # finite-difference control derivative from another solver reports.
+        alpha_trim = float(best_r["alpha_deg"])
+        fixed_lo = run_vlm(
+            spec,
+            altitude_m,
+            tas_mps,
+            alpha_trim,
+            x_ref_m=x_cg_m,
+            elevon_deflection_deg=probe_lo,
+        )
+        fixed_hi = run_vlm(
+            spec,
+            altitude_m,
+            tas_mps,
+            alpha_trim,
+            x_ref_m=x_cg_m,
+            elevon_deflection_deg=probe_hi,
+        )
+        span = probe_hi - probe_lo
+        dcm_ddelta_fixed = float((fixed_hi["CM"][1] - fixed_lo["CM"][1]) / span)
+        dcl_ddelta_fixed = float((fixed_hi["CL"] - fixed_lo["CL"]) / span)
+
+    interior = lo_d + 0.5 <= best_d <= hi_d - 0.5
+    converged = abs(best_c) < 2e-3 and interior
+    return {
+        **best_r,
+        "trim_converged": bool(converged and best_r.get("trimmed", False)),
+        "trim_control": "elevon",
+        "elevon_surface_id": surface.id,
+        "elevon_trim_deg": float(best_d),
+        "elevon_spec_deg": float(surface.trim_deflection_deg),
+        "elevon_neutral_measured_deg": surface.neutral_deg,
+        "elevon_travel_deg": [lo_d, hi_d],
+        "elevon_within_travel": bool(interior),
+        "elevon_sign_convention": "trailing edge up positive",
+        "dcm_ddelta_per_deg": dcm_ddelta,
+        "dcm_ddelta_fixed_alpha_per_deg": dcm_ddelta_fixed,
+        "dcl_ddelta_fixed_alpha_per_deg": dcl_ddelta_fixed,
+        "tail_incidence_trim_deg": None,
+        "tail_incidence_spec_deg": None,
+        "twist_tip_trim_deg": spec.wing.twist_tip_deg,
+        "washout_trim_deg": washout,
+        "twist_frozen": True,
+        "cm_residual": float(best_c),
+        "cm_offset_section": cm_offset,
+        "x_cg_m": x_cg_m,
+        "trim_evaluations": len(evaluations),
+    }
+
+
 def trim_alpha(
     spec: VehicleSpec,
     altitude_m: float,
@@ -274,12 +437,20 @@ def trim_alpha(
     lift_n: float,
     alpha0: float = 2.0,
     x_ref_m: float | None = None,
+    elevon_deflection_deg: float | None = None,
 ) -> dict[str, Any]:
     """Secant-search alpha so q S CL = lift_n."""
     q = 0.5 * isa(altitude_m).density_kg_m3 * tas_mps**2
 
     def residual(a: float) -> tuple[float, dict[str, Any]]:
-        r = run_vlm(spec, altitude_m, tas_mps, a, x_ref_m=x_ref_m)
+        r = run_vlm(
+            spec,
+            altitude_m,
+            tas_mps,
+            a,
+            x_ref_m=x_ref_m,
+            elevon_deflection_deg=elevon_deflection_deg,
+        )
         return q * r["S_ref"] * r["CL"] - lift_n, r
 
     a0, a1 = alpha0, alpha0 + 1.5
@@ -304,6 +475,7 @@ def run_aero_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
     from openair.mission.balance import balance_report, thin_airfoil_props
     from openair.mission.sizing import aero_point, cruise_tas, max_dash_speed
 
+    spec.assert_cross_model_invariants()
     masses = closed_mass_breakdown(spec, spec.mass.fuel_mass_kg)
     mtow = masses.mtow_kg
     bal = balance_report(spec, mtow, spec.mass.fuel_mass_kg)
@@ -322,8 +494,18 @@ def run_aero_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
         bal.x_cg_full_m,
         cm_offset=sect["cm_ac"],
     )
+    # Every other evaluation in this stage (dash, polar, neutral point) runs
+    # the configuration the trim solve settled on. For elevon trim that is the
+    # solved deflection held fixed; dash is not re-trimmed in pitch, the same
+    # convention the twist and tail-incidence paths already follow.
+    analysis_spec = spec
+    if cruise.get("trim_control") == "elevon" and isinstance(
+        cruise.get("elevon_trim_deg"), (int, float)
+    ):
+        analysis_spec = spec.model_copy(deep=True)
+        set_pitch_trim_deflection(analysis_spec, float(cruise["elevon_trim_deg"]))
     dash = trim_alpha(
-        spec,
+        analysis_spec,
         spec.mission.dash_altitude_m,
         dash_bu["tas_mps"],
         mtow * G0,
@@ -341,7 +523,11 @@ def run_aero_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
     for a in (-2.0, 0.0, 2.0, 4.0, 6.0, 8.0):
         polar.append(
             run_vlm(
-                spec, spec.mission.cruise_altitude_m, v_c, a, x_ref_m=bal.x_cg_full_m
+                analysis_spec,
+                spec.mission.cruise_altitude_m,
+                v_c,
+                a,
+                x_ref_m=bal.x_cg_full_m,
             )
         )
 
@@ -349,7 +535,7 @@ def run_aero_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
     # branch measures the wing/body/nacelle term from the already serialized
     # OpenVSP geometry and combines it with the explicit analytical tail model.
     hybrid: dict[str, Any] | None = None
-    stability_spec = spec
+    stability_spec = analysis_spec
     if spec.solver.stability_method == "hybrid_component":
         from openair.aero.vspaero_backend import measure_hybrid_stability
 
@@ -365,7 +551,7 @@ def run_aero_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
         else:
             hybrid = {"ok": False, "reason": "missing_serialized_vsp3"}
         if hybrid.get("ok"):
-            stability_spec = spec.model_copy(deep=True)
+            stability_spec = analysis_spec.model_copy(deep=True)
             stability_spec.solver.wing_body_np_mac = float(hybrid["neutral_point_mac"])
             stability_spec.solver.wing_body_cl_alpha_per_deg = float(
                 hybrid["cl_alpha_per_deg"]
@@ -381,11 +567,11 @@ def run_aero_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
             }
         else:
             np_meas = measure_neutral_point(
-                spec, spec.mission.cruise_altitude_m, v_c, bal.x_cg_full_m
+                analysis_spec, spec.mission.cruise_altitude_m, v_c, bal.x_cg_full_m
             )
     else:
         np_meas = measure_neutral_point(
-            spec, spec.mission.cruise_altitude_m, v_c, bal.x_cg_full_m
+            analysis_spec, spec.mission.cruise_altitude_m, v_c, bal.x_cg_full_m
         )
     sm_full = (np_meas["x_np_m"] - bal.x_cg_full_m) / spec.wing.mac_m
     sm_reserve = (np_meas["x_np_m"] - bal.x_cg_reserve_m) / spec.wing.mac_m
@@ -417,15 +603,10 @@ def run_aero_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
         pass
 
     tail_enabled = spec.htail.span_m > 0.05
-    trim_gap = (
-        abs(cruise.get("tail_incidence_trim_deg", 99.0) - spec.htail.incidence_deg)
-        if tail_enabled
-        else abs(
-            cruise.get("washout_trim_deg", 99.0)
-            - (spec.wing.twist_root_deg - spec.wing.twist_tip_deg)
-        )
-    )
+    trim_values = trim_control_values(spec, cruise)
+    trim_gap = float(trim_values["gap_deg"])
     trim_ok = bool(cruise.get("trim_converged")) and trim_gap <= 1.0
+    pitch_surface = pitch_control_surface(spec)
     return {
         "ok": cruise_eng.thrust_available_n >= cruise["drag_n"]
         and dash["trimmed"]
@@ -489,6 +670,25 @@ def run_aero_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
             "tail_incidence_spec_deg": (
                 spec.htail.incidence_deg if tail_enabled else None
             ),
+            "elevon_surface_id": cruise.get("elevon_surface_id"),
+            "elevon_trim_deg": cruise.get("elevon_trim_deg"),
+            "elevon_spec_deg": (
+                float(pitch_surface.trim_deflection_deg)
+                if pitch_surface is not None and cruise.get("trim_control") == "elevon"
+                else None
+            ),
+            "elevon_neutral_measured_deg": cruise.get("elevon_neutral_measured_deg"),
+            "elevon_travel_deg": cruise.get("elevon_travel_deg"),
+            "elevon_within_travel": cruise.get("elevon_within_travel"),
+            "elevon_sign_convention": cruise.get("elevon_sign_convention"),
+            "dcm_ddelta_per_deg": cruise.get("dcm_ddelta_per_deg"),
+            "dcm_ddelta_fixed_alpha_per_deg": cruise.get(
+                "dcm_ddelta_fixed_alpha_per_deg"
+            ),
+            "dcl_ddelta_fixed_alpha_per_deg": cruise.get(
+                "dcl_ddelta_fixed_alpha_per_deg"
+            ),
+            "twist_frozen": bool(cruise.get("twist_frozen", False)),
             "control_gap_deg": trim_gap,
             "cm_residual": cruise.get("cm_residual"),
             "cm_ac_section": cruise.get("cm_offset_section"),

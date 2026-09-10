@@ -75,6 +75,22 @@ non-claims. Do not turn calibration or post-hoc agreement into validation.
 - [14:41 — Elodin model package export](2026-08-23-1441-elodin-model-package.md): replaced copied simulation constants with a phase-bound, hash-verified low-/high-fidelity package and CG-frame GLB.
 - [18:25 — Design previews in git](2026-08-23-1825-design-previews.md): committed report/brief/chart/`elodin_package` previews so the repo shows each design's outcome without staging stage JSONs.
 
+### 2026-09-05 — Reference models
+
+- [11:30 — Reference models as measured design input](2026-09-05-1130-reference-model-grounding.md): made any triangle-mesh scan or CAD export a tool-agnostic design source, measured into schema values with tolerances and scored against every exported artifact.
+
+### 2026-09-09 — Dolphin fidelity and trim
+
+- [11:45 — Elevon pitch trim for measured tailless airframes](2026-09-09-1145-elevon-pitch-trim.md): added an opt-in elevon pitch-trim control (frozen twist, travel-bounded OAS solve, thin-airfoil seed, VSPAERO cross-check) and closed the scan-grounded Dolphin at 12/12 gates.
+- [12:06 — VSPAERO derivative quality and shared flap theory](2026-09-09-1206-vspaero-derivatives-flap-theory.md): removed solver-noise-dominated finite differences and the complementary flap-angle bug, re-fit Diana 2 on training evidence, and proved the repair on the Dolphin and four-design smoke suite.
+- [14:15 — Measured fin-root attachment](2026-09-09-1415-measured-fin-attachment.md): made fin placement explicitly derived or measured, honoured the Dolphin scan junction, and reduced fin p95 from 20–21 mm to 3–4 mm.
+- [19:27 — Multi-section measured wing planforms](2026-09-09-1927-multi-section-wing-planform.md): replaced the Dolphin's geometry-only equivalent trapezoid with one measured section source shared by OpenVSP, OAS, Studio, and QA, raising top/front IoU to 0.968/0.899 and re-closing at 12/12 gates.
+
+### 2026-09-10 — Artifact continuity and publishing
+
+- [00:56 — Fin shoulder fairing and buried roots](2026-09-10-0056-fin-shoulder-fairing.md): represented the Dolphin's measured aft shoulder, continued both fin roots into it, replaced a permissive slab attachment check with local containment, and re-closed at 12/12 gates.
+- [09:58 — GitHub Pages design-review site](2026-09-10-0958-github-pages-site.md): assembled the committed preview subset into a professional, fail-closed static index and native Pages deployment without rerunning solvers.
+
 ## Adding an entry
 
 Create one file at the time the work closes. Prefer one durable decision or

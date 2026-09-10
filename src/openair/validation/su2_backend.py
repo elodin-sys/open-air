@@ -283,6 +283,7 @@ def run_su2(cfg: Path, cwd: Path) -> dict[str, Any]:
 def run_su2_stage(
     spec: VehicleSpec, outdir: Path, cruise: dict, dash: dict
 ) -> dict[str, Any]:
+    spec.assert_cross_model_invariants()
     outdir.mkdir(parents=True, exist_ok=True)
     mesh = build_2d_airfoil_mesh(spec, outdir)
     results: dict[str, Any] = {"mesh": str(mesh), "kind": "2d_naca_euler"}

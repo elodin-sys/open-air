@@ -28,6 +28,7 @@ failures preserved as regression doctrine.
 | [10 — pytest & stage contracts](10-pytest-stage-contracts.md) | tests and JSON contracts | pytest 9.1 | all |
 | [11 — Environment](11-environment.md) | uv, .deb extraction, micromamba | — | setup |
 | [12 — Truth validation](12-truth-validation.md) | external evidence, scorecards, claims | this repo | truth |
+| [13 — Reference models](13-reference-models.md) | scans/CAD meshes as measured design input | trimesh 5 | initialize-aero, geometry |
 
 ## The one rule
 

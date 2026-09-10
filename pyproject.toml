@@ -20,6 +20,7 @@ dependencies = [
     "pydantic>=2",
     "pyyaml",
     "pandas",
+    "pillow>=10",
     "markdown-it-py>=3",
     "trimesh>=5.0.0",
 ]

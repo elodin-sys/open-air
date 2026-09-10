@@ -153,12 +153,8 @@ def fin_trailing_edge_overhang_m(spec: VehicleSpec) -> float:
     half_span = 0.5 * spec.wing.span_m
     if abs(fin.y_root_m) > 0.5 * spec.fuselage.max_width_m:
         eta = min(abs(fin.y_root_m) / max(half_span, 1e-9), 1.0)
-        wing_le = spec.wing.x_le_root_m + abs(fin.y_root_m) * math.tan(
-            math.radians(spec.wing.le_sweep_deg)
-        )
-        wing_chord = spec.wing.root_chord_m + eta * (
-            spec.wing.tip_chord_m - spec.wing.root_chord_m
-        )
+        wing_le = spec.wing.x_le_at(eta)
+        wing_chord = spec.wing.chord_at(eta)
         return root_te - (wing_le + wing_chord)
 
     tip_te = (

@@ -47,25 +47,68 @@ CAD kernel — components overlap unless you run CompGeom.
 [`src/openair/geometry/openvsp_model.py`](../../src/openair/geometry/openvsp_model.py)
 builds fuselage (XSec width/height rescale via `GetXSec` +
 `SetXSecWidthHeight`; explicit stations may use split super-ellipses with
-independent side/top/bottom powers), the swept wing (driver group
-SPAN/ROOTC/TIPC, LE sweep, NACA camber/thickness on `XSecCurve_0/1`), twin
-canted fins (wings yawed 90° with symmetry off), exports `.vsp3` + STL +
+independent side/top/bottom powers and a shifted maximum-width location),
+optional measured body-fairing lofts, the swept wing (driver group
+SPAN/ROOTC/TIPC, LE sweep, NACA camber/thickness on its XSec curves), twin
+canted fins plus non-lifting buried root extensions (wings yawed 90° with
+symmetry off), exports `.vsp3` + STL +
 DegenGeom + MassProp, and then **verifies itself**: section type/dimensions/
 exponents and planform parm read-back plus an STL bounding-box check. Runtime
 paths come from
 [`src/openair/paths.py`](../../src/openair/paths.py) (extracted `.deb` under
 `tools/openvsp`, extra libs under `tools/libs`).
 
+`wing.sections` is the measured-reproduction alternative to one trapezoid.
+It carries 3–12 centreline-to-tip stations (`eta`, chord, LE x/z, optional
+t/c). The builder inserts one WING XSec per station, sets a driver group on
+every panel, and derives each panel's physical span, LE sweep, and dihedral
+from adjacent stations. `WingSpec` integrates the sections for gross projected
+area, MAC, and MAC locus; scalar root/taper/sweep/dihedral are validated
+equivalent descriptors, not a second geometry source. OpenVSP 3.51 leaves
+`XSec_1.Area` stale after insertion, so the builder deliberately nudges and
+restores `WingGeom.TotalSpan` before write. Per-panel read-back and reopening
+the VSP3 both guard against the silent rescaling that otherwise occurs.
+
+Fin placement is explicit in `vtail.root_attachment`.
+`derived` (default) preserves the historical close-set rule at 60% of the
+smallest body half-section under the full root chord. `measured` uses
+`vtail.y_root_m/z_root_m` exactly (mirrored to ±y for twin fins), records both
+the selected and would-be derived coordinates in
+`geometry.json .openvsp.fin_attach`. If the visible root is not buried in the
+core body or a measured `fuselage.fairings` loft in a source-locked
+reproduction, the helper continues its
+LE/TE lines inboard along the cant plane until LE/mid/TE are all inside the
+represented union at section eccentricity ≤ 0.8, then adds a 5 mm margin.
+That `vtail*_root` WING is serialized and exported but omitted from every
+VSPAERO lifting set. A root that cannot be buried within half the declared
+fin span fails closed. OpenVSP construction, restricted GUI import, and the
+Studio preview all use this policy.
+Non-reproduction designs retain the historical root with no auxiliary
+extension; mesh truth may still reject a detached source.
+
+`fuselage.fairings` is available only to measured reproductions. Each fairing
+uses 4–8 point/ellipse/split-super-ellipse stations in the main fuselage x/L
+frame. `max_width_loc=-1` puts maximum width at the lower edge, forming a dome
+whose base overlaps the wing/body union. OpenVSP FUSELAGE endpoints are fixed
+at local 0/1, so the builder gives each fairing a local length/x transform and
+reconstructs global x/L from the **actual read-back transform and length**.
+All eight quadrant
+interpolation strengths are pinned to zero so point caps cannot overshoot.
+
 ## Check your work
 
 1. `geometry.json .openvsp.readback.matches_spec == true` and `rel_err` all
-   ≤ 0.02. If read-back fails, a `_set` call silently missed.
+   ≤ 0.02. For `planform_mode: sections`, also require
+   `wing_sections.matches` and every panel row `matches`. If read-back fails,
+   a `_set` call silently missed.
 2. `stl_bbox.size_xyz_m`: y-extent ≈ span (±10%), x-extent ≈ fuselage length.
 3. `errors` array: read it. Queued errors name the exact parm that failed.
 4. MassProp default density is 1.0 — `Total_Mass` is a volume proxy, not
    kilograms, unless densities were assigned. Do not quote it as mass.
 5. Re-open the written `.vsp3` (`ReadVSPFile`) and re-run read-back when
    touching the builder — proves the artifact matches the in-memory model.
+   This is mandatory for a multi-section wing because stale aggregate area can
+   rescale its panels only when the file is reopened.
 6. `mesh_checks` (in `geometry.json .openvsp.mesh_checks`): per-component
    STL extents (wing span horizontal, fin span vertical = span·cos(cant)),
    whole-model height computed from the spec, and root-section attachment.
@@ -73,6 +116,25 @@ paths come from
    by root/tip twist; otherwise valid pitch-control twist is mistaken for a
    vertical wing (audit F18). All checks must pass; then look at
    `threeview.png` (rendered from the mesh).
+6b. Fin roots: confirm `fin_attach.mode` is the declared mode. For
+   `measured`, read-back y/z must equal the spec exactly and
+   `fin_*_attached` must pass against the authoritative core-body/fairing
+   union. If `extension_required`, require
+   `vtail_root_extensions_match`, every buried LE/mid/TE eccentricity ≤ 0.8,
+   zero extension-tip/visible-root junction gap (including signed centerline
+   or cross-centerline roots), and component STLs `fin_*_root`. The UAV
+   proximity floor is 10 mm (scaling
+   to 0.2% of fuselage length), not the former blanket 60 mm. For fairings
+   also require station/interpolation read-back and
+   `fairing_*_contained`: at least 95% of the lower boundary is inside the
+   independent local core-body or wing solid by the reported 2 mm margin.
+   `root_section_eccentricity`
+   remains disclosure against the nominal core section at visible root LE.
+7. `reference_fidelity` (present when the concept has a measured reference
+   model, chapter 13): point-sampled p95 deviation and silhouette IoU of the
+   exported mesh against the aligned scan, with `reference_overlay.png`.
+   Departures must be explainable by documented unrepresentable features,
+   never by measurement error.
 
 ## Known lies
 
@@ -87,6 +149,21 @@ paths come from
   every later "component" file silently contains it.
 - A "successful" build with a wrong wing: every setter failed silently
   (audit F11). Read-back is the only guard for values, mesh checks for choices.
+- A schema value can be real and still be ignored: before F34,
+  `vtail.y_root_m/z_root_m` round-tripped in YAML while construction silently
+  replaced them with the 60%-body heuristic. Any measured attachment must
+  opt into `root_attachment: measured`; its read-back and mesh attachment are
+  separate checks.
+- A broad axial vertex slab is not a local attachment section. Before F36, a
+  ±0.12 m slab and 60 mm proximity floor let the Dolphin's visibly floating
+  fins pass because wider forward fuselage rings inflated the inferred
+  section. Use schema-section containment at the root x and the
+  length-scaled proximity floor; include measured fairing/root-extension
+  components in the tested union.
+- Inserting wing XSecs and reading every requested chord back correctly does
+  not prove the saved wing is stable. OpenVSP 3.51 can retain the original
+  `XSec_1.Area`/`TotalArea`, then rescale all panels on reopen. Force the
+  aggregate-span recomputation and test the reopened VSP3 (audit F35).
 - `geometry.json` in the first run pointed at `_degen.csv`, a file that never
   existed — the analysis writes `_DegenGeom.csv`.
 - `ok: true` used to mean only "a .vsp3 file exists"; it now requires

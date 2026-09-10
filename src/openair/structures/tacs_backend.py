@@ -239,6 +239,7 @@ def _msh_to_bdf(msh_path: str, bdf_path: Path, spec: VehicleSpec) -> None:
 
 
 def run_tacs_stage(spec: VehicleSpec, outdir: Path, lift_n: float) -> dict[str, Any]:
+    spec.assert_cross_model_invariants()
     mesh_info = wingbox_shell_mesh(spec, outdir, spec.solver.gmsh_lc_m)
     tacs = run_tacs_static(spec, outdir, mesh_info, load_n=lift_n)
     beam_modal = run_modal_analysis(spec)

@@ -1,0 +1,438 @@
+# AtomRC Dolphin V1.1 source-locked reproduction from a 3D scan. SI units.
+# Datum (open-air frame, guidebook chapter 13): x=0 at the scanned nose tip,
+# positive aft; y=0 on the fitted symmetry plane, +y right; z=0 at the nose-tip
+# centre, +z up; the x axis is parallel to the wing ROOT chord line (the
+# measurement-form leveling reference), which sat 1.91 deg nose-up in the
+# scan's own frame. Geometry values are measured from reference/reference.json
+# unless brief.md says otherwise.
+name: atomrc-dolphin-v1-1
+notes: >-
+  Reproduction of the stock 845 mm AtomRC Dolphin V1.1 measured from a 3D scan
+  of the airframe (reference/reference.json, sha256 701272c3...; 1.70 M faces,
+  0.83 mm effective resolution) plus the installed-component brief. The
+  measured 11-section wing loft preserves the forward-swept outer panel,
+  root blend/deck extension, rounded tip, and tip droop; its gross projected
+  area is 0.1668 m^2 and the scalar taper/sweep/dihedral are exact
+  area/MAC-locus-equivalent descriptors. Airfoil camber is the NACA
+  four-digit fit of six scanned sections; section-local loft t/c is inferred
+  from their measured mean to preserve absolute thickness through root/deck
+  chord extensions. Twist is measured on the root-chord datum after rotating the
+  scanned +3.0 deg trailing-edge-up elevon position back to neutral. Body
+  stations are measured core sections except the two shoulder stations noted
+  in brief.md, where the plan-view width of the canopy-plus-shoulder blend is
+  used because the single body loft cannot represent a T-shaped section. Fins
+  are twin outward-canted plates measured at 39.0 deg cant, rooted at the
+  measured deck/strake junction y +/-0.062 m and z +0.0496 m. Propulsion
+  (2307 motor +
+  ESC) is an internal aft package; the pusher disk is not lofted. Mass
+  0.889 kg and CG 0.419 m are the owner's bench measurements (2026-09-09,
+  flight configuration, single readings); they replace the 1.30 kg / 0.40 m
+  v3-brief estimate. Elevon hinge (80.5% chord) and span (eta 0.37-0.97) are
+  measured from the scan; the +/-30 deg travel is the owner's measurement
+  (2026-09-09). Pitch trim is closed by the elevons with the measured twist
+  frozen (mission.pitch_trim_control: elevon); the serialized
+  trim_deflection_deg is the solver's cruise trim, not a measurement, and the
+  flown trimmed neutral was not measured (the scan caught the elevons at
+  +3.0 deg trailing-edge up with unknown transmitter trims).
+
+sketch:
+  treatment: reproduction
+  hard_scale: 1.0
+  fidelity_weight: 1.0
+  span_over_length: 1.1933
+  span_over_length_tol: 0.010
+  root_over_length: 0.3653
+  root_over_length_tol: 0.0149
+  le_sweep_deg: -12.07
+  le_sweep_tol_deg: 2.0
+  taper: 0.5093
+  taper_tol: 0.0615
+  x_le_root_over_length: 0.5718
+  x_le_root_over_length_tol: 0.0139
+  payload_bay_x_lo_m: 0.165
+  payload_bay_x_hi_m: 0.215
+  fin_span_m: 0.119
+  fin_span_tol_m: 0.004
+  fin_root_chord_m: 0.107
+  fin_root_chord_tol_m: 0.004
+  fin_le_sweep_deg: 29.4
+  fin_le_sweep_tol_deg: 1.0
+  fin_cant_deg: 39.0
+  fin_cant_tol_deg: 1.0
+  fin_x_le_m: 0.5426
+  fin_x_le_tol_m: 0.004
+
+engine:
+  name: AtomRC 2307 1800KV + Exceed BLS 30A + Gemfan Flash 7042 pusher (placeholder thrust)
+  energy_source: electric
+  diameter_m: 0.028
+  length_m: 0.060
+  dry_mass_kg: 0.0445
+  installation: internal
+  installation_count: 1
+  x_m: 0.680
+  lateral_offset_m: 0.0
+  # Thrust axis: centre of the scanned tail cap (station x/L 1.0), root-chord datum.
+  z_m: 0.024
+  # Wide-bound placeholder: momentum-theory bound at the 20 A pack limit,
+  # NOT a measured static thrust. Excluded from validation claims.
+  max_thrust_sl_n: 10.0
+  fuel_flow_max_kg_s: 0.0
+  thrust_lapse_k_mach: 0.0
+  thrust_lapse_floor: 1.0
+  tsfc_part_a: 1.0
+  tsfc_part_b: 0.0
+  tsfc_mach_k: 0.0
+  min_throttle: 0.30
+  fuel_density_kg_m3: 800.0
+  nacelle_frontal_cd: 0.08
+
+wing:
+  span_m: 0.8496
+  root_chord_m: 0.2601
+  # Exact area/MAC-locus-equivalent descriptors for the measured sections.
+  taper: 0.5093
+  le_sweep_deg: -12.07
+  dihedral_deg: -1.91
+  twist_root_deg: 1.6
+  twist_tip_deg: 0.5
+  # Uniform measured-mean OAS/wingbox thickness; OpenVSP/Studio use inferred
+  # absolute-thickness-preserving section overrides below.
+  t_over_c: 0.1004
+  airfoil: "1209"
+  x_le_root_m: 0.4071
+  z_root_m: 0.0245
+  # Measured planform after excluding |y| < 0.0705 m body-contaminated slabs.
+  # The centreline is the robust straight-band carry-through; intermediate
+  # stations retain the root blend/deck extension and rounded/drooped tip.
+  # Their t/c values are inferred loft controls, not additional airfoil cuts.
+  sections:
+    - eta: 0.0
+      chord_m: 0.2601
+      x_le_m: 0.4071
+      z_le_m: 0.0245
+      t_over_c: 0.1004
+    - eta: 0.169494
+      chord_m: 0.3818
+      x_le_m: 0.3134
+      z_le_m: 0.0189
+      t_over_c: 0.0612
+    - eta: 0.193035
+      chord_m: 0.3351
+      x_le_m: 0.3527
+      z_le_m: 0.0189
+      t_over_c: 0.0686
+    - eta: 0.216575
+      chord_m: 0.2880
+      x_le_m: 0.3757
+      z_le_m: 0.0198
+      t_over_c: 0.0785
+    - eta: 0.251887
+      chord_m: 0.2317
+      x_le_m: 0.3832
+      z_le_m: 0.0196
+      t_over_c: 0.0951
+    - eta: 0.298968
+      chord_m: 0.2162
+      x_le_m: 0.3885
+      z_le_m: 0.0208
+      t_over_c: 0.0985
+    - eta: 0.769785
+      chord_m: 0.1302
+      x_le_m: 0.3771
+      z_le_m: 0.0161
+      t_over_c: 0.1004
+    - eta: 0.887489
+      chord_m: 0.1248
+      x_le_m: 0.3575
+      z_le_m: 0.0134
+      t_over_c: 0.0946
+    - eta: 0.934570
+      chord_m: 0.1012
+      x_le_m: 0.3718
+      z_le_m: 0.0128
+      t_over_c: 0.1004
+    - eta: 0.993422
+      chord_m: 0.0436
+      x_le_m: 0.4217
+      z_le_m: 0.0071
+      t_over_c: 0.1004
+    - eta: 1.0
+      chord_m: 0.0368
+      x_le_m: 0.4281
+      z_le_m: 0.0055
+      t_over_c: 0.1004
+
+fuselage:
+  length_m: 0.712
+  max_width_m: 0.150
+  max_height_m: 0.107
+  nose_fine_ratio: 0.22
+  tail_fine_ratio: 0.28
+  payload_bay_length_m: 0.105
+  payload_bay_width_m: 0.050
+  payload_bay_height_m: 0.050
+  payload_bay_x_m: 0.190
+  fuel_tank_x_m: 0.30
+  # Stations: measured core sections with fitted split super-ellipse powers
+  # (reference.json .measurements.stations), except x/L 0.47 (plan-view
+  # canopy-plus-shoulder width, powers inferred) and x/L 0.8931 (width from
+  # the smoothed body profile; strake/fin junction). See brief.md section 5.
+  stations:
+    - x_over_length: 0.0
+      width_m: 0.0
+      height_m: 0.0
+      z_offset_m: 0.0
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.0983
+      width_m: 0.089
+      height_m: 0.065
+      z_offset_m: 0.015
+      side_power: 2.75
+      top_power: 1.03
+      bottom_power: 2.86
+    - x_over_length: 0.316
+      width_m: 0.118
+      height_m: 0.107
+      z_offset_m: 0.0316
+      side_power: 3.0
+      top_power: 0.89
+      bottom_power: 1.17
+    - x_over_length: 0.47
+      width_m: 0.150
+      height_m: 0.100
+      z_offset_m: 0.033
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+    - x_over_length: 0.6531
+      width_m: 0.141
+      height_m: 0.082
+      z_offset_m: 0.0248
+      side_power: 1.92
+      top_power: 2.61
+      bottom_power: 0.64
+    - x_over_length: 0.7621
+      width_m: 0.099
+      height_m: 0.071
+      z_offset_m: 0.0211
+      side_power: 3.67
+      top_power: 4.71
+      bottom_power: 0.66
+    - x_over_length: 0.8931
+      width_m: 0.095
+      height_m: 0.059
+      z_offset_m: 0.020
+      side_power: 2.44
+      top_power: 4.07
+      bottom_power: 2.0
+    - x_over_length: 1.0
+      width_m: 0.045
+      height_m: 0.048
+      z_offset_m: 0.0237
+      side_power: 1.05
+      top_power: 3.44
+      bottom_power: 6.33
+  # Fin-free scan envelope of the aft deck/shoulder. This auxiliary loft is
+  # geometry-fidelity only: it is excluded from packing, drag, mass, OAS, and
+  # VSPAERO. Ingest penetrates the measured support skin by up to 4.0 mm and
+  # adds a 6.6 mm hidden skirt. The geometry checkpoint then moves only that
+  # hidden base by -0.5..+2.5 mm (visible top/width unchanged) so at least
+  # 95% lies 2 mm inside the declared wing/body solids.
+  fairings:
+    - name: aft_shoulder
+      role: shoulder
+      stations:
+        - x_over_length: 0.7444
+          width_m: 0.0
+          height_m: 0.0
+          z_offset_m: 0.0568
+          side_power: 2.0
+          top_power: 2.0
+          bottom_power: 2.0
+          max_width_loc: 0.0
+        - x_over_length: 0.7514
+          width_m: 0.1438
+          height_m: 0.0334
+          z_offset_m: 0.0400
+          side_power: 1.88
+          top_power: 1.93
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.7655
+          width_m: 0.1490
+          height_m: 0.0314
+          z_offset_m: 0.0400
+          side_power: 2.02
+          top_power: 1.52
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.7795
+          width_m: 0.1438
+          height_m: 0.0340
+          z_offset_m: 0.0378
+          side_power: 1.76
+          top_power: 2.20
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.7936
+          width_m: 0.1488
+          height_m: 0.0325
+          z_offset_m: 0.0376
+          side_power: 1.91
+          top_power: 1.55
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.8919
+          width_m: 0.1339
+          height_m: 0.0347
+          z_offset_m: 0.0319
+          side_power: 0.92
+          top_power: 2.36
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.9130
+          width_m: 0.1393
+          height_m: 0.0350
+          z_offset_m: 0.0314
+          side_power: 1.09
+          top_power: 1.38
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.9200
+          width_m: 0.0
+          height_m: 0.0
+          z_offset_m: 0.0489
+          side_power: 2.0
+          top_power: 2.0
+          bottom_power: 2.0
+          max_width_loc: 0.0
+
+vtail:
+  count: 2
+  root_attachment: measured
+  span_m: 0.119
+  root_chord_m: 0.107
+  taper: 0.559
+  le_sweep_deg: 29.4
+  cant_deg: 39.0
+  t_over_c: 0.129
+  x_le_m: 0.5426
+  # Measured root junction at the deck/strake edge. Use it exactly; the
+  # buried root extension continues into the measured shoulder/body union;
+  # exported-mesh attachment QA verifies the serialized STL (brief sections 5/7).
+  y_root_m: 0.062
+  z_root_m: 0.0496
+
+htail:
+  span_m: 0.0
+  root_chord_m: 0.10
+  taper: 0.50
+  le_sweep_deg: 0.0
+  t_over_c: 0.10
+  x_le_m: 0.60
+  z_m: 0.02
+  incidence_deg: 0.0
+
+mission:
+  endurance_s: 1.0
+  endurance_required: false
+  payload_kg: 0.0
+  cruise_altitude_m: 100.0
+  dash_altitude_m: 100.0
+  cruise_mach: 0.0530
+  # CL = 8.7181 N / (196.55 Pa x 0.1668 m^2) at the inferred 18 m/s reference speed.
+  cruise_cl: 0.2660
+  dash_mach_cap: 0.11
+  limit_positive_g: 4.0
+  limit_negative_g: -2.0
+  safety_factor: 1.5
+  static_margin_min: 0.03
+  static_margin_max: 0.10
+  reserve_fuel_fraction: 0.0
+  cl_max: 1.0
+  cl_max_basis: aircraft
+  stall_speed_max_mps: 12.0
+  # Tailless with measured (frozen) twist: the elevons close cruise pitch trim.
+  pitch_trim_control: elevon
+
+flight_dynamics:
+  enabled: false
+  reference_airspeed_mps: 18.0
+  reference_altitude_m: 100.0
+  control_surfaces:
+    - id: elevon
+      host: wing
+      # Hinge line resolved at 80.5 % chord (spread 0.065 c) between the
+      # first and last scan stations with a hinge step (reference.json
+      # .measurements.control_surface: eta 0.370-0.970, 72 of 142 stations).
+      span_start_fraction: 0.37
+      span_end_fraction: 0.97
+      chord_fraction: 0.195
+      # Owner measurement 2026-09-09: full travel +30 deg (trailing edge up)
+      # and -30 deg (trailing edge down) at the servo end points.
+      max_up_deg: 30.0
+      max_down_deg: 30.0
+      # Flown trimmed neutral not measured; the scan caught the surfaces at
+      # +3.0 deg trailing-edge up with unknown transmitter trims.
+      neutral_deg: null
+      # Analysis deflection (TE up positive). Starts at the as-scanned
+      # position; the reproduction closure replaces it with the OAS cruise
+      # trim solution in results/<concept>/optimized/design.yaml.
+      trim_deflection_deg: 3.0
+      source: >-
+        hinge/span/chord from reference/reference.json (3D scan, 2026-09-05);
+        travel +/-30 deg measured by the owner 2026-09-09
+      mixing:
+        - id: elevator
+          mode: collective
+          axis: pitch
+          gain: 1.0
+        - id: aileron
+          mode: differential
+          axis: roll
+          gain: 1.0
+
+structures:
+  fem_model_type: wingbox
+  spar_thickness_m: 0.0012
+  skin_thickness_m: 0.0008
+  tube_radius_m: 0.006
+  tube_thickness_m: 0.0012
+  wing_weight_ratio: 1.20
+  # 15 spanwise nodes (8 per half-span) so the elevon edges at eta 0.37/0.97
+  # are resolved; elevon trim moved <0.5 deg between 15 and 31 nodes.
+  n_spanwise: 15
+  n_chordwise: 3
+  material:
+    name: Assumed quasi-isotropic CFRP-equivalent for carbon-reinforced EPP
+    E_pa: 3.5e10
+    nu: 0.30
+    yield_pa: 2.5e8
+    density_kg_m3: 1600.0
+
+mass:
+  fuel_mass_kg: 0.0
+  fuel_mass_mode: fixed
+  # Bench-measured flight configuration (owner, 2026-09-09): 889 g total,
+  # balance point 419 mm aft of the nose tip.
+  operating_empty_mass_kg: 0.889
+  operating_empty_cg_x_m: 0.419
+  systems_kg: 0.0
+  landing_gear_fraction: 0.0
+  avionics_kg: 0.0
+  contingency_fraction: 0.0
+
+solver:
+  oas_with_viscous: true
+  oas_with_wave: false
+  optimize_maxiter: 25
+  optimize_tol: 1.0e-4
+  fd_step: 1.0e-3
+  vspaero_wake_iters: 8
+  su2_maxiter: 200
+  gmsh_lc_m: 0.05
+  np_shift_mac: 0.04305
+  cm_washout_per_deg: 0.00362

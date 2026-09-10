@@ -21,6 +21,7 @@
         sidePower: number(station.side_power, 2),
         topPower: number(station.top_power, 2),
         bottomPower: number(station.bottom_power, 2),
+        maxWidthLoc: number(station.max_width_loc, 0),
       }));
     }
     const fractions = [0, .25, .5, .75, 1];
@@ -34,6 +35,7 @@
       sidePower: 2,
       topPower: 2,
       bottomPower: 2,
+      maxWidthLoc: 0,
     }));
   }
 
@@ -63,6 +65,13 @@
 
   function finAttachment(design) {
     const fin = design.vtail;
+    const count = Math.round(number(fin.count, 2));
+    if (fin.root_attachment === "measured") {
+      return {
+        y: count === 1 ? 0 : Math.abs(number(fin.y_root_m)),
+        z: number(fin.z_root_m),
+      };
+    }
     const x = number(fin.x_le_m);
     const root = Math.max(number(fin.root_chord_m), .01);
     const sections = [
@@ -71,7 +80,7 @@
       interpolateBody(design, x + root),
     ];
     return {
-      y: Math.round(number(fin.count, 2)) === 1
+      y: count === 1
         ? 0
         : .3 * Math.min(...sections.map(section => section.width)),
       z: Math.min(...sections.map(section => section.z + .3 * section.height)),
@@ -126,6 +135,12 @@
     return [null];
   }
 
+  function scalarWingInstances(design) {
+    return Array.isArray(design.wing.sections) && design.wing.sections.length >= 3
+      ? []
+      : [null];
+  }
+
   function stationInstances(design) {
     return Array.isArray(design.fuselage.stations)
       ? design.fuselage.stations.map((_, index) => index)
@@ -139,7 +154,7 @@
   registerHandle({
     id: "wing-root-le",
     view: "top",
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => [wingGeometry(design).xRoot, 0],
     drag: (design, [x]) => [
       {path: "wing.x_le_root_m", value: round(clamp(x, 0, number(design.fuselage.length_m)))},
@@ -148,7 +163,7 @@
   registerHandle({
     id: "wing-root-te",
     view: "top",
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => {
       const wing = wingGeometry(design);
       return [wing.xRoot + wing.root, 0];
@@ -161,7 +176,7 @@
     id: "wing-tip-le",
     view: "top",
     dragGain: .45,
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => {
       const wing = wingGeometry(design);
       return [wing.xTip, wing.halfSpan];
@@ -181,7 +196,7 @@
     id: "wing-tip-te",
     view: "top",
     dragGain: .45,
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => {
       const wing = wingGeometry(design);
       return [wing.xTip + wing.tip, wing.halfSpan];
@@ -360,7 +375,7 @@
   registerHandle({
     id: "wing-dihedral",
     view: "front",
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => {
       const wing = wingGeometry(design);
       return [
@@ -462,7 +477,7 @@
   registerHandle({
     id: "wing-z-root",
     view: "side",
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => [number(design.wing.x_le_root_m), number(design.wing.z_root_m)],
     drag: (_design, [, z]) => [{path: "wing.z_root_m", value: round(z)}],
   });

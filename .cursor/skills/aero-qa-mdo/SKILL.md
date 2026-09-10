@@ -31,6 +31,12 @@ Non-negotiables for this repo:
 - Constraints must be smooth (no booleans/steps) and scaled to order 1
   (`ref=`); balance constraints apply at full AND reserve fuel; stall and
   trim-control-gap constraints stay in.
+- Reproduction closure may change exactly one trim control: `htail.incidence_deg`
+  or, for `pitch_trim_control: elevon`, the pitch surface's
+  `trim_deflection_deg` (seeded from the thin-airfoil closed form, replaced by
+  the OAS `elevon_trim_deg`, must stay 0.5° inside the travel). Twist is never
+  a reproduction control; `_REPRODUCTION_ALLOWED_CHANGES` in
+  `reporting/gates.py` is the whitelist and supports `"*"` list wildcards.
 - After any change, re-evaluate the optimized YAML through
   `evaluate_design` and confirm it reproduces the recorded metrics.
 - "Positive directional derivative for linesearch" = SLSQP stuck, not done:

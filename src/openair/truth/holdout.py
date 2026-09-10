@@ -225,7 +225,14 @@ def load_consumed_scorecard(
     *,
     required: bool = True,
 ) -> tuple[dict[str, Any], dict[str, Any]] | None:
-    """Load a hash-pinned historical scorecard without touching live artifacts."""
+    """Load a hash-pinned consumed scorecard without touching live artifacts.
+
+    Multiple post-change attempts may coexist. With a live ``candidate_path``
+    select the archive whose hash matches that candidate; otherwise return the
+    most recently consumed attempt. Every archive is hash- and ledger-checked
+    before one is selected, so adding a revalidation cannot hide tampering of
+    an earlier primary claim.
+    """
     payload = _load_access_log()
     matches = [
         item
@@ -237,26 +244,44 @@ def load_consumed_scorecard(
     ]
     if not matches and not required:
         return None
-    if len(matches) != 1:
-        raise ValueError(
-            f"{case_id}: expected one archived consumed scorecard, found {len(matches)}"
+    if not matches:
+        raise FileNotFoundError(f"{case_id}: no archived consumed scorecard")
+
+    validated: list[tuple[dict[str, Any], dict[str, Any], str]] = []
+    for attempt in matches:
+        raw_path = Path(str(attempt["scorecard_path"]))
+        if raw_path.is_absolute() or ".." in raw_path.parts:
+            raise ValueError(f"{case_id}: unsafe frozen scorecard path")
+        archive = (TRUTH_DIR / raw_path).resolve()
+        archive.relative_to(TRUTH_DIR.resolve())
+        expected = str(attempt["scorecard_sha256"])
+        if not archive.is_file() or archive.is_symlink():
+            raise FileNotFoundError(f"{case_id}: frozen scorecard archive is missing")
+        if sha256_file(archive) != expected:
+            raise ValueError(f"{case_id}: frozen scorecard checksum mismatch")
+        validated.append(
+            (_bound_scorecard(case_id, attempt, archive), attempt, expected)
         )
-    attempt = matches[0]
-    raw_path = Path(str(attempt["scorecard_path"]))
-    if raw_path.is_absolute() or ".." in raw_path.parts:
-        raise ValueError(f"{case_id}: unsafe frozen scorecard path")
-    archive = (TRUTH_DIR / raw_path).resolve()
-    archive.relative_to(TRUTH_DIR.resolve())
-    expected = str(attempt["scorecard_sha256"])
-    if not archive.is_file() or archive.is_symlink():
-        raise FileNotFoundError(f"{case_id}: frozen scorecard archive is missing")
-    if sha256_file(archive) != expected:
-        raise ValueError(f"{case_id}: frozen scorecard checksum mismatch")
-    archived_scorecard = _bound_scorecard(case_id, attempt, archive)
+
     if candidate_path is not None:
-        if sha256_file(candidate_path) != expected:
-            raise ValueError(f"{case_id}: live scorecard differs from frozen claim")
+        candidate_sha = sha256_file(candidate_path)
+        selected = [item for item in validated if item[2] == candidate_sha]
+        if len(selected) != 1:
+            raise ValueError(
+                f"{case_id}: live scorecard does not identify exactly one "
+                "frozen claim"
+            )
+        archived_scorecard, attempt, _ = selected[0]
         _bound_scorecard(case_id, attempt, candidate_path)
+        return archived_scorecard, attempt
+
+    archived_scorecard, attempt, _ = max(
+        validated,
+        key=lambda item: (
+            str(item[1].get("consumed_at") or ""),
+            str(item[1].get("id") or ""),
+        ),
+    )
     return archived_scorecard, attempt
 
 

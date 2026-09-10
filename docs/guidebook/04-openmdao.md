@@ -80,8 +80,17 @@ The sized fallback remains a diagnostic evaluated through the same
 one deterministic closure, measures the delivered neutral point from the
 same-geometry OAS `dCM/dCL`, and inverts only the low-order
 `solver.np_shift_mac` constant before serializing the result. That solver
-calibration and a bounded tail-incidence trim closure are the only permitted
-changes; geometry, mass, mission, and propulsion inputs remain frozen.
+calibration and one bounded trim closure are the only permitted changes;
+geometry, mass, mission, and propulsion inputs remain frozen. The closure is
+tail incidence when a horizontal tail exists, or — when
+`mission.pitch_trim_control: elevon` is declared — the `trim_deflection_deg`
+of the wing control surface carrying the collective pitch group, seeded from
+the thin-airfoil closed form and then replaced by the OAS `elevon_trim_deg`
+(rounded to 1e-4°) before the final verify. Twist is never a closure
+control for a reproduction. `mdo.json .reference_closure` records
+`allowed_control` (`htail_incidence` or `elevon_deflection`), the frozen
+coordinate list, and `twist_frozen`; the gate diff
+(`_REPRODUCTION_ALLOWED_CHANGES`) whitelists exactly those paths.
 
 After branch selection, weights 2.0/1.0/0.25 are recorded in
 `fidelity_sweep`; weight 1.0 is delivered. Every soft-prior departure receives

@@ -25,12 +25,13 @@ If the resolved concept directory does not exist:
 1. Do not copy the template or create the concept directory from this skill.
    Offer both supported bootstrap paths:
 
-   - For an intent plus requirement documents/sketches, invoke the dedicated
-     initializer so it measures, authors, and runs the bounded geometry
-     checkpoint:
+   - For an intent plus requirement documents, sketches, and optionally a
+     reference 3D model (a triangle mesh of the real aircraft), invoke the
+     dedicated initializer so it measures, authors, and runs the bounded
+     geometry checkpoint:
 
      ```text
-     /initialize-aero <name> "<intent>" @requirements.md @sketches
+     /initialize-aero <name> "<intent>" @requirements.md @sketches @reference.stl
      ```
 
    - For direct visual authoring, start the schema-driven Studio:
@@ -71,6 +72,11 @@ pipeline:
 2. Confirm `design.yaml .sketch` contains those measured targets and
    tolerances. A non-reference planform must not inherit the template
    envelope.
+   When `wing.sections` is present, require
+   `sketch.treatment: reproduction`, 3–12 strictly increasing eta stations
+   from 0 to 1, and scalar root/taper/sweep/dihedral values matching
+   `WingSpec.equivalent_trapezoid`. The measured sections—not the scalar
+   trapezoid—must drive OpenVSP, OAS, and Studio.
 3. Run the baseline geometry checkpoint:
 
    ```bash
@@ -86,9 +92,31 @@ pipeline:
    input-shape error. In autonomous `inspiration` mode this is an automated
    evidence checkpoint, not a request for user approval: require geometry
    truth and the hard identity bound, then let MDO repair soft-prior mistakes.
-5. Require the concept inputs (`brief.md`, `design.yaml`, and sketches) to be
-   committed before the full run. If they are uncommitted, stop and ask the
-   user to commit them or explicitly authorize a commit.
+5. When the concept carries a reference model
+   (`designs/<name>/reference/reference.json`, guidebook chapter 13), the
+   baseline checkpoint must also show
+   `results/<name>/baseline/geometry.json .reference_fidelity.ok == true`
+   (mandatory for `reproduction`; disclosed for other treatments), and you
+   must open `results/<name>/baseline/reference_overlay.png`. Departures are
+   acceptable only where the brief lists the feature as unrepresentable. For
+   a sectioned wing, also read `geometry.json .wing.planform_mode`,
+   `.openvsp.readback.wing_sections`, and
+   `.reference_fidelity.disclosed.p95_model_to_reference_exposed_components_m.wing`;
+   this is model-to-reference only. Do not
+   mistake the buried centreline carry-through's component p95 for exposed
+   shape error.
+   When `fuselage.fairings` is present, also require
+   `.openvsp.readback.fairings_match`,
+   `.openvsp.readback.vtail_root_extensions_match`,
+   `mesh_checks` rows `fairing_*_contained` and `fin_*_attached`, and
+   `.reference_fidelity.checks.p95_body.basis == "fuselage + measured fairing components"`.
+   Fairings and `fin_*_root` are loft-only/non-lifting. The fairing remains
+   in body-union fidelity; verify only buried-root components are marked
+   excluded from component fidelity.
+6. Require the concept inputs (`brief.md`, `design.yaml`, sketches, and
+   `reference/`) to be committed before the full run. If they are
+   uncommitted, stop and ask the user to commit them or explicitly authorize a
+   commit.
 
 ## Run an existing concept
 
@@ -139,6 +167,11 @@ the optimized three-view image, and links to:
 - `results/<name>/report.html`
 - `results/<name>/executive_brief.pdf`
 - `results/<name>/optimized/design.yaml`
+
+When publishing a new committed preview, add its curated title, summary, kind,
+and optional featured status to `site/designs.yaml`. The Pages build is
+deliberately fail-closed when that manifest and the
+`results/*/report.html` set differ.
 
 To make the delivered geometry the explicit source for another iteration, use
 `python -m openair promote <name> <new-name>`; never copy generated YAML over

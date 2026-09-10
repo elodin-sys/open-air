@@ -17,11 +17,11 @@
       "rms_residual": 0.0034263352856831455
     },
     "linearization": {
-      "CL0": 0.056353340543981,
-      "CL_alpha_per_rad": 6.645217021589064,
-      "Cm0": 0.14900873597963493,
-      "Cm_alpha_per_rad": -1.8788433349029887,
-      "cm_residual": -0.0006139763959259609,
+      "CL0": 0.05635308480398227,
+      "CL_alpha_per_rad": 6.645220232969105,
+      "Cm0": 0.14900848117646398,
+      "Cm_alpha_per_rad": -1.8788401352868946,
+      "cm_residual": -0.0006139763959264397,
       "coefficient_reference": {
         "angles": "radians",
         "area": "main-wing planform (122.41 m^2)",
@@ -34,20 +34,20 @@
       "reference_alpha_deg": 4.562780610370641,
       "reference_altitude_m": 10668.0,
       "reference_beta_deg": 0.0,
-      "reference_cg_x_m": 14.336653531613832,
+      "reference_cg_x_m": 14.336653531613829,
       "trim_control": "tail_incidence",
-      "trim_control_value_deg": -2.105027376552151
+      "trim_control_value_deg": -2.1050273765521528
     },
     "polar_asset": "aero_tables.npz",
     "validity_component_required": true
   },
   "concept": "ceras-csr01",
-  "created_at": "2026-08-24T01:23:31+00:00",
+  "created_at": "2026-09-10T15:28:11+00:00",
   "credibility": "geometry-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
     "body_origin_in_geometry_m": [
-      14.336653531613832,
+      14.336653531613829,
       0.0,
       0.0
     ],
@@ -65,7 +65,7 @@
         -1.0,
         0.0,
         0.0,
-        14.336653531613832
+        14.336653531613829
       ],
       [
         0.0,
@@ -103,7 +103,7 @@
     "aero_tables": {
       "path": "aero_tables.npz",
       "role": "aerodynamic_lookup_tables",
-      "sha256": "1be76c7408b5c4e21e62212f902508cb551cee2b5aa24d36ac16bcba27095709",
+      "sha256": "6df1805db9cc65d2922d1cba63e8d16aaff14117619e674e3df72cc4740b9c95",
       "size_bytes": 2139
     },
     "geometry_component_engine_pod_1": {
@@ -121,8 +121,8 @@
     "geometry_component_fin_c": {
       "path": "geometry/component_fin_c.stl",
       "role": "verified_geometry_component_fin_c",
-      "sha256": "c966bc5bfe25ad9b51ada9ea75e6a0fe1b3c90857e398d96d650ebd2e8f0d46e",
-      "size_bytes": 163860
+      "sha256": "47d272e992c295a70726087456b9ef75d894c9e7cf9d980c5049d0d0d149129e",
+      "size_bytes": 163859
     },
     "geometry_component_fuselage": {
       "path": "geometry/component_fuselage.stl",
@@ -133,8 +133,8 @@
     "geometry_component_htail": {
       "path": "geometry/component_htail.stl",
       "role": "verified_geometry_component_htail",
-      "sha256": "c7839d2a982f193a925152f35c5c3493d4752792097a5f1eae1230edf548e9b7",
-      "size_bytes": 257508
+      "sha256": "e4c875759f8504c6382ba7e16446775c28fb0bc4615b7db5b2a09f25de7099f0",
+      "size_bytes": 257509
     },
     "geometry_component_wing": {
       "path": "geometry/component_wing.stl",
@@ -145,19 +145,19 @@
     "geometry_vsp3": {
       "path": "geometry/ceras-csr01.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "ef4c89a84e7d8aeed48f0a76191e3cff6d4b29ab2c72220c5631d205b1afa48f",
+      "sha256": "9f921de2a1c2a32cd95c405afcf6bd3af94cffb1ba60171cc342b2c5d872f942",
       "size_bytes": 279410
     },
     "geometry_whole_stl": {
       "path": "geometry/ceras-csr01.stl",
       "role": "verified_geometry_whole_stl",
-      "sha256": "4a3844b0f9ee1e507677429d6bf268f27f8ed1bac58e6b2ff297de018d434af8",
+      "sha256": "e9601a17939356fb14b9ea34b7aa06bc413f64bc6950b422339280d46cca2808",
       "size_bytes": 1331855
     },
     "integration_guide": {
       "path": "integration_guide.md",
       "role": "integration_guide",
-      "sha256": "ff342e4d4c31fe8679ac4a2777ea3e40b1776efcf85790f4876bc20029f3751c",
+      "sha256": "ff6ade88b6f0aaa93040bae244aaa75d4faff67cd8a2c9e6880e7c7aa47daee3",
       "size_bytes": 4735
     },
     "propulsion_map": {
@@ -169,13 +169,13 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "0372ed5ba8f65193d102a924a675d53c551ebfe9c2c373db7d535fcb417ca446",
+      "sha256": "47314c40f711d7561336f785d5fed5bbadaa8a1c03baeff1efc7474cfadff027",
       "size_bytes": 897
     },
     "render_glb": {
       "path": "ceras-csr01.glb",
       "role": "render_mesh_body_frame",
-      "sha256": "62de0506cf97d373b98af1719252f7f8197f617ed207ba21d2a8b8950f7fc4c6",
+      "sha256": "8be4c58d1f78377eeec0919197ee35ba10e815ed2b87ea309798767a3684a002",
       "size_bytes": 66212
     },
     "trim_map": {
@@ -192,7 +192,7 @@
       0.0
     ],
     "cg_geometry_m": [
-      14.336653531613832,
+      14.336653531613829,
       0.0,
       0.0
     ],
@@ -258,8 +258,8 @@
     },
     "validation": {
       "ok": false,
-      "passed": 10,
-      "total": 11
+      "passed": 11,
+      "total": 12
     }
   },
   "phase": "baseline",
@@ -342,7 +342,7 @@
     "provisional": false,
     "provisional_reason": null,
     "thrust_application_body_m": {
-      "x_m": 2.926653531613832,
+      "x_m": 2.9266535316138285,
       "y_m": 0.0,
       "z_m": -1.85
     },
@@ -366,16 +366,16 @@
       "propulsion": "C",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "a29cbe01221a4d05ef8633f91ce4ca144f29d89828e4dd8aa63e8352a6c6b122",
-    "pipeline_run_id": "9911022c16c240ada0b146cd4c345e03",
-    "source_git_commit": "65f48ec93494dc737e36e3501ba31f03bb5e47b6",
+    "model_source_sha256": "a6c8dc1d3141d433abd3ddb0b298720d1b6b71757f18b7aae87dad693f92dc19",
+    "pipeline_run_id": "b199e86f46db403a973a1af251f14ccf",
+    "source_git_commit": "8c951c09aaa43af77e8b2148c2385894de5d3e5b",
     "upstream_sha256": {
-      "aero.json": "745c30b63d40d8a7c949c9ffc0985e175da6de762e37990ea8358ea4c7daa0e8",
-      "geometry.json": "43e48e5626ba890440c65505074ebd035684923c4e68947f568ba7f616211cb3",
+      "aero.json": "e7e9387905caa76e51f712377a34624f74ca9a9bcd839034b68205ce0794779f",
+      "geometry.json": "0c8d14f0124b75bbbe49f6da483cf2abfe21bd6901d6494427bc5c0a4bbcbb9d",
       "mass_breakdown.json": "8786ff0b5b37a78bad1bf379162ad1ef477d3f5bbe1c2648aab4907ff78d8b10",
-      "sizing.json": "20c0449354f175a2f762dc5225f79df3c0b2e1bb637ce0c48d984e573ddce231",
-      "structures.json": "b4e27f107609f936bce4aba9054269017979465b6a2d24bf64c4a8bd523311f9",
-      "validation.json": "daaab6122da4d2dd72f61fa974a202e84fe5aa836763d1097938c137db171261"
+      "sizing.json": "87fbdf26eaf9047db33df28bb5f097ec9873cc1696a537af5c0ef9dc72bf4bd5",
+      "structures.json": "772f62090c9d11db139966f8feb2907cc0585dcc3cb6cc08aadcb1338006ef01",
+      "validation.json": "a1a9d1c31e0ff9e7e54c084c7639814d50bce3ff9c74254e7aa00565ea0f20dc"
     }
   },
   "reference_geometry": {
@@ -383,6 +383,7 @@
     "aspect_ratio": 9.482598643901643,
     "evidence_class": "C",
     "fuselage": {
+      "fairings": null,
       "fuel_tank_x_m": 14.0,
       "length_m": 37.49,
       "max_height_m": 4.14,
@@ -396,6 +397,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 0.0,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 0.0,
@@ -405,6 +407,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 3.1,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 2.7,
@@ -414,6 +417,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 4.14,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 3.95,
@@ -423,6 +427,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 4.05,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 3.9,
@@ -432,6 +437,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 2.8,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 2.2,
@@ -441,6 +447,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 0.0,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 0.0,
@@ -479,6 +486,7 @@
       "cant_deg": 0.0,
       "count": 1,
       "le_sweep_deg": 40.0,
+      "root_attachment": "derived",
       "root_chord_m": 5.6,
       "span_m": 6.86,
       "t_over_c": 0.1,
@@ -495,6 +503,7 @@
       "le_sweep_deg": 25.0,
       "mac_m": 4.180000000000001,
       "root_chord_m": 6.108488762310252,
+      "sections": null,
       "span_m": 34.07,
       "t_over_c": 0.12,
       "taper": 0.17636198300988576,

@@ -1,0 +1,50 @@
+designs:
+  - slug: atomrc-dolphin-v1-1
+    title: AtomRC Dolphin V1.1
+    summary: >-
+      Scan-grounded reproduction with measured mass and CG, an eleven-section
+      wing loft, buried fin roots, and travel-bounded elevon pitch trim.
+    kind: reproduction
+    featured: true
+
+  - slug: bdx
+    title: Elite Aerosports BDX
+    summary: >-
+      Provisional parametric sport-jet reconstruction traced from an
+      orthographic family drawing and photo cross-checks.
+    kind: inspiration
+
+  - slug: gtm-t2
+    title: NASA GTM T-2
+    summary: >-
+      Source-locked reconstruction of NASA's 5.5-percent AirSTAR Generic
+      Transport Model with equivalent twin-engine propulsion.
+    kind: reproduction
+
+  - slug: ntnu-x8
+    title: NTNU Skywalker X8
+    summary: >-
+      Source-only flying-wing reconstruction with recorded flight-dynamics
+      evidence and phase-bound simulator delivery artifacts.
+    kind: reproduction
+
+  - slug: diana2
+    title: Baudismodel Diana 2
+    summary: >-
+      One-third-scale sailplane reconstruction with flexible-response
+      evidence and an explicit record of its validation boundary.
+    kind: reproduction
+
+  - slug: ceras-csr01
+    title: CeRAS CSR-01
+    summary: >-
+      Full-scale transport reconstruction publishing geometry, aerodynamics,
+      and propulsion while preserving the recorded wingbox-closure allowance.
+    kind: reproduction
+
+  - slug: openair-x8-capstone
+    title: Open-air X8 Capstone
+    summary: >-
+      Sealed 2026-08-22 NTNU X8 holdout artifact retained as a frozen report;
+      it has no mutable design source or regenerable package in this revision.
+    kind: sealed holdout

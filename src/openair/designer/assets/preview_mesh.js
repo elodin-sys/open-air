@@ -21,7 +21,31 @@
       sidePower: 2,
       topPower: 2,
       bottomPower: 2,
+      maxWidthLoc: 0,
     }));
+  }
+
+  function profileFromStations(stations, length) {
+    return stations.map(station => ({
+      x: number(station.x_over_length) * length,
+      width: Math.max(number(station.width_m), 0),
+      height: Math.max(number(station.height_m), 0),
+      z: number(station.z_offset_m),
+      sidePower: number(station.side_power, 2),
+      topPower: number(station.top_power, 2),
+      bottomPower: number(station.bottom_power, 2),
+      maxWidthLoc: number(station.max_width_loc, 0),
+    }));
+  }
+
+  function fairingProfiles(design) {
+    const length = Math.max(number(design.fuselage.length_m), .01);
+    return (Array.isArray(design.fuselage.fairings) ? design.fuselage.fairings : [])
+      .filter(fairing => Array.isArray(fairing.stations) && fairing.stations.length >= 2)
+      .map(fairing => ({
+        name: fairing.name,
+        profile: profileFromStations(fairing.stations, length),
+      }));
   }
 
   function sectionPolygon(section, samples = 256) {
@@ -31,6 +55,10 @@
     const sidePower = Math.max(number(section.sidePower, 2), .01);
     const topPower = Math.max(number(section.topPower, 2), .01);
     const bottomPower = Math.max(number(section.bottomPower, 2), .01);
+    const maxWidthLoc = Math.min(Math.max(number(section.maxWidthLoc, 0), -1), 1);
+    const maxWidthZ = zCenter + .5 * height * maxWidthLoc;
+    const topHeight = .5 * height * (1 - maxWidthLoc);
+    const bottomHeight = .5 * height * (1 + maxWidthLoc);
     const signedPower = (value, power) => (
       Math.abs(value) < 1e-12 ? 0 : Math.sign(value) * Math.abs(value) ** (2 / power)
     );
@@ -39,8 +67,9 @@
       const cosine = Math.cos(angle);
       const sine = Math.sin(angle);
       const verticalPower = sine >= 0 ? topPower : bottomPower;
+      const verticalHeight = sine >= 0 ? topHeight : bottomHeight;
       const y = .5 * width * signedPower(cosine, sidePower);
-      const z = zCenter + .5 * height * signedPower(sine, verticalPower);
+      const z = maxWidthZ + verticalHeight * signedPower(sine, verticalPower);
       return [y, z];
     });
   }
@@ -52,7 +81,8 @@
     const sidePower = number(section.sidePower, 2);
     const topPower = number(section.topPower, 2);
     const bottomPower = number(section.bottomPower, 2);
-    if (sidePower === 2 && topPower === 2 && bottomPower === 2) {
+    const maxWidthLoc = number(section.maxWidthLoc, 0);
+    if (sidePower === 2 && topPower === 2 && bottomPower === 2 && maxWidthLoc === 0) {
       const semiA = .5 * width;
       const semiB = .5 * height;
       const h = ((semiA - semiB) / (semiA + semiB)) ** 2;
@@ -119,8 +149,7 @@
     return {positions, normals, triangle, quad};
   }
 
-  function loftFuselage(design, collector) {
-    const profile = bodyProfile(design);
+  function loftStationBody(profile, collector) {
     const segments = 48;
     const rings = profile.map(section => sectionPolygon(section, segments).map(
       point => [section.x, point[0], point[1]],
@@ -147,6 +176,13 @@
     }
   }
 
+  function loftFuselage(design, collector) {
+    loftStationBody(bodyProfile(design), collector);
+    fairingProfiles(design).forEach(fairing => {
+      loftStationBody(fairing.profile, collector);
+    });
+  }
+
   function sectionPoint(section, xFraction, surface) {
     const thickness = nacaThickness(xFraction, section.tOverC) * section.chord;
     const camber = nacaCamber(xFraction, section.airfoil) * section.chord;
@@ -160,7 +196,7 @@
     ];
   }
 
-  function loftSurface(collector, root, tip) {
+  function loftSurface(collector, root, tip, {capRoot = true, capTip = true} = {}) {
     const chordSegments = 16;
     const upperRoot = [];
     const upperTip = [];
@@ -180,13 +216,43 @@
     }
     collector.quad(upperRoot[0], lowerRoot[0], lowerTip[0], upperTip[0]);
     collector.quad(upperTip.at(-1), lowerTip.at(-1), lowerRoot.at(-1), upperRoot.at(-1));
-    collector.quad(upperRoot.at(-1), lowerRoot.at(-1), lowerRoot[0], upperRoot[0]);
-    collector.quad(upperTip[0], lowerTip[0], lowerTip.at(-1), upperTip.at(-1));
+    if (capRoot) {
+      collector.quad(upperRoot.at(-1), lowerRoot.at(-1), lowerRoot[0], upperRoot[0]);
+    }
+    if (capTip) {
+      collector.quad(upperTip[0], lowerTip[0], lowerTip.at(-1), upperTip.at(-1));
+    }
   }
 
   function loftWing(design, collector) {
     const wing = design.wing;
     const halfSpan = .5 * Math.max(number(wing.span_m), .01);
+    if (Array.isArray(wing.sections) && wing.sections.length >= 3) {
+      [-1, 1].forEach(side => {
+        const sections = wing.sections.map(section => {
+          const eta = Math.min(Math.max(number(section.eta), 0), 1);
+          return {
+            xLe: number(section.x_le_m),
+            y: side * eta * halfSpan,
+            z: number(section.z_le_m),
+            chord: Math.max(number(section.chord_m), .001),
+            twist: number(wing.twist_root_deg)
+              + eta * (number(wing.twist_tip_deg) - number(wing.twist_root_deg)),
+            tOverC: Math.max(number(section.t_over_c ?? wing.t_over_c), .001),
+            airfoil: wing.airfoil,
+          };
+        });
+        for (let index = 0; index < sections.length - 1; index += 1) {
+          loftSurface(
+            collector,
+            sections[index],
+            sections[index + 1],
+            {capRoot: index === 0, capTip: index === sections.length - 2},
+          );
+        }
+      });
+      return;
+    }
     const rootChord = Math.max(number(wing.root_chord_m), .01);
     const tipChord = rootChord * Math.max(number(wing.taper), .001);
     const rootX = number(wing.x_le_root_m);
@@ -261,9 +327,124 @@
         sidePower: left.sidePower + fraction * (right.sidePower - left.sidePower),
         topPower: left.topPower + fraction * (right.topPower - left.topPower),
         bottomPower: left.bottomPower + fraction * (right.bottomPower - left.bottomPower),
+        maxWidthLoc: left.maxWidthLoc + fraction * (right.maxWidthLoc - left.maxWidthLoc),
       };
     }
     return profile.at(-1);
+  }
+
+  function sectionEccentricity(section, y, z) {
+    if (section.width <= 0 || section.height <= 0) return Infinity;
+    const maxWidthLoc = Math.min(Math.max(number(section.maxWidthLoc, 0), -1), 1);
+    const maxWidthZ = section.z + .5 * section.height * maxWidthLoc;
+    const relativeZ = z - maxWidthZ;
+    const lateral = Math.abs(y / (.5 * section.width)) ** number(section.sidePower, 2);
+    if (Math.abs(relativeZ) <= 1e-12) return lateral;
+    const verticalHeight = relativeZ > 0
+      ? .5 * section.height * (1 - maxWidthLoc)
+      : .5 * section.height * (1 + maxWidthLoc);
+    if (verticalHeight <= 1e-12) return Infinity;
+    const verticalPower = relativeZ > 0
+      ? number(section.topPower, 2)
+      : number(section.bottomPower, 2);
+    return lateral + Math.abs(relativeZ / verticalHeight) ** verticalPower;
+  }
+
+  function minBodyEccentricity(design, x, y, z) {
+    const profiles = [
+      {name: "fuselage", profile: bodyProfile(design)},
+      ...fairingProfiles(design),
+    ];
+    let minimum = Infinity;
+    let support = null;
+    profiles.forEach(item => {
+      if (
+        item.name !== "fuselage"
+        && (x < item.profile[0].x - 1e-12 || x > item.profile.at(-1).x + 1e-12)
+      ) return;
+      const eccentricity = sectionEccentricity(interpolateProfile(item.profile, x), y, z);
+      if (eccentricity < minimum) {
+        minimum = eccentricity;
+        support = item.name;
+      }
+    });
+    return {minimum, support};
+  }
+
+  function rootGeometryAtExtension(design, baseY, baseZ, extension) {
+    const tail = design.vtail;
+    const span = Math.max(number(tail.span_m), .01);
+    const rootChord = Math.max(number(tail.root_chord_m), .01);
+    const tanLE = Math.tan(radians(tail.le_sweep_deg));
+    const tanTE = (
+      span * tanLE + rootChord * number(tail.taper) - rootChord
+    ) / span;
+    const buriedY = baseY - extension * Math.sin(radians(tail.cant_deg));
+    const buriedZ = baseZ - extension * Math.cos(radians(tail.cant_deg));
+    const xLe = number(tail.x_le_m) - extension * tanLE;
+    const chord = rootChord + extension * (tanLE - tanTE);
+    const stations = [xLe, xLe + .5 * chord, xLe + chord].map(x => ({
+      x,
+      ...minBodyEccentricity(design, x, buriedY, buriedZ),
+    }));
+    const tipJunctionGap = Math.hypot(
+      xLe + extension * tanLE - number(tail.x_le_m),
+      buriedY + extension * Math.sin(radians(tail.cant_deg)) - baseY,
+      buriedZ + extension * Math.cos(radians(tail.cant_deg)) - baseZ,
+    );
+    return {
+      extension,
+      xLe,
+      y: buriedY,
+      z: buriedZ,
+      chord,
+      stations,
+      tipJunctionGap,
+      buried: stations.every(station => station.minimum <= .8),
+    };
+  }
+
+  function finRootGeometry(design) {
+    const tail = design.vtail;
+    const rootX = number(tail.x_le_m);
+    const rootChord = Math.max(number(tail.root_chord_m), .01);
+    const core = bodyProfile(design);
+    const attachmentSections = [
+      interpolateProfile(core, rootX),
+      interpolateProfile(core, rootX + .5 * rootChord),
+      interpolateProfile(core, rootX + rootChord),
+    ];
+    const count = Math.round(number(tail.count, 2)) === 1 ? 1 : 2;
+    const measured = tail.root_attachment === "measured";
+    const baseY = count === 1
+      ? 0
+      : measured
+        ? Math.abs(number(tail.y_root_m))
+        : .3 * Math.min(...attachmentSections.map(section => section.width));
+    const baseZ = measured
+      ? number(tail.z_root_m)
+      : Math.min(...attachmentSections.map(section => section.z + .3 * section.height));
+    const visible = rootGeometryAtExtension(design, baseY, baseZ, 0);
+    const reproduction = design.sketch?.treatment === "reproduction";
+    if (visible.buried || !reproduction) {
+      return {...visible, baseY, baseZ, extensionRequired: false};
+    }
+    const maximum = .5 * Math.max(number(tail.span_m), .01);
+    let firstInside = null;
+    for (let extension = .001; extension <= maximum + 1e-12; extension += .001) {
+      const candidate = rootGeometryAtExtension(
+        design,
+        baseY,
+        baseZ,
+        Math.min(extension, maximum),
+      );
+      if (!candidate.buried) continue;
+      if (firstInside == null) firstInside = candidate.extension;
+      if (candidate.extension + 1e-12 >= firstInside + .005) {
+        return {...candidate, baseY, baseZ, extensionRequired: true};
+      }
+    }
+    throw new Error("Vertical-tail root cannot be buried within half the declared fin span.");
   }
 
   function finSectionPoint(section, xFraction, surface) {
@@ -307,41 +488,56 @@
     const tipChord = rootChord * Math.max(number(tail.taper), .001);
     const rootX = number(tail.x_le_m);
     const tipX = rootX + span * Math.tan(radians(tail.le_sweep_deg));
-    const body = bodyProfile(design);
-    const attachmentSections = [
-      interpolateProfile(body, rootX),
-      interpolateProfile(body, rootX + .5 * rootChord),
-      interpolateProfile(body, rootX + rootChord),
-    ];
+    const rootGeometry = finRootGeometry(design);
     const count = Math.round(number(tail.count, 2)) === 1 ? 1 : 2;
-    const baseY = count === 1
-      ? 0
-      : .3 * Math.min(...attachmentSections.map(section => section.width));
-    const baseZ = Math.min(
-      ...attachmentSections.map(section => section.z + .3 * section.height),
-    );
+    const baseY = rootGeometry.baseY;
+    const baseZ = rootGeometry.baseZ;
     const dy = span * Math.sin(radians(tail.cant_deg));
     const dz = span * Math.cos(radians(tail.cant_deg));
     const sides = count === 1 ? [1] : [-1, 1];
-    sides.forEach(side => loftFin(
-      collector,
-      {
+    sides.forEach(side => {
+      const normal = [
+        0,
+        -Math.cos(radians(tail.cant_deg)),
+        side * Math.sin(radians(tail.cant_deg)),
+      ];
+      if (rootGeometry.extensionRequired) {
+        loftFin(
+          collector,
+          {
+            xLe: rootGeometry.xLe,
+            y: count === 1 ? rootGeometry.y : side * rootGeometry.y,
+            z: rootGeometry.z,
+            chord: rootGeometry.chord,
+            tOverC: Math.max(number(tail.t_over_c), .001),
+            normal,
+          },
+          {
+            xLe: rootX,
+            y: side * baseY,
+            z: baseZ,
+            chord: rootChord,
+            tOverC: Math.max(number(tail.t_over_c), .001),
+            normal,
+          },
+        );
+      }
+      loftFin(collector, {
         xLe: rootX,
         y: side * baseY,
         z: baseZ,
         chord: rootChord,
         tOverC: Math.max(number(tail.t_over_c), .001),
-        normal: [0, -Math.cos(radians(tail.cant_deg)), side * Math.sin(radians(tail.cant_deg))],
-      },
-      {
+        normal,
+      }, {
         xLe: tipX,
         y: side * (baseY + dy),
         z: baseZ + dz,
         chord: tipChord,
         tOverC: Math.max(number(tail.t_over_c), .001),
-        normal: [0, -Math.cos(radians(tail.cant_deg)), side * Math.sin(radians(tail.cant_deg))],
-      },
-    ));
+        normal,
+      });
+    });
   }
 
   function statsFor(design, positions) {
@@ -369,6 +565,7 @@
       profile[0],
     );
     const dominantMetrics = sectionMetrics(dominantSection);
+    const rootGeometry = finRootGeometry(design);
     return {
       finite,
       triangles: positions.length / 9,
@@ -386,7 +583,11 @@
         side: dominantSection.sidePower,
         top: dominantSection.topPower,
         bottom: dominantSection.bottomPower,
+        maxWidthLoc: dominantSection.maxWidthLoc,
       },
+      fairingCount: fairingProfiles(design).length,
+      finRootExtensionM: rootGeometry.extension,
+      finRootTipJunctionGapM: rootGeometry.tipJunctionGap,
     };
   }
 
@@ -425,6 +626,10 @@
       design.wing.twist_tip_deg = -12 + 16 * random();
       design.vtail.cant_deg = 45 * random();
       design.vtail.span_m = .2 + .8 * random();
+      // Randomized envelope dimensions do not preserve a source-measured
+      // fin junction. Exercise the generic attachment policy in this property
+      // harness; measured-root parity is covered by deterministic fixtures.
+      design.vtail.root_attachment = "derived";
       if (Array.isArray(design.fuselage.stations)) {
         design.fuselage.stations.forEach((station, stationIndex, stations) => {
           const envelope = Math.sin(Math.PI * stationIndex / (stations.length - 1));
@@ -455,6 +660,8 @@
     build,
     nacaThickness,
     propertyHarness,
+    fairingProfiles,
+    finRootGeometry,
     sectionMetrics,
     sectionPolygon,
   });

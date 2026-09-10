@@ -12,6 +12,7 @@ import pytest
 from conftest import FORWARD_SWEPT_DESIGN
 from openair.cli import load_spec
 from openair.designer import build_design_studio
+from openair.geometry.fin_attachment import fin_attachment
 from openair.geometry.fuselage import fuselage_section_shape, section_area_m2
 from openair.geometry.mesh_checks import read_stl_vertices
 from openair.geometry.openvsp_model import VSP_LOCK, _try_import_vsp, write_vsp3
@@ -148,6 +149,114 @@ def _single_fin_spec() -> VehicleSpec:
     return spec
 
 
+def _measured_fin_spec() -> VehicleSpec:
+    spec = _station_spec()
+    spec.name = "preview-measured-fin"
+    spec.sketch = {
+        "treatment": "reproduction",
+        "span_over_length": spec.wing.span_m / spec.fuselage.length_m,
+        "root_over_length": spec.wing.root_chord_m / spec.fuselage.length_m,
+        "le_sweep_deg": spec.wing.le_sweep_deg,
+        "taper": spec.wing.taper,
+    }
+    derived = fin_attachment(spec)
+    spec.vtail.root_attachment = "measured"
+    spec.vtail.y_root_m = derived["y_m"] + 0.02
+    spec.vtail.z_root_m = derived["z_m"] + 0.01
+    return spec
+
+
+def _fairing_spec() -> VehicleSpec:
+    source = _station_spec()
+    data = source.model_dump(mode="json", exclude_computed_fields=True)
+    data["name"] = "preview-fairing"
+    data["sketch"] = {
+        "treatment": "reproduction",
+        "span_over_length": source.wing.span_m / source.fuselage.length_m,
+        "root_over_length": source.wing.root_chord_m / source.fuselage.length_m,
+        "le_sweep_deg": source.wing.le_sweep_deg,
+        "taper": source.wing.taper,
+    }
+    data["fuselage"]["fairings"] = [
+        {
+            "name": "aft_shoulder",
+            "role": "shoulder",
+            "stations": [
+                {
+                    "x_over_length": 0.50,
+                    "width_m": 0.0,
+                    "height_m": 0.0,
+                    "z_offset_m": 0.05,
+                },
+                {
+                    "x_over_length": 0.58,
+                    "width_m": 0.26,
+                    "height_m": 0.10,
+                    "z_offset_m": 0.07,
+                    "max_width_loc": -1.0,
+                },
+                {
+                    "x_over_length": 0.72,
+                    "width_m": 0.18,
+                    "height_m": 0.07,
+                    "z_offset_m": 0.08,
+                    "max_width_loc": -0.8,
+                },
+                {
+                    "x_over_length": 0.78,
+                    "width_m": 0.0,
+                    "height_m": 0.0,
+                    "z_offset_m": 0.07,
+                },
+            ],
+        }
+    ]
+    return VehicleSpec.model_validate(data)
+
+
+def _sectioned_wing_spec() -> VehicleSpec:
+    source = _station_spec()
+    data = source.model_dump(mode="json", exclude_computed_fields=True)
+    data["name"] = "preview-sectioned-wing"
+    sections = [
+        {"eta": 0.0, "chord_m": 1.15, "x_le_m": 0.85, "z_le_m": 0.0},
+        {
+            "eta": 0.3,
+            "chord_m": 1.05,
+            "x_le_m": 0.72,
+            "z_le_m": -0.02,
+            "t_over_c": 0.11,
+        },
+        {"eta": 0.78, "chord_m": 0.62, "x_le_m": 1.0, "z_le_m": -0.08},
+        {
+            "eta": 1.0,
+            "chord_m": 0.22,
+            "x_le_m": 1.18,
+            "z_le_m": -0.12,
+            "t_over_c": 0.08,
+        },
+    ]
+    equivalent = source.wing.equivalent_trapezoid(sections, source.wing.span_m)
+    data["sketch"] = {
+        "treatment": "reproduction",
+        "span_over_length": source.wing.span_m / source.fuselage.length_m,
+        "root_over_length": sections[0]["chord_m"] / source.fuselage.length_m,
+        "le_sweep_deg": equivalent["le_sweep_deg"],
+        "taper": equivalent["taper"],
+    }
+    for field in (
+        "root_chord_m",
+        "taper",
+        "le_sweep_deg",
+        "dihedral_deg",
+        "x_le_root_m",
+        "z_root_m",
+    ):
+        data["wing"].pop(field)
+    data["wing"]["sections"] = sections
+    return VehicleSpec.model_validate(data)
+
+
 @pytest.mark.parametrize(
     ("case", "spec_factory"),
     [
@@ -156,6 +265,9 @@ def _single_fin_spec() -> VehicleSpec:
         ("station-loft", _station_spec),
         ("blade-bubble", _blade_bubble_spec),
         ("single-fin", _single_fin_spec),
+        ("measured-fin", _measured_fin_spec),
+        ("fairing", _fairing_spec),
+        ("sectioned-wing", _sectioned_wing_spec),
     ],
 )
 def test_preview_mesh_matches_openvsp_readback_and_stl_bbox(
@@ -172,11 +284,17 @@ def test_preview_mesh_matches_openvsp_readback_and_stl_bbox(
     assert result["ok"], result
 
     readback = result["readback"]
+    attachment = fin_attachment(spec)
     assert preview["span"] == pytest.approx(readback["span_m"], rel=0.10)
     assert preview["projectedWingArea"] == pytest.approx(
         readback["area_m2"],
         rel=0.10,
     )
+    assert preview["finRootExtensionM"] == pytest.approx(
+        attachment["root_extension_m"],
+        abs=1e-9,
+    )
+    assert preview["finRootTipJunctionGapM"] <= 1e-12
 
     stl_path = tmp_path / f"{case}.stl"
     with VSP_LOCK:
@@ -212,4 +330,9 @@ def test_preview_mesh_matches_openvsp_readback_and_stl_bbox(
             "side": 1.2,
             "top": 1.6,
             "bottom": 5.0,
+            "maxWidthLoc": 0,
         }
+    if case == "measured-fin":
+        assert preview["finRootExtensionM"] > 0.0
+    if case == "fairing":
+        assert preview["fairingCount"] == 1

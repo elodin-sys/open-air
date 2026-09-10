@@ -354,6 +354,102 @@ artifact hashes; reject stale provenance and duplicate/incomplete truth rows.
 This prevents accidental leakage and stale reporting, but a genuinely new
 validation claim still requires a separately controlled, unseen holdout.
 
+## F34 — A measured fin root was silently replaced by a heuristic
+
+The scan-grounded Dolphin stored the measured fin junction at y=±0.062 m,
+z=0.0496 m, but the OpenVSP builder never read those fields. It always placed
+twin fins at 60% of the smallest fuselage half-section under the root chord:
+y=±0.0258 m, z=0.0378 m. Read-back passed because it compared the artifact
+with the same derived value; the reference overlay alone showed both fins
+about 36 mm inboard (20–21 mm component p95). Studio import rejected the
+measured position and its JS preview duplicated the heuristic.
+**Fix:** `vtail.root_attachment` makes the choice explicit. `derived` remains
+the backward-compatible default; `measured` uses `y_root_m/z_root_m` exactly
+in the builder, GUI round-trip, and preview, while read-back and unchanged
+exported-mesh attachment checks gate it. The Dolphin fin p95 fell to 3–4 mm,
+whole-aircraft p95 from 17.7 to 13.4 mm, and front IoU from 0.664 to 0.787
+without moving source geometry or widening a band. The omitted deck/strake
+fairing remains disclosed rather than invented.
+
+## F35 — One equivalent trapezoid erased measured root and tip geometry
+
+The Dolphin scan measured a nonlinear wing-root blend/deck extension, a
+straight outer panel, and a rounded, drooped tip, but `WingSpec` and every
+geometry backend admitted only one trapezoid. The equivalent planform passed
+the old top-IoU threshold while leaving 5–13 mm excess outer-panel chord,
+about 30 mm excess tip chord, no root extension, and tips about 7 mm too high.
+After the fin repair this abstraction still dominated the face-on and top
+overlay (IoU 0.787/0.912). A second trap appeared during implementation:
+OpenVSP read every inserted panel value back correctly but retained its
+pre-insertion `XSec_1.Area`; the written VSP3 then rescaled every chord when
+reopened.
+
+**Fix:** optional `wing.sections` carries 3–12 measured centreline-to-tip
+stations and is restricted to source-locked reproductions until section-aware
+MDO variables exist. The section integral is the area/MAC source of truth;
+legacy root/taper/sweep/dihedral are validated area/MAC-locus-equivalent
+descriptors. The same interpolation drives OpenVSP, OAS, Studio, packing,
+elevon balance, and aeroelastic strips. OpenVSP gets one driver/read-back row
+per panel plus an aggregate-span nudge/restore and reopen test. Reference
+ingest mirror-averages stations, excludes the measured body width, preserves
+straight-band and tip anchors, and simplifies at a resolution-aware bound.
+The follow-up audit added z to that bound, rejects left/right z outliers,
+refuses outlines that need more than 12 stations, preserves exact measured
+tips, and requires OAS to include every retained knot with exact area parity.
+Local inferred thickness now drives tank packing and kinked elevon hinges are
+integrated panel by panel.
+
+The Dolphin's audited 11-section loft raised top/front IoU to 0.968/0.899
+(side 0.952) and gave 4.87 mm model-to-reference exposed-wing p95; full wing
+p95 remains 16.1 mm only because the component STL includes invisible
+carry-through inside the body.
+The changed gross area put generic Vv at 0.0191, so the measured fins were not
+resized: a quality-gated full-aircraft probe established `Cn_beta > 0`,
+`Cn_r < 0`, and `CY_beta < 0`. Its panelized grid also exposed residual
+0.01-degree beta differencing noise. A central ±1-degree escalation retained
+the same 0.02 noise band and reduced the relevant symmetry ratios below
+4.4e-5. Final validation is 15/15 and the twelve-gate verdict is green without
+widening geometry or stability acceptance bands.
+
+## F36 — A broad attachment slab declared visibly floating fins attached
+
+After the measured fin coordinates and sectioned wing were correct, the
+Dolphin's whole-aircraft STL still showed daylight beneath both fin roots.
+The source coordinates were not wrong: the real fin plate continues into an
+aft shoulder/deck omitted by the core-body loft. The artifact check nevertheless
+passed. It built a supposed local section from every fuselage vertex within
+±0.12 m of the root centroid—17% of this 0.712 m aircraft—so wider forward
+rings inflated the enclosure, then accepted any surface-mounted root within a
+fixed 60 mm vertex-cloud distance. The reported eccentricity 0.955 and 16.1 mm
+distance therefore hid a visible 13 mm lateral / 15–25 mm vertical gap.
+
+**Fix:** reference ingest now removes the fin plates and fits the contiguous
+aft upper-envelope excess as a reproduction-only `fuselage.fairings` loft.
+Shifted split-super-ellipse sections (`max_width_loc=-1`) form its dome; zero
+OpenVSP interpolation strengths prevent point-cap overshoot, and its
+resolution-scaled buried base must have at least 95% support two millimetres
+inside the independent local body or wing solid. Visible fit RMS and both
+dimensional and contour simplification residuals are acceptance-gated; skin
+penetration, nominal/effective skirt depth, support adjustment, and total
+burial are disclosed separately. The fin LE/TE lines continue inboard along the cant
+plane as separately named `vtail*_root` WING geoms until LE/mid/TE section
+eccentricities are ≤0.8 plus a 5 mm margin. Those geoms are serialized,
+read back, imported, previewed, and mesh-checked, but their names are absent
+from every VSPAERO/OAS lifting set and they are excluded from component
+fidelity.
+
+Post-review guards also read actual fairing transforms, verify signed
+extension-tip coincidence, reject candidate fin edits with stale root geoms,
+keep extensions reproduction-only, and preserve legacy no-fairing p95
+sampling.
+
+The Dolphin uses an eight-station measured shoulder and a 35 mm extension.
+The exported root centroid is inside the fairing/body union at eccentricity
+0.509 with 0.8–1.4 mm nearest-surface distance; fairing-base support is 99.2%.
+Reference geometry remains green (body-union p95 12.6 mm; top/side/front IoU
+0.968/0.952/0.900). No fin, wing, mass, CG, aerodynamic input, or acceptance
+band moved.
+
 ## Measured calibration constants (corrected OAS mesh, 32° swept trapezoid)
 
 - Neutral point: 25% MAC + 0.043 MAC → `np_shift_mac = 0.043`

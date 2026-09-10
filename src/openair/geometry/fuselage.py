@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from openair.schemas import VehicleSpec
+from openair.schemas import BodyFairingSpec, VehicleSpec
 
 LEGACY_XSEC_STATIONS = (0.0, 0.25, 0.50, 0.75, 1.0)
 LEGACY_XSEC_SCALES = (0.05, 0.45, 1.0, 0.90, 0.35)
@@ -22,6 +22,7 @@ class FuselageSectionShape:
     side_power: float = ELLIPSE_POWER
     top_power: float = ELLIPSE_POWER
     bottom_power: float = ELLIPSE_POWER
+    max_width_loc: float = 0.0
 
     @property
     def is_ellipse(self) -> bool:
@@ -29,7 +30,23 @@ class FuselageSectionShape:
             self.side_power == ELLIPSE_POWER
             and self.top_power == ELLIPSE_POWER
             and self.bottom_power == ELLIPSE_POWER
+            and self.max_width_loc == 0.0
         )
+
+    @property
+    def max_width_z_m(self) -> float:
+        """Vertical location of the widest point in the section."""
+        return self.z_center_m + 0.5 * self.height_m * self.max_width_loc
+
+    @property
+    def top_height_m(self) -> float:
+        """Distance from maximum width to the section top."""
+        return 0.5 * self.height_m * (1.0 - self.max_width_loc)
+
+    @property
+    def bottom_height_m(self) -> float:
+        """Distance from maximum width to the section bottom."""
+        return 0.5 * self.height_m * (1.0 + self.max_width_loc)
 
 
 def fuselage_profile(
@@ -79,28 +96,100 @@ def fuselage_section_shape(spec: VehicleSpec, x_m: float) -> FuselageSectionShap
             width = left[1] + fraction * (right[1] - left[1])
             height = left[2] + fraction * (right[2] - left[2])
             z_center = left[3] + fraction * (right[3] - left[3])
-            if stations is None:
-                powers = (ELLIPSE_POWER,) * 3
-            else:
+            if stations is not None:
                 left_station = stations[index]
                 right_station = stations[index + 1]
-                powers = tuple(
+                shape_values = tuple(
                     getattr(left_station, name)
                     + fraction
                     * (getattr(right_station, name) - getattr(left_station, name))
-                    for name in ("side_power", "top_power", "bottom_power")
+                    for name in (
+                        "side_power",
+                        "top_power",
+                        "bottom_power",
+                        "max_width_loc",
+                    )
                 )
-            return FuselageSectionShape(width, height, z_center, *powers)
+            if stations is None:
+                shape_values = (ELLIPSE_POWER,) * 3 + (0.0,)
+            return FuselageSectionShape(width, height, z_center, *shape_values)
     last = profile[-1]
     if stations is None:
-        powers = (ELLIPSE_POWER,) * 3
+        shape_values = (ELLIPSE_POWER,) * 3 + (0.0,)
     else:
-        powers = (
+        shape_values = (
             stations[-1].side_power,
             stations[-1].top_power,
             stations[-1].bottom_power,
+            stations[-1].max_width_loc,
         )
-    return FuselageSectionShape(last[1], last[2], last[3], *powers)
+    return FuselageSectionShape(last[1], last[2], last[3], *shape_values)
+
+
+def fairing_section_shape(
+    spec: VehicleSpec,
+    fairing: BodyFairingSpec,
+    x_m: float,
+) -> FuselageSectionShape:
+    """Interpolate one auxiliary body fairing, returning a point outside it."""
+    length = spec.fuselage.length_m
+    x_value = float(x_m)
+    stations = fairing.stations
+    x_first = stations[0].x_over_length * length
+    x_last = stations[-1].x_over_length * length
+    if x_value < x_first - 1e-12 or x_value > x_last + 1e-12:
+        return FuselageSectionShape(0.0, 0.0, 0.0)
+    x_clamped = min(max(x_value, x_first), x_last)
+    for left, right in zip(stations, stations[1:]):
+        left_x = left.x_over_length * length
+        right_x = right.x_over_length * length
+        if left_x <= x_clamped <= right_x:
+            dx = right_x - left_x
+            fraction = 0.0 if dx <= 0.0 else (x_clamped - left_x) / dx
+            values = [
+                getattr(left, name)
+                + fraction * (getattr(right, name) - getattr(left, name))
+                for name in (
+                    "width_m",
+                    "height_m",
+                    "z_offset_m",
+                    "side_power",
+                    "top_power",
+                    "bottom_power",
+                    "max_width_loc",
+                )
+            ]
+            return FuselageSectionShape(*values)
+    last = stations[-1]
+    return FuselageSectionShape(
+        last.width_m,
+        last.height_m,
+        last.z_offset_m,
+        last.side_power,
+        last.top_power,
+        last.bottom_power,
+        last.max_width_loc,
+    )
+
+
+def body_or_fairing_eccentricities(
+    spec: VehicleSpec,
+    x_m: float,
+    y_m: float,
+    z_m: float,
+) -> dict[str, float]:
+    """Return local section-equation values for the core and each fairing."""
+    values = {
+        "fuselage": section_eccentricity(
+            fuselage_section_shape(spec, x_m),
+            y_m,
+            z_m,
+        )
+    }
+    for fairing in spec.fuselage.fairings or []:
+        shape = fairing_section_shape(spec, fairing, x_m)
+        values[f"fairing_{fairing.name}"] = section_eccentricity(shape, y_m, z_m)
+    return values
 
 
 def section_polygon(
@@ -111,6 +200,7 @@ def section_polygon(
     side_power: float = ELLIPSE_POWER,
     top_power: float = ELLIPSE_POWER,
     bottom_power: float = ELLIPSE_POWER,
+    max_width_loc: float = 0.0,
     samples: int = 256,
 ) -> list[tuple[float, float]]:
     """Sample an OpenVSP-compatible split super-ellipse as ``(y, z)`` points."""
@@ -120,8 +210,12 @@ def section_polygon(
         )
     if min(side_power, top_power, bottom_power) <= 0.0:
         raise ValueError("section powers must be positive")
+    if not -1.0 <= max_width_loc <= 1.0:
+        raise ValueError("max_width_loc must lie in [-1, 1]")
     semi_width = 0.5 * width_m
-    semi_height = 0.5 * height_m
+    max_width_z = z_center_m + 0.5 * height_m * max_width_loc
+    top_height = 0.5 * height_m * (1.0 - max_width_loc)
+    bottom_height = 0.5 * height_m * (1.0 + max_width_loc)
     points: list[tuple[float, float]] = []
 
     def signed_power(value: float, exponent: float) -> float:
@@ -134,8 +228,9 @@ def section_polygon(
         cosine = math.cos(theta)
         sine = math.sin(theta)
         vertical_power = top_power if sine >= 0.0 else bottom_power
+        vertical_height = top_height if sine >= 0.0 else bottom_height
         y_m = semi_width * signed_power(cosine, side_power)
-        z_m = z_center_m + semi_height * signed_power(sine, vertical_power)
+        z_m = max_width_z + vertical_height * signed_power(sine, vertical_power)
         points.append((y_m, z_m))
     return points
 
@@ -176,6 +271,7 @@ def section_area_m2(shape: FuselageSectionShape, *, samples: int = 256) -> float
             side_power=shape.side_power,
             top_power=shape.top_power,
             bottom_power=shape.bottom_power,
+            max_width_loc=shape.max_width_loc,
             samples=samples,
         )
     )
@@ -202,6 +298,7 @@ def section_perimeter_m(shape: FuselageSectionShape, *, samples: int = 256) -> f
             side_power=shape.side_power,
             top_power=shape.top_power,
             bottom_power=shape.bottom_power,
+            max_width_loc=shape.max_width_loc,
             samples=samples,
         )
     )
@@ -213,14 +310,20 @@ def section_eccentricity(
     z_m: float,
 ) -> float:
     """Generalized section equation; values at or below one are inside."""
-    semi_width = max(0.5 * shape.width_m, 1e-12)
-    semi_height = max(0.5 * shape.height_m, 1e-12)
-    z_relative = z_m - shape.z_center_m
-    vertical_power = shape.top_power if z_relative >= 0.0 else shape.bottom_power
-    return (
-        abs(y_m / semi_width) ** shape.side_power
-        + abs(z_relative / semi_height) ** vertical_power
+    if shape.width_m <= 0.0 or shape.height_m <= 0.0:
+        return math.inf
+    semi_width = 0.5 * shape.width_m
+    z_relative = z_m - shape.max_width_z_m
+    lateral = abs(y_m / semi_width) ** shape.side_power
+    if abs(z_relative) <= 1e-12:
+        return lateral
+    vertical_height = (
+        shape.top_height_m if z_relative > 0.0 else shape.bottom_height_m
     )
+    if vertical_height <= 1e-12:
+        return math.inf
+    vertical_power = shape.top_power if z_relative > 0.0 else shape.bottom_power
+    return lateral + abs(z_relative / vertical_height) ** vertical_power
 
 
 def fuselage_z_bounds(spec: VehicleSpec) -> tuple[float, float]:

@@ -298,5 +298,76 @@ def test_diana_aeroelastic_model_reports_airspeed_modal_sweep():
     assert speeds == sorted(speeds)
     assert all(mode["stable"] for mode in first_modes)
     assert first_modes[-1]["reduced_frequency"] < first_modes[0]["reduced_frequency"]
-    assert model["calibration"]["force_scale"] == {"aileron": 0.55}
+    assert model["calibration"]["id"] == "diana2-training-aeroelastic-v2"
+    assert model["calibration"]["flap_effectiveness_basis"].startswith("Glauert")
+    assert model["calibration"]["force_scale"] == {"aileron": 0.73}
+    assert model["calibration"]["fit"]["frequency_and_damping_fitted"] is False
     assert model["frfs"]["aileron"]["supported"]
+
+
+def test_diana_force_scale_fit_uses_only_declared_training_gains():
+    import importlib.util
+
+    script = Path(__file__).parents[1] / "scripts" / "fit_diana2_force_scale.py"
+    module_spec = importlib.util.spec_from_file_location(
+        "fit_diana2_force_scale", script
+    )
+    assert module_spec is not None and module_spec.loader is not None
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    fit_scale = module.fit_scale
+
+    scorecard = {
+        "case_id": "diana2-training",
+        "role": "calibration",
+        "residuals": [
+            {
+                "observable": "outer_to_ro_strain_peak_gain",
+                "predicted": 10.0,
+                "truth": 8.0,
+                "uncertainty": 2.0,
+            },
+            {
+                "observable": "outer_to_ro_accel_gain_at_mode",
+                "predicted": 20.0,
+                "truth": 18.0,
+                "uncertainty": 3.0,
+            },
+            {
+                "observable": "outer_to_rm_accel_gain_at_mode",
+                "predicted": 30.0,
+                "truth": 21.0,
+                "uncertainty": 1.0,
+            },
+            {
+                "observable": "outer_to_ro_accel_bending_frequency_hz",
+                "predicted": 7.4,
+                "truth": 8.1,
+                "uncertainty": 0.5,
+            },
+        ],
+    }
+    fitted = fit_scale(scorecard, seed_scale=1.0)
+    expected = (
+        10.0 * 8.0 / 2.0**2
+        + 20.0 * 18.0 / 3.0**2
+        + 30.0 * 21.0 / 1.0**2
+    ) / (10.0**2 / 2.0**2 + 20.0**2 / 3.0**2 + 30.0**2)
+
+    assert fitted["fitted_scale_raw"] == pytest.approx(expected)
+    assert len(fitted["observables"]) == 3
+
+
+def test_diana_v1_aeroelastic_calibration_is_refused_as_superseded():
+    from openair.flightdyn.aeroelastic import _calibration
+
+    root = Path(__file__).parents[1]
+    spec = VehicleSpec.model_validate(
+        load_yaml(root / "designs" / "diana2" / "design.yaml")
+    )
+    spec.flight_dynamics.aeroelastic.calibration_id = (
+        "diana2-training-aeroelastic-v1"
+    )
+
+    with pytest.raises(ValueError, match="complement-flap"):
+        _calibration(spec)

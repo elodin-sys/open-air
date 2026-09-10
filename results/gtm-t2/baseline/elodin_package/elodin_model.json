@@ -17,10 +17,10 @@
       "rms_residual": 2.6575600343605857e-05
     },
     "linearization": {
-      "CL0": -0.046651243853642055,
-      "CL_alpha_per_rad": 5.008424611567833,
-      "Cm0": 0.19247783101554167,
-      "Cm_alpha_per_rad": -1.6804704898625231,
+      "CL0": -0.04664250953192273,
+      "CL_alpha_per_rad": 5.008348361159876,
+      "Cm0": 0.1924905031815079,
+      "Cm_alpha_per_rad": -1.6805811175512748,
       "cm_residual": -1.6482019215759147e-05,
       "coefficient_reference": {
         "angles": "radians",
@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "gtm-t2",
-  "created_at": "2026-08-24T01:23:19+00:00",
+  "created_at": "2026-09-10T15:24:48+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -145,7 +145,7 @@
     "geometry_vsp3": {
       "path": "geometry/gtm-t2.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "879e0246c3cbcc2d9c9795120afd0287948f99059edfc3696997ad3a805b1ed7",
+      "sha256": "444c4a7418ef236368b45fc2c7c40513e2110b9e1ee317a3cc5bff47a91963dd",
       "size_bytes": 262948
     },
     "geometry_whole_stl": {
@@ -157,7 +157,7 @@
     "integration_guide": {
       "path": "integration_guide.md",
       "role": "integration_guide",
-      "sha256": "d6677ebe8bfd7da07085e059bdd16d2cc995c874dbb8b176c101380368ce01be",
+      "sha256": "bf264d8057424a6ec6673c0afa4bd5296909a97245e0e749434d15cbd18d3002",
       "size_bytes": 4836
     },
     "propulsion_map": {
@@ -169,7 +169,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "f577ad2ed9dfafbc770cae848360be6ef53259405cb66cd6bdc846d38cce3d5a",
+      "sha256": "78ee2ace4771a456740fb65cad9b34ee5227aa008424f08c6bb38ac1ac4ab34e",
       "size_bytes": 989
     },
     "render_glb": {
@@ -258,8 +258,8 @@
     },
     "validation": {
       "ok": true,
-      "passed": 12,
-      "total": 12
+      "passed": 13,
+      "total": 13
     }
   },
   "phase": "baseline",
@@ -317,16 +317,16 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "a29cbe01221a4d05ef8633f91ce4ca144f29d89828e4dd8aa63e8352a6c6b122",
-    "pipeline_run_id": "e7a37fd5024a46e5a768add71c7287cf",
-    "source_git_commit": "65f48ec93494dc737e36e3501ba31f03bb5e47b6",
+    "model_source_sha256": "a6c8dc1d3141d433abd3ddb0b298720d1b6b71757f18b7aae87dad693f92dc19",
+    "pipeline_run_id": "a44a4db6dab0428d99c0f14456b7a22f",
+    "source_git_commit": "8c951c09aaa43af77e8b2148c2385894de5d3e5b",
     "upstream_sha256": {
-      "aero.json": "72d6d8f74e95fc2195d295957d04b971100ee8c8c8808c55d08ce1eaf7f6e52c",
-      "geometry.json": "5c625a134ce6ee772ace192f4dd604015606907e4c92e7a21b80c0560ebce48c",
+      "aero.json": "16825ad6befcb10d0b8f59451bd83731f0931ae2e8def0fc74575c2ee9a7d664",
+      "geometry.json": "dcf88436844d5f9024004c295867d631b8458880480c24ea9b1b47f58f128317",
       "mass_breakdown.json": "9bb6724cf3c8431495bb3ed37a56d830e68a2cd8fbc772875c03438e0d67ea26",
-      "sizing.json": "76fa45cb54b6ab70c53c941046637bb9c03ac16cc252e45d4cd9aa9cb539a368",
-      "structures.json": "34e8669dde3c3022a92be239af233a9fcdcbafe541e9ffc2b98bf07c1ae2730b",
-      "validation.json": "cd8aad0f4afb6e081d66789bdb3e0de7b4bbdd95950abdc20a1e0746a5d6fea7"
+      "sizing.json": "c3800b7d2768d880bf0f7c35e3ae528ec0ddccab4a181b5990b7512dfb86e384",
+      "structures.json": "092fa7f8bbb31c28f227302c2da9a1e6699bc9a88e8a507e616d9d4c69ef1a0b",
+      "validation.json": "852b1f4571a9bdd9e5ab24d23e9bbc38f1210722cbe721c913c1d410d26710b3"
     }
   },
   "reference_geometry": {
@@ -334,6 +334,7 @@
     "aspect_ratio": 7.947755166229314,
     "evidence_class": "C",
     "fuselage": {
+      "fairings": null,
       "fuel_tank_x_m": 1.225,
       "length_m": 2.5908,
       "max_height_m": 0.3,
@@ -375,6 +376,7 @@
       "cant_deg": 0.0,
       "count": 1,
       "le_sweep_deg": 38.0,
+      "root_attachment": "derived",
       "root_chord_m": 0.42,
       "span_m": 0.4,
       "t_over_c": 0.1,
@@ -391,6 +393,7 @@
       "le_sweep_deg": 25.0,
       "mac_m": 0.2789834399996898,
       "root_chord_m": 0.376085409793,
+      "sections": null,
       "span_m": 2.08751424,
       "t_over_c": 0.12,
       "taper": 0.396781508797,

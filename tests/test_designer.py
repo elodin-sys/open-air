@@ -314,6 +314,64 @@ def test_headless_studio_export_round_trips_through_vehicle_spec(tmp_path):
     assert "| Wing span / length |" in brief
 
 
+def test_sectioned_studio_preserves_reproduction_and_true_wing_metrics(tmp_path):
+    target = generate_design_studio(
+        "designs/atomrc-dolphin-v1-1/design.yaml",
+        output=tmp_path / "sectioned-design-studio.html",
+    )
+    dom = _headless_dom(target)
+    match = re.search(
+        r'<pre id="smoke-yaml" hidden(?:="")?>(.*?)</pre>',
+        dom,
+        re.DOTALL,
+    )
+    assert match
+    exported = yaml.safe_load(html_lib.unescape(match.group(1)))
+    spec = VehicleSpec.model_validate(exported)
+
+    assert spec.sketch is not None
+    assert spec.sketch.treatment == "reproduction"
+    assert spec.sketch.hard_scale == pytest.approx(1.0)
+    assert spec.wing.sections is not None
+    assert len(spec.wing.sections) == 11
+    assert spec.fuselage.fairings is not None
+    assert len(spec.fuselage.fairings) == 1
+    for handle_id in (
+        "wing-root-le",
+        "wing-root-te",
+        "wing-tip-le",
+        "wing-tip-te",
+        "wing-dihedral",
+        "wing-z-root",
+    ):
+        assert f'data-handle="{handle_id}"' not in dom
+    assert re.search(r'data-path="wing\.taper"[^>]* disabled', dom)
+    assert re.search(r'data-path="fuselage\.fairings"[^>]* disabled', dom)
+    assert 'class="fairing-shape"' in dom
+    assert "root-extension" in dom
+    front = re.search(
+        r'<svg id="front-view"[^>]*>(.*?)</svg>',
+        dom,
+        re.DOTALL,
+    )
+    assert front
+    assert front.group(1).count('class="fairing-shape"') == 6
+
+    brief_match = re.search(
+        r'<pre id="smoke-brief" hidden(?:="")?>(.*?)</pre>',
+        dom,
+        re.DOTALL,
+    )
+    assert brief_match
+    brief = html_lib.unescape(brief_match.group(1))
+    assert "Wing actual tip chord | 0.0368 m" in brief
+    assert "Wing equivalent tip chord | 0.1325 m" in brief
+    assert "Wing projected area | 0.1668 m²" in brief
+    assert "Wing mean aerodynamic chord | 0.2293 m" in brief
+    assert "### Measured body fairings" in brief
+    assert "Fin buried root extension | 0.0350 m" in brief
+
+
 def test_blank_disabled_optional_section_does_not_block_openvsp(tmp_path):
     target = tmp_path / "default-studio.html"
     target.write_text(
