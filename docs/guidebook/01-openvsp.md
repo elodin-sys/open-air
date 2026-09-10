@@ -75,20 +75,24 @@ smallest body half-section under the full root chord. `measured` uses
 `vtail.y_root_m/z_root_m` exactly (mirrored to ±y for twin fins), records both
 the selected and would-be derived coordinates in
 `geometry.json .openvsp.fin_attach`. If the visible root is not buried in the
-core body or a measured `fuselage.fairings` loft, the helper continues its
+core body or a measured `fuselage.fairings` loft in a source-locked
+reproduction, the helper continues its
 LE/TE lines inboard along the cant plane until LE/mid/TE are all inside the
 represented union at section eccentricity ≤ 0.8, then adds a 5 mm margin.
 That `vtail*_root` WING is serialized and exported but omitted from every
 VSPAERO lifting set. A root that cannot be buried within half the declared
 fin span fails closed. OpenVSP construction, restricted GUI import, and the
 Studio preview all use this policy.
+Non-reproduction designs retain the historical root with no auxiliary
+extension; mesh truth may still reject a detached source.
 
 `fuselage.fairings` is available only to measured reproductions. Each fairing
 uses 4–8 point/ellipse/split-super-ellipse stations in the main fuselage x/L
 frame. `max_width_loc=-1` puts maximum width at the lower edge, forming a dome
 whose base overlaps the wing/body union. OpenVSP FUSELAGE endpoints are fixed
 at local 0/1, so the builder gives each fairing a local length/x transform and
-reconstructs global x/L during read-back/import. All eight quadrant
+reconstructs global x/L from the **actual read-back transform and length**.
+All eight quadrant
 interpolation strengths are pinned to zero so point caps cannot overshoot.
 
 ## Check your work
@@ -117,11 +121,14 @@ interpolation strengths are pinned to zero so point caps cannot overshoot.
    `fin_*_attached` must pass against the authoritative core-body/fairing
    union. If `extension_required`, require
    `vtail_root_extensions_match`, every buried LE/mid/TE eccentricity ≤ 0.8,
-   and component STLs `fin_*_root`. The UAV proximity floor is 10 mm (scaling
+   zero extension-tip/visible-root junction gap (including signed centerline
+   or cross-centerline roots), and component STLs `fin_*_root`. The UAV
+   proximity floor is 10 mm (scaling
    to 0.2% of fuselage length), not the former blanket 60 mm. For fairings
    also require station/interpolation read-back and
    `fairing_*_contained`: at least 95% of the lower boundary is inside the
-   core body or exported wing projection. `root_section_eccentricity`
+   independent local core-body or wing solid by the reported 2 mm margin.
+   `root_section_eccentricity`
    remains disclosure against the nominal core section at visible root LE.
 7. `reference_fidelity` (present when the concept has a measured reference
    model, chapter 13): point-sampled p95 deviation and silhouette IoU of the

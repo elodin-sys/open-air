@@ -494,13 +494,16 @@ def test_compare_scores_the_same_shape_as_a_match(ingested, tmp_path):
         spec,
         tmp_path,
         stl_path=model_path,
-        component_stls={"wing": model_path},
+        component_stls={"wing": model_path, "fuselage": model_path},
         reference_dir=out / "reference",
     )
     assert result["available"] is True
     assert result["ok"] is True
     assert result["distance_model_to_reference"]["p95_m"] < 0.003
     assert result["silhouettes"]["top"]["iou"] > 0.97
+    assert result["checks"]["p95_body"]["got"] == result["components"]["fuselage"][
+        "p95_m"
+    ]
     assert (
         result["disclosed"]["p95_model_to_reference_exposed_components_m"]["wing"]
         < 0.003
@@ -635,14 +638,70 @@ def test_shoulder_fairing_fit_recovers_synthetic_dome():
         "z_root_m": 0.05,
         "thickness_m": 0.008,
         "t_over_c": 0.10,
-        "plane_normal": [0.0, 1.0, 0.0],
+        "plane_normal": [0.0, math.cos(math.radians(FIN_CANT_DEG)), 0.0],
         "fit_rms_m": {"le": 0.0, "te": 0.0},
     }
     fins = {
         "count": 2,
-        "fins": [{**fin, "y_root_m": -FIN_Y_ROOT}, fin],
+        "fins": [
+            {
+                **fin,
+                "y_root_m": -FIN_Y_ROOT,
+                "plane_normal": [
+                    0.0,
+                    math.cos(math.radians(FIN_CANT_DEG)),
+                    math.sin(math.radians(FIN_CANT_DEG)),
+                ],
+            },
+            {
+                **fin,
+                "plane_normal": [
+                    0.0,
+                    math.cos(math.radians(FIN_CANT_DEG)),
+                    -math.sin(math.radians(FIN_CANT_DEG)),
+                ],
+            },
+        ],
         "mirrored_mean": fin,
     }
+    for measured_fin in fins["fins"]:
+        side = 1.0 if measured_fin["y_root_m"] > 0.0 else -1.0
+        span_direction = np.asarray(
+            [
+                0.0,
+                side * math.sin(math.radians(FIN_CANT_DEG)),
+                math.cos(math.radians(FIN_CANT_DEG)),
+            ]
+        )
+        normal = np.asarray(measured_fin["plane_normal"])
+        root = np.asarray(
+            [FIN_X_LE, measured_fin["y_root_m"], measured_fin["z_root_m"]]
+        )
+        for span_fraction in np.linspace(0.0, 1.0, 20):
+            chord = FIN_ROOT_CHORD * (1.0 - 0.4 * span_fraction)
+            leading = (
+                root
+                + span_fraction * FIN_SPAN * span_direction
+                + np.asarray(
+                    [
+                        span_fraction
+                        * FIN_SPAN
+                        * math.tan(math.radians(fin["le_sweep_deg"])),
+                        0.0,
+                        0.0,
+                    ]
+                )
+            )
+            for chord_fraction in np.linspace(0.0, 1.0, 12):
+                centre = leading + np.asarray(
+                    [chord_fraction * chord, 0.0, 0.0]
+                )
+                points.extend(
+                    (
+                        centre + 0.5 * fin["thickness_m"] * normal,
+                        centre - 0.5 * fin["thickness_m"] * normal,
+                    )
+                )
 
     result = M.measure_shoulder_fairing(
         M.PointField(np.asarray(points), 0.001),
@@ -653,7 +712,15 @@ def test_shoulder_fairing_fit_recovers_synthetic_dome():
         fins=fins,
     )
 
-    assert result["ok"], result
+    assert result["ok"], {
+        key: result.get(key)
+        for key in (
+            "fit_rms_max_m",
+            "fit_acceptance_m",
+            "simplification_contour_residual_m",
+            "simplification_max_residual_m",
+        )
+    }
     assert result["station_count"] == 8
     assert result["stations"][0]["width_m"] == 0.0
     assert result["stations"][-1]["width_m"] == 0.0
@@ -661,6 +728,36 @@ def test_shoulder_fairing_fit_recovers_synthetic_dome():
     assert 0.09 <= measured_width <= 0.18
     assert result["shoulder_excess_max_m"] >= 0.03
     assert result["base_burial_allowance_m"] == pytest.approx(0.008)
+    assert result["fin_points_excluded"] >= 500
+
+    corrugated = list(points)
+    for x_m in np.linspace(0.48, 0.66, 50):
+        fraction = (x_m - 0.48) / 0.18
+        half_width = 0.085 - 0.010 * fraction
+        base_z = 0.004
+        top_z = 0.052 - 0.010 * fraction
+        for y_m in np.linspace(-half_width, half_width, 80):
+            normalized = y_m / half_width
+            dome_z = base_z + (top_z - base_z) * math.sqrt(
+                max(0.0, 1.0 - normalized**2)
+            )
+            ripple = 0.020 * (0.5 + 0.5 * math.sin(8.0 * math.pi * normalized))
+            corrugated.append([x_m, y_m, dome_z + ripple])
+    rejected = M.measure_shoulder_fairing(
+        M.PointField(np.asarray(corrugated), 0.001),
+        length_m=LENGTH,
+        semispan_m=0.5 * SPAN,
+        body_profile_records=profile,
+        wing=None,
+        fins=fins,
+    )
+    assert rejected["stations"]
+    assert not rejected["ok"]
+    assert max(
+        rejected["fit_rms_max_m"],
+        rejected["simplification_contour_residual_m"],
+        max(rejected["simplification_max_residual_m"].values()),
+    ) > rejected["fit_acceptance_m"]
 
 
 def test_choose_station_fractions_is_monotone_and_bounded():

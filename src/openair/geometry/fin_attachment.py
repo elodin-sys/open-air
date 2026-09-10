@@ -136,7 +136,14 @@ def fin_attachment(spec: VehicleSpec) -> dict[str, Any]:
 
     shape = fuselage_section_shape(spec, fin.x_le_m)
     root_eccentricity = section_eccentricity(shape, y_m, z_m)
-    visible_root, buried_root = _buried_root_geometry(spec, y_m, z_m)
+    reproduction = bool(
+        spec.sketch is not None and spec.sketch.treatment == "reproduction"
+    )
+    if reproduction:
+        visible_root, buried_root = _buried_root_geometry(spec, y_m, z_m)
+    else:
+        visible_root = _root_geometry_at_extension(spec, y_m, z_m, 0.0)
+        buried_root = visible_root
     return {
         "mode": fin.root_attachment,
         "count": fin.count,
@@ -160,6 +167,7 @@ def fin_attachment(spec: VehicleSpec) -> dict[str, Any]:
         "root_section_eccentricity": float(root_eccentricity),
         "root_burial_eccentricity_limit": ROOT_BURIAL_ECCENTRICITY,
         "root_extension_margin_m": ROOT_EXTENSION_MARGIN_M,
+        "root_extension_policy": "reproduction_only",
         "extension_required": bool(buried_root["extension_m"] > 0.0),
         "root_extension_m": float(buried_root["extension_m"]),
         "visible_root_station_eccentricities": visible_root["stations"],

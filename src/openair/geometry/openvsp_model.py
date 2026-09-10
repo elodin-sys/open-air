@@ -531,9 +531,9 @@ def _construct_model(
             _set(vsp, root_id, "Sym_Ancestor_Origin_Flag", "Sym", 0.0)
             _set_wing_driver_group(vsp, root_id)
             buried_y = (
-                0.0
+                fin_attach["buried_root_y_m"]
                 if spec.vtail.count == 1
-                else sign * abs(fin_attach["buried_root_y_m"])
+                else sign * fin_attach["buried_root_y_m"]
             )
             _set(
                 vsp,
@@ -1274,19 +1274,49 @@ def _construction_readback(
             if wanted is None:
                 fairings_ok = False
                 continue
-            rows, matches = _station_loft_readback(
+            geom_id = fairing["geom_id"]
+            transform = {
+                "length_m": float(vsp.GetParmVal(geom_id, "Length", "Design")),
+                "x_m": float(vsp.GetParmVal(geom_id, "X_Rel_Location", "XForm")),
+                "y_m": float(vsp.GetParmVal(geom_id, "Y_Rel_Location", "XForm")),
+                "z_m": float(vsp.GetParmVal(geom_id, "Z_Rel_Location", "XForm")),
+                "x_rotation_deg": float(
+                    vsp.GetParmVal(geom_id, "X_Rel_Rotation", "XForm")
+                ),
+                "y_rotation_deg": float(
+                    vsp.GetParmVal(geom_id, "Y_Rel_Rotation", "XForm")
+                ),
+                "z_rotation_deg": float(
+                    vsp.GetParmVal(geom_id, "Z_Rel_Rotation", "XForm")
+                ),
+                "scale": float(vsp.GetParmVal(geom_id, "Scale", "XForm")),
+            }
+            transform_matches = (
+                abs(transform["length_m"] - fairing["geom_length_m"]) <= 1e-5
+                and abs(transform["x_m"] - fairing["x_origin_m"]) <= 1e-5
+                and abs(transform["y_m"]) <= 1e-8
+                and abs(transform["z_m"]) <= 1e-8
+                and abs(transform["x_rotation_deg"]) <= 1e-8
+                and abs(transform["y_rotation_deg"]) <= 1e-8
+                and abs(transform["z_rotation_deg"]) <= 1e-8
+                and abs(transform["scale"] - 1.0) <= 1e-8
+            )
+            rows, stations_match = _station_loft_readback(
                 vsp,
                 fairing["xsurf"],
                 wanted.stations,
                 spec.fuselage.length_m,
-                x_origin_m=fairing["x_origin_m"],
-                geom_length_m=fairing["geom_length_m"],
+                x_origin_m=transform["x_m"],
+                geom_length_m=transform["length_m"],
                 linear_strengths=True,
             )
+            matches = transform_matches and stations_match
             fairings_ok = fairings_ok and matches
             fairing_rows.append(
                 {
                     "name": fairing["name"],
+                    "transform": transform,
+                    "transform_matches": transform_matches,
                     "stations": rows,
                     "matches": matches,
                 }
@@ -1355,11 +1385,11 @@ def _construction_readback(
         expected_root_count = spec.vtail.count if built["fin_attach"]["extension_required"] else 0
         expected_root_names = [f"{name}_root" for name in expected_fin_names]
         expected_root_y = (
-            [0.0]
+            [built["fin_attach"]["buried_root_y_m"]]
             if spec.vtail.count == 1
             else [
-                abs(built["fin_attach"]["buried_root_y_m"]),
-                -abs(built["fin_attach"]["buried_root_y_m"]),
+                built["fin_attach"]["buried_root_y_m"],
+                -built["fin_attach"]["buried_root_y_m"],
             ]
         )
         root_rows = []
@@ -1397,6 +1427,23 @@ def _construction_readback(
                     vsp.GetParmVal(root_id, "X_Rel_Rotation", "XForm")
                 ),
             }
+            rotation_rad = math.radians(values["x_rotation_deg"])
+            tip_point = {
+                "x_m": values["x_le_m"]
+                + values["span_m"] * math.tan(math.radians(values["sweep_deg"])),
+                "y_m": values["y_root_m"]
+                + values["span_m"] * math.cos(rotation_rad),
+                "z_m": values["z_root_m"]
+                + values["span_m"] * math.sin(rotation_rad),
+            }
+            visible_y = expected_fin_y[index]
+            junction_gap = math.sqrt(
+                (tip_point["x_m"] - spec.vtail.x_le_m) ** 2
+                + (tip_point["y_m"] - visible_y) ** 2
+                + (tip_point["z_m"] - built["fin_attach"]["z_m"]) ** 2
+            )
+            values["tip_junction_m"] = tip_point
+            values["tip_junction_gap_m"] = float(junction_gap)
             root_rows.append(values)
             roots_ok = roots_ok and (
                 index < expected_root_count
@@ -1427,6 +1474,7 @@ def _construction_readback(
                 <= 1e-4
                 and abs(values["x_rotation_deg"] - expected_fin_rotation[index])
                 <= 0.1
+                and values["tip_junction_gap_m"] <= 1e-4
             )
         readback["vtail_root_extensions"] = root_rows
         readback["vtail_root_extensions_match"] = roots_ok

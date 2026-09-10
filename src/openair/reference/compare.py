@@ -357,11 +357,19 @@ def compare_reference(
             body_points,
             max(model_spacing, 0.0005),
         )
-        body_distance, _ = ref_tree.query(body_points, k=1, workers=-1)
-        body_stats = {
-            **_distance_stats(body_distance),
-            "components": list(body_paths),
-        }
+        if any(name.startswith("fairing_") for name in body_paths):
+            body_distance, _ = ref_tree.query(body_points, k=1, workers=-1)
+            body_stats = {
+                **_distance_stats(body_distance),
+                "components": list(body_paths),
+            }
+        elif "p95_m" in (components.get("fuselage") or {}):
+            # Preserve the legacy 60k/seed-9 fuselage gate exactly when no
+            # measured fairing requires area-weighted union scoring.
+            body_stats = {
+                **components["fuselage"],
+                "components": ["fuselage"],
+            }
     if component_stls and component_stls.get("wing"):
         wing_field = M.PointField(
             _dense_points(_load_mesh(component_stls["wing"]), 250_000, seed=17),

@@ -387,6 +387,11 @@
       x,
       ...minBodyEccentricity(design, x, buriedY, buriedZ),
     }));
+    const tipJunctionGap = Math.hypot(
+      xLe + extension * tanLE - number(tail.x_le_m),
+      buriedY + extension * Math.sin(radians(tail.cant_deg)) - baseY,
+      buriedZ + extension * Math.cos(radians(tail.cant_deg)) - baseZ,
+    );
     return {
       extension,
       xLe,
@@ -394,6 +399,7 @@
       z: buriedZ,
       chord,
       stations,
+      tipJunctionGap,
       buried: stations.every(station => station.minimum <= .8),
     };
   }
@@ -419,7 +425,10 @@
       ? number(tail.z_root_m)
       : Math.min(...attachmentSections.map(section => section.z + .3 * section.height));
     const visible = rootGeometryAtExtension(design, baseY, baseZ, 0);
-    if (visible.buried) return {...visible, baseY, baseZ, extensionRequired: false};
+    const reproduction = design.sketch?.treatment === "reproduction";
+    if (visible.buried || !reproduction) {
+      return {...visible, baseY, baseZ, extensionRequired: false};
+    }
     const maximum = .5 * Math.max(number(tail.span_m), .01);
     let firstInside = null;
     for (let extension = .001; extension <= maximum + 1e-12; extension += .001) {
@@ -497,7 +506,7 @@
           collector,
           {
             xLe: rootGeometry.xLe,
-            y: side * Math.abs(rootGeometry.y),
+            y: count === 1 ? rootGeometry.y : side * rootGeometry.y,
             z: rootGeometry.z,
             chord: rootGeometry.chord,
             tOverC: Math.max(number(tail.t_over_c), .001),
@@ -578,6 +587,7 @@
       },
       fairingCount: fairingProfiles(design).length,
       finRootExtensionM: rootGeometry.extension,
+      finRootTipJunctionGapM: rootGeometry.tipJunctionGap,
     };
   }
 

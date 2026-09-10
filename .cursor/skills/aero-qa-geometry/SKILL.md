@@ -39,12 +39,15 @@ Non-negotiables for this repo:
   spec exactly and read-back must verify both mirrored fins. If the visible
   root is outside the core body, require a source-measured
   `fuselage.fairings` loft plus derived `vtail*_root` extensions:
-  `fairings_match`, `vtail_root_extensions_match`, buried LE/mid/TE
-  eccentricities ≤0.8, `fin_*_attached`, and `fairing_*_contained` must all
-  pass after VSP3 reopen. The attachment verdict uses the authoritative
+  actual-transform `fairings_match`, `vtail_root_extensions_match`, zero
+  signed extension-tip junction gap, buried LE/mid/TE eccentricities ≤0.8,
+  `fin_*_attached`, and `fairing_*_contained` (≥95% at least 2 mm inside the
+  independent body/wing solids) must all pass after VSP3 reopen. The
+  attachment verdict uses the authoritative
   body/fairing section at root x and a 10 mm or 0.2%-length proximity floor;
-  never restore the old ±0.12 m bounding slab / 60 mm floor. Fairings and
-  root extensions are loft-only and must be absent from VSPAERO lifting sets.
+  never restore the old ±0.12 m bounding slab / 60 mm floor. Extensions are
+  reproduction-only. Fairings and root extensions are loft-only and must be
+  absent from VSPAERO lifting sets.
 - Packing: payload bay must clear the engine compartment front
   (`L - 0.20 - engine_length - 0.05`) and fuel volume must fit wing tanks +
   fuselage leftover (`packing_report`).

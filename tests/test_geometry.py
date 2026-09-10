@@ -9,7 +9,11 @@ from openair.cli import load_spec
 from openair.geometry.fin_attachment import fin_attachment
 from openair.geometry.mesh import generate_oas_rect_mesh, naca4_coords
 from openair.geometry.packing import packing_report, wing_tank_volume_m3
-from openair.geometry.openvsp_model import build_openvsp_model, run_geometry_stage
+from openair.geometry.openvsp_model import (
+    build_openvsp_model,
+    run_geometry_stage,
+    write_vsp3,
+)
 from openair.schemas import VehicleSpec
 
 
@@ -261,6 +265,7 @@ def test_single_centerline_fin_geometry_and_mesh_checks(tmp_path):
 def test_measured_twin_fin_root_is_built_and_read_back_exactly(tmp_path):
     spec = load_spec(BASELINE_DESIGN).model_copy(deep=True)
     spec.name = "measured-twin-fin-root"
+    spec.sketch.treatment = "reproduction"
     derived = fin_attachment(spec)
     spec.vtail.root_attachment = "measured"
     spec.vtail.y_root_m = float(derived["y_m"]) + 0.02
@@ -297,6 +302,46 @@ def test_measured_twin_fin_root_is_built_and_read_back_exactly(tmp_path):
     assert checks["fin_l_attached"]["ok"]
     assert checks["fin_r_attached"]["eccentricity"] <= 0.8
     assert checks["fin_l_attached"]["eccentricity"] <= 0.8
+
+
+@pytest.mark.parametrize("count", [1, 2])
+def test_canted_root_extension_preserves_signed_tip_junction(count, tmp_path):
+    spec = load_spec(BASELINE_DESIGN).model_copy(deep=True)
+    spec.name = f"signed-fin-root-{count}"
+    spec.sketch.treatment = "reproduction"
+    spec.vtail.count = count
+    if count == 1:
+        spec.vtail.y_root_m = 0.0
+    spec.vtail.root_attachment = "measured"
+    spec.vtail.cant_deg = 45.0
+    spec.vtail.y_root_m = 0.0 if count == 1 else 0.004
+    spec.vtail.z_root_m = 0.15
+    attachment = fin_attachment(spec)
+    assert attachment["extension_required"]
+    assert attachment["buried_root_y_m"] < 0.0
+
+    result = write_vsp3(spec, tmp_path / f"signed-{count}.vsp3")
+    if result.get("reason") == "openvsp_import_failed":
+        pytest.skip("OpenVSP unavailable")
+    assert result["ok"], result
+    roots = result["readback"]["vtail_root_extensions"]
+    assert all(root["tip_junction_gap_m"] <= 1e-4 for root in roots)
+    assert roots[0]["y_root_m"] < 0.0
+    if count == 2:
+        assert roots[1]["y_root_m"] > 0.0
+
+
+def test_non_reproduction_does_not_add_root_extension():
+    spec = load_spec(BASELINE_DESIGN).model_copy(deep=True)
+    spec.vtail.root_attachment = "measured"
+    spec.vtail.y_root_m += 0.20
+    spec.vtail.z_root_m += 0.20
+
+    attachment = fin_attachment(spec)
+
+    assert not attachment["extension_required"]
+    assert attachment["root_extension_m"] == 0.0
+    assert not attachment["visible_root_station_eccentricities"][0]["inside"]
 
 
 def test_elevon_subsurface_and_control_group_round_trip(tmp_path):

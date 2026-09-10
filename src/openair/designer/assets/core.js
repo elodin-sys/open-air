@@ -861,10 +861,10 @@
             ? 1
             : (index === 0 ? 1 : -1);
           const points = [
-            [finRootGeometry.xLe, sign * Math.abs(finRootGeometry.y)],
+            [finRootGeometry.xLe, sign * finRootGeometry.y],
             [number(fin.x_le_m), y],
             [number(fin.x_le_m) + number(fin.root_chord_m), y],
-            [finRootGeometry.xLe + finRootGeometry.chord, sign * Math.abs(finRootGeometry.y)],
+            [finRootGeometry.xLe + finRootGeometry.chord, sign * finRootGeometry.y],
           ];
           return `<path class="fin-shape root-extension" d="${pathData(points, frame)}"></path>`;
         }).join("")
@@ -1012,20 +1012,12 @@
       );
       frames.front = frame;
       const section = window.OpenAirPreviewMesh.sectionPolygon(largest, 96);
-      const fairingPaths = fairings.map(fairing => {
-        const dominant = fairing.sections.reduce(
-          (best, candidate) => (
-            candidate.width * candidate.height > best.width * best.height
-              ? candidate
-              : best
-          ),
-          fairing.sections[0],
-        );
-        return `<path class="fairing-shape" d="${pathData(
-          window.OpenAirPreviewMesh.sectionPolygon(dominant, 96),
+      const fairingPaths = fairings.flatMap(fairing => fairing.sections
+        .filter(candidate => candidate.width > 0 && candidate.height > 0)
+        .map(candidate => `<path class="fairing-shape" d="${pathData(
+          window.OpenAirPreviewMesh.sectionPolygon(candidate, 96),
           frame,
-        )}"></path>`;
-      }).join("");
+        )}"></path>`)).join("");
       const wingPoints = [
         ...wing.sections.slice().reverse().map(section => [-section.eta * halfSpan, section.zLe]),
         ...wing.sections.slice(1).map(section => [section.eta * halfSpan, section.zLe]),
@@ -1042,7 +1034,7 @@
         : Math.round(number(v.count, 2)) === 1
           ? [
             line(
-              0,
+              finRootGeometry.y,
               finRootGeometry.z,
               0,
               finBaseZ,
@@ -1052,7 +1044,7 @@
           ]
           : [
             line(
-              Math.abs(finRootGeometry.y),
+              finRootGeometry.y,
               finRootGeometry.z,
               finBaseY,
               finBaseZ,
@@ -1060,7 +1052,7 @@
               "fin-shape root-extension",
             ),
             line(
-              -Math.abs(finRootGeometry.y),
+              -finRootGeometry.y,
               finRootGeometry.z,
               -finBaseY,
               finBaseZ,

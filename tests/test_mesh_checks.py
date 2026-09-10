@@ -191,18 +191,74 @@ def test_fairing_containment_requires_base_support():
     supported = fairing_contained_by_body_or_wing(
         fairing,
         fairing.copy(),
+        None,
         "fairing_test",
         spec,
     )
     unsupported = fairing_contained_by_body_or_wing(
         fairing + np.array([0.0, 1.0, 0.5]),
         fairing,
+        None,
         "fairing_test",
         spec,
     )
 
     assert supported["ok"], supported
     assert not unsupported["ok"], unsupported
+
+
+def test_fairing_containment_rejects_tangent_and_bridged_support():
+    spec = _spec()
+    x_values = np.linspace(1.15, 1.30, 16)
+    body = []
+    tangent = []
+    for x_m in x_values:
+        shape = fuselage_section_shape(spec, x_m)
+        polygon = section_polygon(
+            shape.width_m,
+            shape.height_m,
+            z_center_m=shape.z_center_m,
+            side_power=shape.side_power,
+            top_power=shape.top_power,
+            bottom_power=shape.bottom_power,
+            max_width_loc=shape.max_width_loc,
+            samples=64,
+        )
+        body.extend([x_m, y_m, z_m] for y_m, z_m in polygon)
+        top = max(z_m for _, z_m in polygon)
+        tangent.extend(([x_m, 0.0, top], [x_m, 0.0, top + 0.01]))
+    tangent_result = fairing_contained_by_body_or_wing(
+        np.asarray(tangent),
+        np.asarray(body),
+        None,
+        "fairing_tangent",
+        spec,
+    )
+
+    fairing = np.asarray(
+        [
+            [x_m, 3.0 + y_m, z_m]
+            for x_m in x_values
+            for y_m in (-0.01, 0.0, 0.01)
+            for z_m in (0.0, 0.01)
+        ]
+    )
+    body_above = np.asarray(
+        [[x_m, 3.0 + y_m, 0.30] for x_m in x_values for y_m in (-0.01, 0.01)]
+    )
+    wing_below = np.asarray(
+        [[x_m, 3.0 + y_m, -0.30] for x_m in x_values for y_m in (-0.01, 0.01)]
+    )
+    bridged_result = fairing_contained_by_body_or_wing(
+        fairing,
+        body_above,
+        wing_below,
+        "fairing_bridged",
+        spec,
+    )
+
+    assert not tangent_result["ok"], tangent_result
+    assert not bridged_result["ok"], bridged_result
 
 
 def test_tangent_horizontal_tail_can_pass_on_root_surface_contact():

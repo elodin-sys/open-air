@@ -133,7 +133,7 @@
     "validity_component_required": true
   },
   "concept": "ntnu-x8",
-  "created_at": "2026-09-10T08:14:11+00:00",
+  "created_at": "2026-09-10T15:26:48+00:00",
   "credibility": "geometry-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -224,7 +224,7 @@
     "geometry_vsp3": {
       "path": "geometry/ntnu-x8.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "7c91b0a29719cb82537e016092dc2625c13b0fe254ddcb63930c9cc8096f7069",
+      "sha256": "c2dd676f7593cc9921bb46c266981817902ca75d8d04bc3ace7f04641c2bb965",
       "size_bytes": 254282
     },
     "geometry_whole_stl": {
@@ -248,7 +248,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "beb10e0b795abb67037c6c6edbd23db9f36f34a4bdf7bb2e94f77fac50112bda",
+      "sha256": "7b402359bb53bf58b329013325cd431ae9db4050d345f68451c020106e02d643",
       "size_bytes": 1218
     },
     "render_glb": {
@@ -476,17 +476,17 @@
       "propulsion": "C",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "1dda28b80e996e89b19a7e394d2e8ae08e11e372689b9723a301dd77ab05aef2",
-    "pipeline_run_id": "461abd940e654b749af5a1c84eedcd5c",
-    "source_git_commit": "c7ad921a3fbf0dca9dfc0a3e69ac701874fdd0d3",
+    "model_source_sha256": "a6c8dc1d3141d433abd3ddb0b298720d1b6b71757f18b7aae87dad693f92dc19",
+    "pipeline_run_id": "139bb1cd667640a1a3e77c2dfe6fe14c",
+    "source_git_commit": "8c951c09aaa43af77e8b2148c2385894de5d3e5b",
     "upstream_sha256": {
-      "aero.json": "0aadd2027d94334d4e0ae027e0a99f9df526c531add5dc72582f96d475c05ce3",
-      "flightdyn.json": "a7a8aa862c20506d20d0339cddb92d1ef59bbb8cf23761161dc4014dde55205b",
-      "geometry.json": "b32f8e2d337c614d1f480d773b0bd7240bd00868d4ac14266001f095a95922ef",
+      "aero.json": "a4e030f9edd289c867835e94f2b17ed2f338a47aa45c200d4516483896d1b3a7",
+      "flightdyn.json": "0abc92bc677852e3387c167da26c95c0d9555d0aa7554f4100f8f76906ce16c8",
+      "geometry.json": "eb3779e082b39b98814b0ccb00f6b6c852b2543a6cc1632f7b9b745853365666",
       "mass_breakdown.json": "9cdb9c48a42d54711de556bbe5d264823355e2068d85d11f779294c25fe2728a",
-      "sizing.json": "5f56e0c58d7cd85dafadf1df48de98feac267d4ffb5b1ef8c5f6570d333e93ba",
-      "structures.json": "182a34c9c664219afff43e32303ac56f42f7968c63793bce2a5978df0600c744",
-      "validation.json": "2cce9cee33b10cdc252b0431a91ddfc92c134f370451dc54876c89268b074cd8"
+      "sizing.json": "ef542a28447a6d4cfef065d78da95659163f2479772e44e1cf19f5ccf4df0c87",
+      "structures.json": "7f5462d532ae3dc8e133da56ccf23e813f7168e04df7dfff5a3e7f217f524a7b",
+      "validation.json": "f53679003a6dff85e610f13528e8c7c54135f2cb60b64f19ce731e75560fb176"
     }
   },
   "reference_geometry": {

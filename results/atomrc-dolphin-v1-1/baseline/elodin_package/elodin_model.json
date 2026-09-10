@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "atomrc-dolphin-v1-1",
-  "created_at": "2026-09-10T08:24:48+00:00",
+  "created_at": "2026-09-10T15:18:27+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -109,8 +109,8 @@
     "geometry_component_fairing_aft_shoulder": {
       "path": "geometry/component_fairing_aft_shoulder.stl",
       "role": "verified_geometry_component_fairing_aft_shoulder",
-      "sha256": "9b0e306057a469b6e77533de8c1f884b31c0089151222c97561da7cb777440b6",
-      "size_bytes": 318563
+      "sha256": "a09973c6f16a52865ddc51f168af0694881ee7d8fcbbb35a29cbc255988079f9",
+      "size_bytes": 318529
     },
     "geometry_component_fin_l": {
       "path": "geometry/component_fin_l.stl",
@@ -121,8 +121,8 @@
     "geometry_component_fin_l_root": {
       "path": "geometry/component_fin_l_root.stl",
       "role": "verified_geometry_component_fin_l_root",
-      "sha256": "d7613f3099af0253daa4cf339ce7dff2feb162c24dd6265702e30a2ad0628cda",
-      "size_bytes": 164874
+      "sha256": "8166a920949809544d0491042cc15ce743c4dc975cda24eea4513d1d7dbc3076",
+      "size_bytes": 164878
     },
     "geometry_component_fin_r": {
       "path": "geometry/component_fin_r.stl",
@@ -133,7 +133,7 @@
     "geometry_component_fin_r_root": {
       "path": "geometry/component_fin_r_root.stl",
       "role": "verified_geometry_component_fin_r_root",
-      "sha256": "80d36952a7fb653fef8f02adc769dd901a16ea8bac6b79fc79cd5c27971435cc",
+      "sha256": "074c58977e1cf27b02e9e9ddf8497df45778d44fd2e3e3d12155b6dfde2cc33f",
       "size_bytes": 163200
     },
     "geometry_component_fuselage": {
@@ -151,14 +151,14 @@
     "geometry_vsp3": {
       "path": "geometry/atomrc-dolphin-v1-1.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "e805c230f988ccbbe565fcc917d88bd518ad513b22c4b37011e8084adf0b519b",
+      "sha256": "b1f63a1c85f79ac8c076fdcf39a081c6f0cea04c13991dcde35d8fcfcb1b709a",
       "size_bytes": 627504
     },
     "geometry_whole_stl": {
       "path": "geometry/atomrc-dolphin-v1-1.stl",
       "role": "verified_geometry_whole_stl",
-      "sha256": "c6f5587ebe1197fe1624a32147657fdbb0cc54058fc6c454e6253097e1ccd300",
-      "size_bytes": 3243954
+      "sha256": "08dc0932e5dcd7857557c8631716d6999b49e72f6962e8de6b3cce386c9b9ebe",
+      "size_bytes": 3243924
     },
     "integration_guide": {
       "path": "integration_guide.md",
@@ -175,13 +175,13 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "ebff3cb6c03fd80513b608f871d42f11247d8d6c5da9ecf29c9c368dea617208",
+      "sha256": "6e3687300eac5685f00f46e9cc696aee72fa5fc5b10de395404b8c02cd5f1b0b",
       "size_bytes": 1002
     },
     "render_glb": {
       "path": "atomrc-dolphin-v1-1.glb",
       "role": "render_mesh_body_frame",
-      "sha256": "4e0e53b0b6197aefe3f009eacb92cf0e190c5a388cb3436fcc1183b50c9fd3a9",
+      "sha256": "8b1a0fe1bca122e18e3b0c256f6cf59d6fbab338deee42ebcb4147f30155c6c5",
       "size_bytes": 183700
     },
     "trim_map": {
@@ -315,7 +315,7 @@
       "Propulsion map is evaluated from the analytic lapse/TSFC model, not an identified engine deck.",
       "No measured inertia tensor is available; consumers must not invent one from this package."
     ],
-    "design_sha256": "fe08e6e26dc666ecb2ec8807c1a0893fe59ee80eec1e1bf65886d329006d1e04",
+    "design_sha256": "de0dd05f258b42a003dbf46c3c810075eb21830e225fb6f5a9eb8cc58bd37ad0",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -323,16 +323,16 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "1dda28b80e996e89b19a7e394d2e8ae08e11e372689b9723a301dd77ab05aef2",
-    "pipeline_run_id": "cabfc57ad2774113bba8f03313fe4cb6",
-    "source_git_commit": "c7ad921a3fbf0dca9dfc0a3e69ac701874fdd0d3",
+    "model_source_sha256": "a6c8dc1d3141d433abd3ddb0b298720d1b6b71757f18b7aae87dad693f92dc19",
+    "pipeline_run_id": "94ca031610c744d2ac092e2620e72a0c",
+    "source_git_commit": "8c951c09aaa43af77e8b2148c2385894de5d3e5b",
     "upstream_sha256": {
-      "aero.json": "879de6d67dbc40dbe1dd51936e8f91ccda3182013563261e9937a85fd2081aee",
-      "geometry.json": "e5ac2415270139ac2f221292dae8ea88508453ed5bf315e6c4e0b48f3f3145a1",
+      "aero.json": "8183350f5b26d11c21b26af24cbe0fe6f5caaabd0313ff02e01477ff1a03e8c1",
+      "geometry.json": "736780c72ccf60ccb2fd51396928a0c8cfa5f8b608a016354632189eb8966244",
       "mass_breakdown.json": "3437560e11b8070585b538ce77156a1f801faf99884535091d8725aead34e56a",
-      "sizing.json": "a7b15f33285347a0d3bca5c4946138870822f534ad02a8238f637444e5d3652b",
-      "structures.json": "45a0a85810a79a323c1ee7cb1a04fb56eac54ebd7ff90fd8b83b2b8b4dc58d7f",
-      "validation.json": "093585e600c0506f444f76386d874b296ebdf7b2a516398ef29b441fc04fa6d4"
+      "sizing.json": "df7d8f7723e8da80af3716b448e1dfef87160628d90a2c1bcc458c07d47371a5",
+      "structures.json": "9f06aaefee503113694b792400b72b1bf65d2d687646df3f3373523f1be4d3fe",
+      "validation.json": "1dc99440549e0c6dc276a9951c8a9a982c7bc8f9a94814be4557b844cd46445a"
     }
   },
   "reference_geometry": {
@@ -357,20 +357,20 @@
             },
             {
               "bottom_power": 2.0,
-              "height_m": 0.0329,
+              "height_m": 0.0334,
               "max_width_loc": -1.0,
-              "side_power": 1.74,
-              "top_power": 2.71,
+              "side_power": 1.88,
+              "top_power": 1.93,
               "width_m": 0.1438,
               "x_over_length": 0.7514,
-              "z_offset_m": 0.0403
+              "z_offset_m": 0.04
             },
             {
               "bottom_power": 2.0,
               "height_m": 0.0314,
               "max_width_loc": -1.0,
-              "side_power": 1.71,
-              "top_power": 2.52,
+              "side_power": 2.02,
+              "top_power": 1.52,
               "width_m": 0.149,
               "x_over_length": 0.7655,
               "z_offset_m": 0.04
@@ -379,8 +379,8 @@
               "bottom_power": 2.0,
               "height_m": 0.034,
               "max_width_loc": -1.0,
-              "side_power": 1.56,
-              "top_power": 3.31,
+              "side_power": 1.76,
+              "top_power": 2.2,
               "width_m": 0.1438,
               "x_over_length": 0.7795,
               "z_offset_m": 0.0378
@@ -389,31 +389,31 @@
               "bottom_power": 2.0,
               "height_m": 0.0325,
               "max_width_loc": -1.0,
-              "side_power": 1.64,
-              "top_power": 2.49,
+              "side_power": 1.91,
+              "top_power": 1.55,
               "width_m": 0.1488,
               "x_over_length": 0.7936,
               "z_offset_m": 0.0376
             },
             {
               "bottom_power": 2.0,
-              "height_m": 0.0357,
+              "height_m": 0.0347,
               "max_width_loc": -1.0,
-              "side_power": 0.78,
-              "top_power": 3.61,
+              "side_power": 0.92,
+              "top_power": 2.36,
               "width_m": 0.1339,
               "x_over_length": 0.8919,
-              "z_offset_m": 0.0314
+              "z_offset_m": 0.0319
             },
             {
               "bottom_power": 2.0,
-              "height_m": 0.0375,
+              "height_m": 0.035,
               "max_width_loc": -1.0,
-              "side_power": 0.88,
-              "top_power": 2.22,
+              "side_power": 1.09,
+              "top_power": 1.38,
               "width_m": 0.1393,
               "x_over_length": 0.913,
-              "z_offset_m": 0.0301
+              "z_offset_m": 0.0314
             },
             {
               "bottom_power": 2.0,

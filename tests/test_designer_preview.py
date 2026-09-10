@@ -152,6 +152,13 @@ def _single_fin_spec() -> VehicleSpec:
 def _measured_fin_spec() -> VehicleSpec:
     spec = _station_spec()
     spec.name = "preview-measured-fin"
+    spec.sketch = {
+        "treatment": "reproduction",
+        "span_over_length": spec.wing.span_m / spec.fuselage.length_m,
+        "root_over_length": spec.wing.root_chord_m / spec.fuselage.length_m,
+        "le_sweep_deg": spec.wing.le_sweep_deg,
+        "taper": spec.wing.taper,
+    }
     derived = fin_attachment(spec)
     spec.vtail.root_attachment = "measured"
     spec.vtail.y_root_m = derived["y_m"] + 0.02
@@ -277,11 +284,17 @@ def test_preview_mesh_matches_openvsp_readback_and_stl_bbox(
     assert result["ok"], result
 
     readback = result["readback"]
+    attachment = fin_attachment(spec)
     assert preview["span"] == pytest.approx(readback["span_m"], rel=0.10)
     assert preview["projectedWingArea"] == pytest.approx(
         readback["area_m2"],
         rel=0.10,
     )
+    assert preview["finRootExtensionM"] == pytest.approx(
+        attachment["root_extension_m"],
+        abs=1e-9,
+    )
+    assert preview["finRootTipJunctionGapM"] <= 1e-12
 
     stl_path = tmp_path / f"{case}.stl"
     with VSP_LOCK:

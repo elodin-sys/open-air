@@ -1663,23 +1663,44 @@ def measure_shoulder_fairing(
                 max(0.004, 4.0 * field.resolution_m),
                 max(0.5 * skin_depth, skin_depth - 0.0005),
             )
-            support_z = upper_skin - penetration
+            skin_reference_z = upper_skin
         else:
-            support_z = wing_top - max(0.002, 2.0 * field.resolution_m)
+            penetration = max(0.002, 2.0 * field.resolution_m)
+            skin_reference_z = wing_top
+        support_z = skin_reference_z - penetration
         # The measured scan skin and the OpenVSP section loft differ by a few
         # millimetres near the highly tapered root trailing edge. Bury the
         # auxiliary fairing below that support surface so the exported loft
         # intersects rather than merely kisses the wing tessellation.
         burial_allowance = max(0.006, 8.0 * field.resolution_m)
-        base_z = support_z - burial_allowance
+        root_fraction = (float(x_m) - fin_x_le) / max(
+            float(fin_mean["root_chord_m"]),
+            1e-9,
+        )
+        if root_fraction < 0.0:
+            support_adjustment = -max(0.0005, 0.6 * field.resolution_m) * min(
+                -root_fraction / 0.05,
+                1.0,
+            )
+        else:
+            # The supporting wing section becomes thin near the root TE.
+            # Taper only the hidden skirt there; visible top/width and the
+            # measured support crease remain unchanged.
+            support_adjustment = max(0.0025, 3.0 * field.resolution_m) * min(
+                root_fraction,
+                1.0,
+            ) ** 6
+        effective_hidden_base = burial_allowance - support_adjustment
+        base_z = support_z - effective_hidden_base
         centre = abs_y <= max(0.010, 4.0 * bin_width)
         if not centre.any():
             continue
         top_z = float(np.median(scan_top[centre]))
         height = top_z - base_z
+        visible_height = top_z - support_z
         if height <= 2.0 * threshold:
             continue
-        fit = (abs_y <= half_width) & (scan_top >= base_z - threshold)
+        fit = (abs_y <= half_width) & (scan_top >= support_z - threshold)
         fit_y = abs_y[fit] / max(half_width, 1e-9)
         fit_z = scan_top[fit]
         if len(fit_y) < 8:
@@ -1688,7 +1709,7 @@ def measure_shoulder_fairing(
         def model(params: np.ndarray, normalized_y: np.ndarray) -> np.ndarray:
             side_power, top_power = params
             base = np.clip(1.0 - normalized_y**side_power, 0.0, 1.0)
-            return base_z + height * base ** (1.0 / top_power)
+            return support_z + visible_height * base ** (1.0 / top_power)
 
         fit_result = optimize.least_squares(
             lambda params: model(params, fit_y) - fit_z,
@@ -1710,8 +1731,16 @@ def measure_shoulder_fairing(
                 "bottom_power": 2.0,
                 "max_width_loc": -1.0,
                 "base_z_m": float(base_z),
+                "skin_reference_z_m": float(skin_reference_z),
                 "support_z_m": float(support_z),
+                "support_penetration_m": float(penetration),
+                "visible_height_m": float(visible_height),
                 "base_burial_allowance_m": float(burial_allowance),
+                "base_support_adjustment_m": float(support_adjustment),
+                "effective_hidden_base_m": float(effective_hidden_base),
+                "total_burial_below_skin_m": float(
+                    penetration + effective_hidden_base
+                ),
                 "top_z_m": float(top_z),
                 "excess_max_m": float(np.max(excess[shoulder_band])),
                 "fit_rms_m": float(np.sqrt(np.mean((fitted - fit_z) ** 2))),
@@ -1769,6 +1798,39 @@ def measure_shoulder_fairing(
     selected_indices, residuals = _simplify_fairing_rows(rows, required)
     acceptance = max(0.005, 8.0 * field.resolution_m)
     selected = [rows[index] for index in selected_indices]
+    selected_x = np.asarray([row["x_m"] for row in selected])
+    normalized_y = np.linspace(0.0, 1.0, 101)
+    contour_residual = 0.0
+    for row in rows:
+        interpolated = {
+            field: float(
+                np.interp(
+                    row["x_m"],
+                    selected_x,
+                    np.asarray([item[field] for item in selected]),
+                )
+            )
+            for field in (
+                "height_m",
+                "z_offset_m",
+                "side_power",
+                "top_power",
+            )
+        }
+
+        def normalized_curve(values: dict[str, float]) -> np.ndarray:
+            base_z = values["z_offset_m"] - 0.5 * values["height_m"]
+            return base_z + values["height_m"] * np.clip(
+                1.0 - normalized_y ** values["side_power"],
+                0.0,
+                1.0,
+            ) ** (1.0 / values["top_power"])
+
+        contour_residual = max(
+            contour_residual,
+            float(np.max(np.abs(normalized_curve(row) - normalized_curve(interpolated)))),
+        )
+    fit_rms_max = float(max(row["fit_rms_m"] for row in rows))
     cap_margin = max(0.005, 3.0 * field.resolution_m)
     front_x = max(0.0, selected[0]["x_m"] - cap_margin)
     aft_x = min(length_m, selected[-1]["x_m"] + cap_margin)
@@ -1793,7 +1855,11 @@ def measure_shoulder_fairing(
         point_cap(aft_x, selected[-1]),
     ]
     return {
-        "ok": bool(max(residuals.values()) <= acceptance),
+        "ok": bool(
+            max(residuals.values()) <= acceptance
+            and contour_residual <= acceptance
+            and fit_rms_max <= acceptance
+        ),
         "mode": "measured fin-free upper-envelope shoulder dome",
         "stations": stations,
         "source_station_count": len(rows),
@@ -1801,10 +1867,26 @@ def measure_shoulder_fairing(
         "station_count": len(stations),
         "fin_points_excluded": int(excluded.sum()),
         "threshold_m": float(threshold),
-        "fit_rms_max_m": float(max(row["fit_rms_m"] for row in rows)),
+        "fit_rms_max_m": fit_rms_max,
+        "fit_acceptance_m": float(acceptance),
+        "simplification_contour_residual_m": contour_residual,
         "shoulder_excess_max_m": float(max(row["excess_max_m"] for row in rows)),
         "base_burial_allowance_m": float(
             max(row["base_burial_allowance_m"] for row in rows)
+        ),
+        "support_penetration_max_m": float(
+            max(row["support_penetration_m"] for row in rows)
+        ),
+        "base_support_adjustment_range_m": [
+            float(min(row["base_support_adjustment_m"] for row in rows)),
+            float(max(row["base_support_adjustment_m"] for row in rows)),
+        ],
+        "effective_hidden_base_range_m": [
+            float(min(row["effective_hidden_base_m"] for row in rows)),
+            float(max(row["effective_hidden_base_m"] for row in rows)),
+        ],
+        "total_burial_below_skin_max_m": float(
+            max(row["total_burial_below_skin_m"] for row in rows)
         ),
         "simplification_max_residual_m": residuals,
         "simplification_acceptance_m": float(acceptance),
@@ -1812,7 +1894,8 @@ def measure_shoulder_fairing(
             {
                 "x_m": row["x_m"],
                 "abs_y_m": 0.5 * row["width_m"],
-                "z_m": row["support_z_m"],
+                "z_m": row["skin_reference_z_m"],
+                "support_z_m": row["support_z_m"],
                 "buried_base_z_m": row["base_z_m"],
             }
             for row in selected

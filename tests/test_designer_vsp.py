@@ -16,6 +16,8 @@ from openair.designer.server import ConceptWorkspace, WorkspaceError, make_serve
 from openair.geometry.fin_attachment import fin_attachment
 from openair.geometry.openvsp_model import (
     VSP_LOCK,
+    _construct_model,
+    _construction_readback,
     _drain_vsp_errors,
     _try_import_vsp,
     write_vsp3,
@@ -217,6 +219,17 @@ def _fairing_roundtrip_spec() -> VehicleSpec:
         }
     ]
     return VehicleSpec.model_validate(data)
+
+
+def _measured_extension_spec() -> VehicleSpec:
+    spec = _fairing_roundtrip_spec()
+    spec.name = "vsp-measured-extension"
+    derived = fin_attachment(spec)
+    spec.vtail.root_attachment = "measured"
+    spec.vtail.y_root_m = derived["y_m"] + 0.02
+    spec.vtail.z_root_m = derived["z_m"] + 0.01
+    assert fin_attachment(spec)["extension_required"]
+    return spec
 
 
 def _sectioned_roundtrip_spec() -> VehicleSpec:
@@ -457,12 +470,69 @@ def test_max_width_location_and_fairing_round_trip(tmp_path: Path):
     assert fairing.stations[2].max_width_loc == pytest.approx(-0.7)
 
 
+def test_fairing_readback_uses_actual_transform():
+    spec = _fairing_roundtrip_spec()
+    vsp = _try_import_vsp()
+    if vsp is None:
+        pytest.skip("OpenVSP unavailable")
+    with VSP_LOCK:
+        built = _construct_model(vsp, spec)
+        fairing = built["fairings"][0]
+        vsp.SetParmVal(
+            fairing["geom_id"],
+            "X_Rel_Location",
+            "XForm",
+            fairing["x_origin_m"] + 0.05,
+        )
+        vsp.Update()
+        readback, _ = _construction_readback(vsp, spec, built)
+
+    assert not readback["fairings_match"]
+    assert not readback["fairings"][0]["transform_matches"]
+    assert not readback["matches_spec"]
+
+
+def test_import_rejects_scan_derived_fairing_edit(tmp_path: Path):
+    spec = _fairing_roundtrip_spec()
+    path = tmp_path / "edited-fairing.vsp3"
+    _write_or_skip(spec, path)
+
+    def edit(vsp, geoms):
+        xsurf = vsp.GetXSecSurf(geoms["fairing_aft_shoulder"], 0)
+        section = vsp.GetXSec(xsurf, 1)
+        vsp.SetXSecWidthHeight(
+            section,
+            1.02 * vsp.GetXSecWidth(section),
+            vsp.GetXSecHeight(section),
+        )
+
+    _edit_vsp3(path, edit)
+    with pytest.raises(ImportRejected, match="scan-derived and read-only"):
+        import_vsp3(path, spec)
+
+
+def test_import_rejects_measured_fin_edit_with_stale_extension(tmp_path: Path):
+    spec = _measured_extension_spec()
+    path = tmp_path / "stale-root-extension.vsp3"
+    _write_or_skip(spec, path)
+
+    def edit(vsp, geoms):
+        for name in ("vtailr", "vtaill"):
+            current = vsp.GetParmVal(geoms[name], "Z_Rel_Location", "XForm")
+            vsp.SetParmVal(
+                geoms[name],
+                "Z_Rel_Location",
+                "XForm",
+                current + 0.005,
+            )
+
+    _edit_vsp3(path, edit)
+    with pytest.raises(ImportRejected, match="derived root extension was edited"):
+        import_vsp3(path, spec)
+
+
 def test_import_rejects_edited_derived_fin_root_extension(tmp_path: Path):
-    spec = _roundtrip_spec()
-    derived = fin_attachment(spec)
-    spec.vtail.root_attachment = "measured"
-    spec.vtail.y_root_m = derived["y_m"] + 0.02
-    spec.vtail.z_root_m = derived["z_m"] + 0.01
+    spec = _measured_extension_spec()
     path = tmp_path / "edited-root-extension.vsp3"
     _write_or_skip(spec, path)
 

@@ -156,7 +156,8 @@ the model for saves. A restricted importer accepts only geometry that
 NACA four-series wing, 4–8 point/ellipse/split-super-ellipse fuselage stations,
 reproduction-only measured fairing lofts, their derived fin-root extensions,
 one centerline fin or a symmetric fin pair, and the optional single-section
-horizontal tail). Asymmetric upper/lower lateral
+horizontal tail). Fairing fields remain scan-derived/read-only and candidate
+fin edits are rejected when their derived extension is stale. Asymmetric upper/lower lateral
 powers, rounded/general sections,
 unsupported components, extra wing sections, mixed airfoils, or
 unrepresentable transforms are rejected with actionable feedback and leave
@@ -295,7 +296,8 @@ Deep dive: [guidebook 09](docs/guidebook/09-sizing-aero-buildup.md).
 `openvsp_model.py` builds the OpenVSP model (scalar or measured-section wing,
 station-loft or legacy fuselage, measured body fairings, and one or two fins
 with derived non-lifting buried root extensions), verifies every
-parameter by API read-back, and exports `.vsp3` plus whole-model and
+parameter—including actual fairing transforms and signed extension-tip
+coincidence—by API read-back, and exports `.vsp3` plus whole-model and
 per-component STLs. Whenever control surfaces are declared it also creates
 and read-back verifies generalized wing/horizontal-tail/vertical-tail control
 subsurfaces and overlapping logical groups (the flight-dynamics stage and the
@@ -312,8 +314,8 @@ until the core-body/fairing union contains the whole root chord.
 `packing.py` checks engine, payload-bay, and fuel volumes
 against local body sections.
 `mesh_checks.py` re-measures the *exported STL* — component extents, fin
-verticality, fairing-base support, and attachment inside the authoritative
-local body union — because read-back
+verticality, fairing-base support two millimetres inside independent body/wing
+solids, and attachment inside the authoritative local body union — because read-back
 alone let rotated fins pass (F11/F14). `threeview.png` is rendered from the
 mesh, not the spec (F15).
 Deep dive: [guidebook 01](docs/guidebook/01-openvsp.md).

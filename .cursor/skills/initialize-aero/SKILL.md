@@ -121,8 +121,10 @@ is tool-agnostic on purpose.
     sections remain disclosed as a reproduction alternative but
     `suggested.wing` stays scalar and valid for MDO.
 4aa. When `measurements.fairings.aft_shoulder.ok`, inspect its fin-point
-    exclusion, fit RMS, simplification residual, base-burial allowance, and
-    junction crease in `reference-sections.png`. For a reproduction copy the
+    exclusion, fit RMS/acceptance, dimensional and contour simplification
+    residuals, skin penetration, nominal/effective hidden skirt, support
+    adjustment, total burial, and junction crease in
+    `reference-sections.png`. For a reproduction copy the
     complete `suggested.fuselage.fairings` list; do not hand-tune its stations.
     `max_width_loc: -1` is the measured dome convention. Inspiration and
     requirement modes keep the candidate disclosed but do not emit it.

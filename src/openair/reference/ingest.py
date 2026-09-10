@@ -1385,10 +1385,20 @@ def suggest_spec_values(
                     "simplification_max_residual_m",
                     {},
                 )
+                worst = max(
+                    max(residuals.values(), default=0.0),
+                    float(
+                        fairing_measurement.get(
+                            "simplification_contour_residual_m",
+                            0.0,
+                        )
+                    ),
+                    float(fairing_measurement.get("fit_rms_max_m", 0.0)),
+                )
                 raise ReferenceInputError(
                     "measured aft shoulder cannot be represented by at most "
-                    f"8 stations: maximum residual "
-                    f"{max(residuals.values(), default=float('nan')):.4f} m "
+                    f"8 stations: maximum fit/simplification residual "
+                    f"{worst:.4f} m "
                     f"exceeds "
                     f"{fairing_measurement.get('simplification_acceptance_m', float('nan')):.4f} m"
                 )

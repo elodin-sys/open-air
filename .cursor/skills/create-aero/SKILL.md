@@ -110,8 +110,9 @@ pipeline:
    `.openvsp.readback.vtail_root_extensions_match`,
    `mesh_checks` rows `fairing_*_contained` and `fin_*_attached`, and
    `.reference_fidelity.checks.p95_body.basis == "fuselage + measured fairing components"`.
-   Fairings and `fin_*_root` are loft-only/non-lifting; verify the buried-root
-   components are marked excluded from component fidelity.
+   Fairings and `fin_*_root` are loft-only/non-lifting. The fairing remains
+   in body-union fidelity; verify only buried-root components are marked
+   excluded from component fidelity.
 6. Require the concept inputs (`brief.md`, `design.yaml`, sketches, and
    `reference/`) to be committed before the full run. If they are
    uncommitted, stop and ask the user to commit them or explicitly authorize a

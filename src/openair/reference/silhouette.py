@@ -500,6 +500,9 @@ def render_sections_figure(
         lines += [
             f"aft shoulder ×{shoulder['station_count']} stations · excess max {1000 * shoulder['shoulder_excess_max_m']:.1f} mm",
             f"fairing fit rms max {1000 * shoulder['fit_rms_max_m']:.1f} mm · fin-free envelope",
+            f"support penetration {1000 * shoulder.get('support_penetration_max_m', 0.0):.1f} mm"
+            f" + hidden base {1000 * shoulder['base_burial_allowance_m']:.1f} mm"
+            f" = {1000 * shoulder.get('total_burial_below_skin_max_m', shoulder['base_burial_allowance_m']):.1f} mm max",
         ]
     control = record.get("control_surface") or {}
     lines.append(

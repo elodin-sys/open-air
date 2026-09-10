@@ -237,8 +237,10 @@ fuselage:
       bottom_power: 6.33
   # Fin-free scan envelope of the aft deck/shoulder. This auxiliary loft is
   # geometry-fidelity only: it is excluded from packing, drag, mass, OAS, and
-  # VSPAERO. Its base is buried 6.6 mm into the wing/body union so the
-  # point-capped OpenVSP surface remains physically connected.
+  # VSPAERO. Ingest penetrates the measured support skin by up to 4.0 mm and
+  # adds a 6.6 mm hidden skirt. The geometry checkpoint then moves only that
+  # hidden base by -0.5..+2.5 mm (visible top/width unchanged) so at least
+  # 95% lies 2 mm inside the declared wing/body solids.
   fairings:
     - name: aft_shoulder
       role: shoulder
@@ -253,50 +255,50 @@ fuselage:
           max_width_loc: 0.0
         - x_over_length: 0.7514
           width_m: 0.1438
-          height_m: 0.0329
-          z_offset_m: 0.0403
-          side_power: 1.74
-          top_power: 2.71
+          height_m: 0.0334
+          z_offset_m: 0.0400
+          side_power: 1.88
+          top_power: 1.93
           bottom_power: 2.0
           max_width_loc: -1.0
         - x_over_length: 0.7655
           width_m: 0.1490
           height_m: 0.0314
           z_offset_m: 0.0400
-          side_power: 1.71
-          top_power: 2.52
+          side_power: 2.02
+          top_power: 1.52
           bottom_power: 2.0
           max_width_loc: -1.0
         - x_over_length: 0.7795
           width_m: 0.1438
           height_m: 0.0340
           z_offset_m: 0.0378
-          side_power: 1.56
-          top_power: 3.31
+          side_power: 1.76
+          top_power: 2.20
           bottom_power: 2.0
           max_width_loc: -1.0
         - x_over_length: 0.7936
           width_m: 0.1488
           height_m: 0.0325
           z_offset_m: 0.0376
-          side_power: 1.64
-          top_power: 2.49
+          side_power: 1.91
+          top_power: 1.55
           bottom_power: 2.0
           max_width_loc: -1.0
         - x_over_length: 0.8919
           width_m: 0.1339
-          height_m: 0.0357
-          z_offset_m: 0.0314
-          side_power: 0.78
-          top_power: 3.61
+          height_m: 0.0347
+          z_offset_m: 0.0319
+          side_power: 0.92
+          top_power: 2.36
           bottom_power: 2.0
           max_width_loc: -1.0
         - x_over_length: 0.9130
           width_m: 0.1393
-          height_m: 0.0375
-          z_offset_m: 0.0301
-          side_power: 0.88
-          top_power: 2.22
+          height_m: 0.0350
+          z_offset_m: 0.0314
+          side_power: 1.09
+          top_power: 1.38
           bottom_power: 2.0
           max_width_loc: -1.0
         - x_over_length: 0.9200

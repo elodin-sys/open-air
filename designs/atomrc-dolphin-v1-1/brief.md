@@ -175,17 +175,19 @@ x ≈ 0.10–0.15 (bottom −0.017 m) is real.
 After excluding 72,380 fin points, reference ingest found a contiguous
 fin-free upper-envelope excess over the fin root chord and fit it as an
 eight-station point-capped dome. The six interior stations span x/L
-0.7514–0.9130; width is 0.1339–0.1490 m, height 0.0314–0.0375 m, and
+0.7514–0.9130; width is 0.1339–0.1490 m, height 0.0314–0.0350 m, and
 `max_width_loc: -1` puts maximum width at the lower edge. The measured excess
-peaks at 46.5 mm. Fit RMS is at most 6.26 mm; 8-station simplification
-residuals are 3.87/2.25/1.11 mm in width/height/z against a 6.61 mm band.
+peaks at 46.5 mm. Visible-envelope fit RMS is at most 3.30 mm; the
+8-station dimensional residuals are 3.87/2.25/1.11 mm and normalized contour
+residual is 2.24 mm, all inside the 6.61 mm band.
 
-The base is intentionally buried 6.61 mm below the measured support surface.
-This hidden overlap absorbs the scan/OpenVSP trailing-edge loft difference
-and makes the serialized fairing physically intersect the core body/wing;
-it is not a claim that the real shoulder has that buried thickness. The
-fairing and derived fin-root extensions are excluded from packing, wetted-area
-drag, mass, OAS, VSPAERO, and component-fidelity scoring.
+The measured upper skin is penetrated by up to 4.0 mm before a nominal 6.61 mm
+hidden skirt is added. Ingest tapers that skirt near the thin root trailing
+edge (support adjustment −0.5 to +2.5 mm), giving an effective hidden overlap
+of 4.11–7.11 mm and maximum total burial 10.61 mm. This is not a claim about
+real material thickness. The fairing is excluded from packing, wetted-area
+drag, mass, OAS, and VSPAERO but is included in the body-union fidelity gate;
+only the derived `fin_*_root` components are excluded from component fidelity.
 
 ### Fins (two, outward-canted; measured)
 
@@ -197,7 +199,7 @@ drag, mass, OAS, VSPAERO, and component-fidelity scoring.
 | Root chord / tip chord | LE/TE lines extrapolated to the junction and tip | 0.107 m / 0.060 m -> taper 0.559 | ±0.004 m | measured (reference model) |
 | LE sweep (in the fin plane) | LE line slope | 29.4° | ±1.0° | measured (reference model) |
 | x_le (root) | LE line at the junction | 0.5426 m | ±0.004 m | measured (reference model) |
-| Root junction | y ±0.062 m, z +0.0496 m (deck edge) | exposed fin uses measured y/z exactly; a derived 33 mm continuation is buried in the shoulder/body union | — | measured junction + derived hidden overlap |
+| Root junction | y ±0.062 m, z +0.0496 m (deck edge) | exposed fin uses measured y/z exactly; a derived 35 mm continuation is buried in the shoulder/body union | — | measured junction + derived hidden overlap |
 | t/c | plane-slab thickness 10.8 mm over the mean chord | 0.129 | — | measured (reference model) |
 
 The render-based estimate (fin span 0.177 m, cant 47.4°, x_le 0.517 m) is
@@ -282,10 +284,10 @@ stretch solvers only).
   that neither lattice models, so the predicted elevon trim deflection is an
   upper bound for the wing-only physics, not a flight measurement.
 - **Fin root fairing and toe**: the exposed fin origin honours the measured
-  deck/strake junction exactly. The measured shoulder plus a derived 33 mm
+  deck/strake junction exactly. The measured shoulder plus a derived 35 mm
   inboard continuation now close the STL gap; the exported root centroid is
-  inside the fairing/body union (eccentricity 0.546, nearest surface
-  1.7–2.2 mm). A planar WING plus dome still approximates the detailed
+  inside the fairing/body union (eccentricity 0.509, nearest surface
+  0.8–1.4 mm). A planar WING plus dome still approximates the detailed
   sloping fillet and cannot represent measured toe (about ±1.5°).
 - **Scan gaps**: missing leading-edge skin, open bays, missing belly panels
   (repaired by interpolation as listed above); propeller not scanned.
@@ -466,12 +468,20 @@ stretch solvers only).
   Reference ingest now removes 72,380 fin points and fits the remaining
   shoulder as the eight-station dome recorded above. OpenVSP and Studio use
   shifted maximum-width sections, point-cap-safe zero interpolation strengths,
-  and a derived 33 mm continuation of each fin's LE/TE lines into the
+  and a derived 35 mm continuation of each fin's LE/TE lines into the
   fairing/body union. Reopened VSP3 read-back matches the fairing and both
   extensions. The exported root centroids are inside the union at
-  eccentricity **0.546**, nearest surface **2.24/1.67 mm**; fairing-base
-  support is **95.4%** against the 95% requirement. The old 60 mm floor is now
+  eccentricity **0.509**, nearest surface **1.44/0.79 mm**; fairing-base
+  support is **99.2%** against the 95% requirement with a true 2 mm inward
+  margin. The old 60 mm floor is now
   10 mm at this scale.
+
+  Post-review hardening verifies extension-tip coincidence for signed
+  centerline and cross-centerline cant geometry, reads the actual fairing
+  transform instead of substituting expected values, rejects a measured-fin
+  edit with a stale extension, keeps extensions reproduction-only, separates
+  body and wing support solids, and rejects fairing fits whose section or
+  simplified-contour residual exceeds its frozen band.
 
   Full pipeline closure remains validation **15/15** and gates **12/12**.
   OAS geometry/trim is unchanged: elevon +9.6398°, NP 0.42890 m, static
@@ -479,8 +489,8 @@ stretch solvers only).
   `fairing_aft_shoulder` and `vtail*_root`, so these hidden loft components do
   not alter lifting physics. Reference top/side/front IoU is
   **0.968/0.952/0.900**, exposed-wing p95 **4.87 mm**, fin p95
-  **3.06/3.62 mm**, body-union p95 **12.50 mm**, and whole-aircraft p95
-  **13.69 mm**. The small whole-p95 increase from 13.24 mm is the disclosed
+  **3.06/3.62 mm**, body-union p95 **12.55 mm**, and whole-aircraft p95
+  **13.81 mm**. The small whole-p95 increase from 13.24 mm is the disclosed
   cost of adding buried attachment surfaces; no source fin/wing/mass/CG/aero
   value or acceptance band changed.
 
@@ -499,6 +509,6 @@ taper 0.5093 / LE sweep −12.07° / dihedral −1.91°; wing root LE x 0.4071 m
 max height 0.107 m, 8 stations, root-chord datum, z = 0 at the nose tip; twin
 fins span 0.119 m, root chord 0.107 m, LE sweep
 29.4°, cant 39.0° outward, x_le 0.5426 m; measured aft-shoulder fairing with
-8 stations and 33 mm buried fin-root continuation; internal electric pusher
+8 stations and 35 mm buried fin-root continuation; internal electric pusher
 package at x 0.680; payload bay = forward battery bay at x 0.190.
 <!-- OPENAIR_SKETCH_WORKSHEET_END -->

@@ -24,7 +24,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from scipy.spatial import cKDTree
 
 from openair.geometry.fuselage import (
     FuselageSectionShape,
@@ -34,7 +33,9 @@ from openair.geometry.fuselage import (
     fuselage_section_shape,
     fuselage_z_bounds,
     section_eccentricity,
+    section_polygon,
 )
+from openair.geometry.mesh import naca4_camber, naca4_thickness
 from openair.geometry.packing import external_nacelle_y_positions
 from openair.schemas import VehicleSpec
 
@@ -474,7 +475,8 @@ def root_section_inside_fuselage(
 
 def fairing_contained_by_body_or_wing(
     fairing_verts: np.ndarray,
-    support_verts: np.ndarray,
+    body_verts: np.ndarray,
+    wing_verts: np.ndarray | None,
     name: str,
     spec: VehicleSpec,
 ) -> dict[str, Any]:
@@ -505,6 +507,11 @@ def fairing_contained_by_body_or_wing(
             "note": "no fairing lower-boundary samples",
         }
     base = np.vstack(base_samples)
+    support_verts = (
+        np.vstack([body_verts, wing_verts])
+        if wing_verts is not None and len(wing_verts)
+        else body_verts
+    )
     support = support_verts[:: max(1, len(support_verts) // 20_000)]
     distances = np.empty(len(base))
     for start in range(0, len(base), 64):
@@ -515,44 +522,101 @@ def fairing_contained_by_body_or_wing(
         ).min(axis=1)
     penetration_margin = min(0.002, 0.005 * spec.fuselage.length_m)
 
-    projection_radius = max(0.015, 0.001 * spec.fuselage.length_m)
-    tree = cKDTree(support_verts[:, :2])
-    projected_distance, projected_indices = tree.query(
-        base[:, :2],
-        k=min(96, len(support_verts)),
-    )
-    if projected_distance.ndim == 1:
-        projected_distance = projected_distance[:, None]
-        projected_indices = projected_indices[:, None]
+    axial_radius = max(0.010, 0.002 * spec.fuselage.length_m)
+
+    polygon_cache: dict[float, np.ndarray] = {}
+
+    def body_boundary_clearance(point: np.ndarray) -> float:
+        key = round(float(point[0]), 6)
+        polygon = polygon_cache.get(key)
+        if polygon is None:
+            shape = fuselage_section_shape(spec, float(point[0]))
+            polygon = np.asarray(
+                section_polygon(
+                    shape.width_m,
+                    shape.height_m,
+                    z_center_m=shape.z_center_m,
+                    side_power=shape.side_power,
+                    top_power=shape.top_power,
+                    bottom_power=shape.bottom_power,
+                    max_width_loc=shape.max_width_loc,
+                    samples=256,
+                )
+            )
+            polygon_cache[key] = polygon
+        target = np.asarray([point[1], point[2]])
+        left = polygon
+        right = np.roll(polygon, -1, axis=0)
+        segment = right - left
+        fraction = np.clip(
+            np.sum((target - left) * segment, axis=1)
+            / np.maximum(np.sum(segment * segment, axis=1), 1e-18),
+            0.0,
+            1.0,
+        )
+        closest = left + fraction[:, None] * segment
+        return float(np.linalg.norm(closest - target, axis=1).min())
+
+    def wing_contains(point: np.ndarray) -> bool:
+        if wing_verts is None or not len(wing_verts):
+            return False
+        wing = spec.wing
+        eta = abs(float(point[1])) / max(0.5 * wing.span_m, 1e-12)
+        if eta > 1.0:
+            return False
+        chord = wing.chord_at(eta)
+        twist = math.radians(
+            wing.twist_root_deg
+            + eta * (wing.twist_tip_deg - wing.twist_root_deg)
+        )
+        global_x = float(point[0]) - (wing.x_le_at(eta) + 0.25 * chord)
+        global_z = float(point[2]) - wing.z_le_at(eta)
+        # OpenVSP/Studio map local section coordinates with
+        # [global_x, global_z] = [[cos, sin], [-sin, cos]] [dx, z].
+        local_x = global_x * math.cos(twist) - global_z * math.sin(twist)
+        local_z = global_x * math.sin(twist) + global_z * math.cos(twist)
+        x_over_c = (0.25 * chord + local_x) / max(chord, 1e-12)
+        if not 0.0 <= x_over_c <= 1.0:
+            return False
+        code = wing.airfoil
+        camber, _ = naca4_camber(
+            np.asarray([x_over_c]),
+            int(code[0]) / 100.0,
+            int(code[1]) / 10.0,
+        )
+        thickness = naca4_thickness(
+            np.asarray([x_over_c]),
+            wing.t_over_c_at(eta),
+        )
+        lower = float((camber[0] - thickness[0]) * chord)
+        upper = float((camber[0] + thickness[0]) * chord)
+        local_margin = min(
+            penetration_margin,
+            0.20 * max(upper - lower, 0.0),
+        )
+        return lower + local_margin <= local_z <= upper - local_margin
+
     supported_rows = []
-    for point, horizontal_distance, indices in zip(
-        base,
-        projected_distance,
-        projected_indices,
-    ):
-        inside_body = (
-            section_eccentricity(
+    body_supported_rows = []
+    wing_supported_rows = []
+    for point in base:
+        body_at_x = bool(
+            np.any(np.abs(body_verts[:, 0] - float(point[0])) <= axial_radius)
+        )
+        inside_body = bool(
+            body_at_x
+            and section_eccentricity(
                 fuselage_section_shape(spec, float(point[0])),
                 float(point[1]),
                 float(point[2]),
             )
             <= 1.0
+            and body_boundary_clearance(point) >= penetration_margin
         )
-        local = support_verts[indices[horizontal_distance <= projection_radius], 2]
-        inside_projected_union = False
-        if len(local) >= 2:
-            lower = float(local.min())
-            upper = float(local.max())
-            local_margin = min(
-                penetration_margin,
-                0.20 * max(upper - lower, 0.0),
-            )
-            inside_projected_union = (
-                lower + local_margin
-                <= float(point[2])
-                <= upper - local_margin
-            )
-        supported_rows.append(inside_body or inside_projected_union)
+        inside_wing = wing_contains(point)
+        body_supported_rows.append(inside_body)
+        wing_supported_rows.append(inside_wing)
+        supported_rows.append(inside_body or inside_wing)
     supported = np.asarray(supported_rows, dtype=bool)
     supported_fraction = float(np.mean(supported))
     limit = max(PROXIMITY_FLOOR_M, 0.002 * spec.fuselage.length_m)
@@ -566,11 +630,14 @@ def fairing_contained_by_body_or_wing(
         "supported_fraction": supported_fraction,
         "required_supported_fraction": 0.95,
         "penetration_margin_m": float(penetration_margin),
-        "mesh_projection_radius_m": float(projection_radius),
+        "body_axial_support_radius_m": float(axial_radius),
+        "wing_support_basis": "declared OpenVSP/Studio NACA section solid",
+        "body_supported_fraction": float(np.mean(body_supported_rows)),
+        "wing_supported_fraction": float(np.mean(wing_supported_rows)),
         "ok": bool(supported_fraction >= 0.95),
         "note": (
             "at least 95% of the fairing lower boundary must lie at least the "
-            "reported margin inside the core-body or exported wing projection; "
+            "reported margin inside the local core-body or wing solid; "
             "3-D vertex distance is disclosure only"
         ),
     }
@@ -775,17 +842,13 @@ def run_mesh_checks(
                         spec,
                     )
                 )
-        fairing_support = (
-            np.vstack([verts["fuselage"], verts["wing"]])
-            if "wing" in verts
-            else verts["fuselage"]
-        )
         for name in fairing_specs:
             if name in verts:
                 checks.append(
                     fairing_contained_by_body_or_wing(
                         verts[name],
-                        fairing_support,
+                        verts["fuselage"],
+                        verts.get("wing"),
                         name,
                         spec,
                     )

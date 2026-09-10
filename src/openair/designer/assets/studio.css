@@ -93,7 +93,7 @@
     .station-editor { grid-column: 1 / -1; overflow-x: auto; }
     .station-row {
       display: grid;
-      grid-template-columns: repeat(4, minmax(58px, 1fr)) repeat(3, minmax(50px, .86fr)) 26px;
+      grid-template-columns: repeat(4, minmax(58px, 1fr)) repeat(4, minmax(50px, .86fr)) 26px;
       gap: 3px; margin-bottom: 4px;
     }
     .station-row input {

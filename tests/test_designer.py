@@ -349,6 +349,13 @@ def test_sectioned_studio_preserves_reproduction_and_true_wing_metrics(tmp_path)
     assert re.search(r'data-path="fuselage\.fairings"[^>]* disabled', dom)
     assert 'class="fairing-shape"' in dom
     assert "root-extension" in dom
+    front = re.search(
+        r'<svg id="front-view"[^>]*>(.*?)</svg>',
+        dom,
+        re.DOTALL,
+    )
+    assert front
+    assert front.group(1).count('class="fairing-shape"') == 6
 
     brief_match = re.search(
         r'<pre id="smoke-brief" hidden(?:="")?>(.*?)</pre>',
@@ -362,7 +369,7 @@ def test_sectioned_studio_preserves_reproduction_and_true_wing_metrics(tmp_path)
     assert "Wing projected area | 0.1668 m²" in brief
     assert "Wing mean aerodynamic chord | 0.2293 m" in brief
     assert "### Measured body fairings" in brief
-    assert "Fin buried root extension | 0.0330 m" in brief
+    assert "Fin buried root extension | 0.0350 m" in brief
 
 
 def test_blank_disabled_optional_section_does_not_block_openvsp(tmp_path):

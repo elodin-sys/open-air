@@ -102,8 +102,10 @@ publishing. A staged concept bundle passes `--out <staging>/reference` and
      surface over the fin root chord. A contiguous excess over at least 60 %
      of that chord is fit as a point-capped 4–8-station
      `fuselage.fairings` dome. `max_width_loc=-1` puts its widest line at the
-     base; that base is buried by the disclosed, resolution-scaled allowance
-     so the OpenVSP loft intersects rather than kisses the wing/body union.
+     base. The record separates penetration below the measured upper skin,
+     nominal skirt depth, trailing-edge support adjustment, effective hidden
+     depth, and total burial so the OpenVSP loft intersects rather than kisses
+     the wing/body union.
      This is emitted for `reproduction` only.
 4. **Tolerances.** Every value carries `max(2 × resolution, symmetry residual,
    left/right disagreement, fit residual)` with floors of 1 mm and 0.5°, plus
@@ -166,9 +168,9 @@ acceptance band. Replacing its remaining single trapezoid with the audited
 11-section loft then raised top/front IoU to 0.968/0.899 (side 0.952),
 delivered 4.87 mm model-to-reference exposed-wing p95, and moved
 whole-aircraft p95 to 13.2 mm.
-The follow-up shoulder loft and 33 mm buried fin-root extension make the STL
+The follow-up shoulder loft and 35 mm buried fin-root extension make the STL
 physically connected without moving the measured exposed fin. The body-union
-p95 is 12.5 mm, whole-aircraft p95 13.7 mm, and top/side/front IoU
+p95 is 12.6 mm, whole-aircraft p95 13.8 mm, and top/side/front IoU
 0.968/0.952/0.900; the small p95 increase reflects the deliberately buried
 attachment surfaces, not an acceptance change. The full wing-component p95
 remains 16.1 mm because it includes buried carry-through surface. For
@@ -197,8 +199,9 @@ disclosed, not gating.
     with `suggested.wing` and the solid outline in `reference-sections.png`.
 5c. When `measurements.fairings.aft_shoulder.ok`, inspect
     `disclosures.aft_shoulder_fairing`: fin-point exclusion, source/selected
-    station counts, fit RMS, maximum excess, simplification residual,
-    base-burial allowance, and junction crease must agree with
+    station counts, fit RMS and acceptance, maximum excess, dimensional and
+    contour simplification residuals, skin penetration, nominal/effective
+    skirt depths, total burial, support adjustment, and junction crease must agree with
     `suggested.fuselage.fairings` and the dashed review-figure outline.
 6. Open `reference-sections.png`; then after `python -m openair.geometry run`
    open `reference_overlay.png` and read `reference_fidelity.checks`.
@@ -221,8 +224,9 @@ disclosed, not gating.
 - **A buried fairing base is not measured material thickness.** The visible
   dome follows the fin-free scan envelope; its lower overlap is deliberately
   extended into the represented wing/body so independent OpenVSP geoms form
-  a connected artifact. Disclose that allowance and exclude the hidden
-  surface from physics and component-fidelity claims.
+  a connected artifact. Exclude it from physics, but retain the complete
+  fairing in body-union fidelity; only separately buried `fin_*_root`
+  components are excluded from component-fidelity claims.
 - **Deflected controls masquerade as twist and reflex.** The hinge detector
   and undeflection remove most of it, but the as-scanned deflection is a
   control position at scan time, not a trimmed neutral (measurement form

@@ -427,18 +427,26 @@ distance therefore hid a visible 13 mm lateral / 15–25 mm vertical gap.
 aft upper-envelope excess as a reproduction-only `fuselage.fairings` loft.
 Shifted split-super-ellipse sections (`max_width_loc=-1`) form its dome; zero
 OpenVSP interpolation strengths prevent point-cap overshoot, and its
-resolution-scaled buried base must have at least 95% support in the exported
-body/wing projection. The fin LE/TE lines continue inboard along the cant
+resolution-scaled buried base must have at least 95% support two millimetres
+inside the independent local body or wing solid. Visible fit RMS and both
+dimensional and contour simplification residuals are acceptance-gated; skin
+penetration, nominal/effective skirt depth, support adjustment, and total
+burial are disclosed separately. The fin LE/TE lines continue inboard along the cant
 plane as separately named `vtail*_root` WING geoms until LE/mid/TE section
 eccentricities are ≤0.8 plus a 5 mm margin. Those geoms are serialized,
 read back, imported, previewed, and mesh-checked, but their names are absent
 from every VSPAERO/OAS lifting set and they are excluded from component
 fidelity.
 
-The Dolphin uses an eight-station measured shoulder and a 33 mm extension.
+Post-review guards also read actual fairing transforms, verify signed
+extension-tip coincidence, reject candidate fin edits with stale root geoms,
+keep extensions reproduction-only, and preserve legacy no-fairing p95
+sampling.
+
+The Dolphin uses an eight-station measured shoulder and a 35 mm extension.
 The exported root centroid is inside the fairing/body union at eccentricity
-0.546 with 1.7–2.2 mm nearest-surface distance; fairing-base support is 95.4%.
-Reference geometry remains green (body-union p95 12.5 mm; top/side/front IoU
+0.509 with 0.8–1.4 mm nearest-surface distance; fairing-base support is 99.2%.
+Reference geometry remains green (body-union p95 12.6 mm; top/side/front IoU
 0.968/0.952/0.900). No fin, wing, mass, CG, aerodynamic input, or acceptance
 band moved.
 

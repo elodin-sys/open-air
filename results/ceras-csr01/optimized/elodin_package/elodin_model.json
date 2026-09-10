@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "ceras-csr01",
-  "created_at": "2026-09-10T08:16:55+00:00",
+  "created_at": "2026-09-10T15:28:35+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -145,7 +145,7 @@
     "geometry_vsp3": {
       "path": "geometry/ceras-csr01.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "36bda53fb3273119fc09a23a32dc21bdd744100897deeac53ec2d6cddc0529bc",
+      "sha256": "b9ff36a1cc4f408724640e9455dd0b78e2db8f5965495593e9a06a800be28b01",
       "size_bytes": 279412
     },
     "geometry_whole_stl": {
@@ -169,7 +169,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "574f23dcc7bba2bbe7b69e68fa302845caf2c87ad55955328e57f8fb8099097c",
+      "sha256": "50b44469d42271c6fc91286f0317b9ef519bde33be4be92a79e35281b9665f98",
       "size_bytes": 899
     },
     "render_glb": {
@@ -366,14 +366,14 @@
       "propulsion": "C",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "1dda28b80e996e89b19a7e394d2e8ae08e11e372689b9723a301dd77ab05aef2",
-    "pipeline_run_id": "36e12a81cbd1415d94ab2951ed71402f",
-    "source_git_commit": "c7ad921a3fbf0dca9dfc0a3e69ac701874fdd0d3",
+    "model_source_sha256": "a6c8dc1d3141d433abd3ddb0b298720d1b6b71757f18b7aae87dad693f92dc19",
+    "pipeline_run_id": "b199e86f46db403a973a1af251f14ccf",
+    "source_git_commit": "8c951c09aaa43af77e8b2148c2385894de5d3e5b",
     "upstream_sha256": {
-      "aero.json": "67b2ae55cbece8c7c6e3d869434647065cf36b934776718c4d23598840f02dc1",
-      "geometry.json": "7e34306a4f8e2b3b7e70a91a6887dd6914722b1a6410fbb534270aed1eb92809",
-      "structures.json": "5eb3be2bae174d9527e18130d032e3d695e9897270fd9bb027a2e1c20aace87b",
-      "validation.json": "8bfb8145286bc3b62bc71eda19e4b9eaf2141a706c0e6a7cc9c8890cdad43c9a"
+      "aero.json": "c7cefb53261f715aaf438a05bc53ef1461474244e41749216828b0972b1300e2",
+      "geometry.json": "c5849bae9f836a09203317ac645a59f9d0e465b57da6a0de3113092930b5c531",
+      "structures.json": "d3c9373d54a524afdc4c01dcbc5e08e02d56997a2167b6cf71605b94a978d879",
+      "validation.json": "67f643442c9c733b93a5a445bc58abbec70c7f3d6aaa7fef908133060d24a081"
     }
   },
   "reference_geometry": {

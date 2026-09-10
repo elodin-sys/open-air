@@ -740,10 +740,10 @@ def _validate_tail_root_extensions(
             )
         )
         y_expected = (
-            0.0
+            attachment["buried_root_y_m"]
             if spec.vtail.count == 1
             else (1.0 if index == 0 else -1.0)
-            * abs(attachment["buried_root_y_m"])
+            * attachment["buried_root_y_m"]
         )
         rotation_expected = (
             90.0 - spec.vtail.cant_deg
@@ -783,6 +783,25 @@ def _validate_tail_root_extensions(
             for key, (got, wanted) in transforms.items()
             if abs(got - wanted) > 1e-4
         )
+        rotation = math.radians(transforms["x_rotation_deg"][0])
+        tip = (
+            values["x_le_m"]
+            + values["span_m"] * math.tan(math.radians(values["le_sweep_deg"])),
+            transforms["y_root_m"][0] + values["span_m"] * math.cos(rotation),
+            transforms["z_root_m"][0] + values["span_m"] * math.sin(rotation),
+        )
+        visible_y = (
+            0.0
+            if spec.vtail.count == 1
+            else (1.0 if index == 0 else -1.0) * attachment["y_m"]
+        )
+        junction_gap = math.sqrt(
+            (tip[0] - spec.vtail.x_le_m) ** 2
+            + (tip[1] - visible_y) ** 2
+            + (tip[2] - attachment["z_m"]) ** 2
+        )
+        if junction_gap > 1e-4:
+            mismatch.append("tip_junction")
         if mismatch:
             reasons.append(
                 f"{name}: derived root extension was edited "
@@ -816,14 +835,14 @@ def import_vsp3(
             ["vtailc"] if seed_spec.vtail.count == 1 else ["vtailr", "vtaill"]
         )
         attachment_source = attachment_spec or seed_spec
-        attachment = fin_attachment(attachment_source)
+        seed_attachment = fin_attachment(attachment_source)
         fairing_names = [
             f"fairing_{fairing.name}"
             for fairing in seed_spec.fuselage.fairings or []
         ]
         root_names = (
             [f"{name}_root" for name in fin_names]
-            if attachment["extension_required"]
+            if seed_attachment["extension_required"]
             else []
         )
         expected = {
@@ -890,15 +909,14 @@ def import_vsp3(
         wing, wing_reasons = _import_wing(vsp, by_name["wing"], seed_spec)
         reasons.extend(fuselage_reasons)
         reasons.extend(wing_reasons)
-        reasons.extend(
-            _validate_tail_root_extensions(
-                vsp,
-                by_name,
-                fin_names,
-                attachment,
-                attachment_source,
+        if geometry_changes(
+            seed_spec,
+            {"fuselage": {"fairings": imported_fairings or None}},
+        ):
+            reasons.append(
+                "fuselage fairings are scan-derived and read-only; regenerate "
+                "them with openair.reference ingest"
             )
-        )
 
         seed_data = seed_spec.model_dump(mode="python", exclude_computed_fields=True)
         seed_data["wing"].update(wing)
@@ -928,24 +946,53 @@ def import_vsp3(
             htail, htail_reasons = _import_htail(vsp, by_name["htail"])
             reasons.extend(htail_reasons)
 
+        geometry: dict[str, Any] = {
+            "wing": wing,
+            "fuselage": fuselage,
+            "vtail": vtail,
+        }
+        if htail is not None:
+            geometry["htail"] = htail
+        merged = seed_spec.model_dump(mode="python", exclude_computed_fields=True)
+        for key, value in geometry.items():
+            merged[key].update(value)
+        candidate_spec = None
+        try:
+            candidate_spec = VehicleSpec.model_validate(merged)
+        except ValidationError as exc:
+            reasons.append(f"VehicleSpec validation failed: {exc}")
+        if candidate_spec is not None:
+            try:
+                candidate_attachment = fin_attachment(candidate_spec)
+            except ValueError as exc:
+                reasons.append(f"candidate fin-root burial failed: {exc}")
+            else:
+                candidate_root_names = (
+                    [f"{name}_root" for name in fin_names]
+                    if candidate_attachment["extension_required"]
+                    else []
+                )
+                if candidate_root_names != root_names:
+                    reasons.append(
+                        "candidate fin/fairing geometry changes whether derived "
+                        "root extensions are required; reopen a regenerated "
+                        "OpenVSP session"
+                    )
+                else:
+                    reasons.extend(
+                        _validate_tail_root_extensions(
+                            vsp,
+                            by_name,
+                            fin_names,
+                            candidate_attachment,
+                            candidate_spec,
+                        )
+                    )
+
         errors = _drain_vsp_errors(vsp)
         if errors:
             reasons.extend(f"OpenVSP: {error}" for error in errors)
 
-    geometry: dict[str, Any] = {
-        "wing": wing,
-        "fuselage": fuselage,
-        "vtail": vtail,
-    }
-    if htail is not None:
-        geometry["htail"] = htail
-    merged = seed_spec.model_dump(mode="python", exclude_computed_fields=True)
-    for key, value in geometry.items():
-        merged[key].update(value)
-    try:
-        VehicleSpec.model_validate(merged)
-    except ValidationError as exc:
-        reasons.append(f"VehicleSpec validation failed: {exc}")
     if reasons:
         raise ImportRejected(reasons)
     return geometry
