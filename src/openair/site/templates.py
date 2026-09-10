@@ -13,12 +13,12 @@ from openair.theme import REPORT_CSS
 SITE_CSS = """
 .brand a { color:inherit; text-decoration:none; }
 .hero-showcase { display:block; position:relative; border:1px solid rgba(255,255,255,.18); border-radius:18px; background:#071f29; overflow:hidden; box-shadow:0 28px 70px rgba(0,0,0,.35); }
-.hero-showcase img { display:block; width:100%; aspect-ratio:1.935; object-fit:contain; background:white; }
+.hero-showcase img { display:block; width:100%; aspect-ratio:2; object-fit:contain; background:white; }
 .hero-caption { display:flex; justify-content:space-between; gap:16px; color:#d6e7ec; font-size:.75rem; background:#071f29; padding:9px 12px; }
 .design-card { display:flex; flex-direction:column; min-width:0; padding:0; overflow:hidden; transition:transform .18s ease,box-shadow .18s ease; }
 .design-card:hover { transform:translateY(-3px); box-shadow:0 13px 30px rgba(17,48,59,.10); }
 .design-card-media { display:block; border-bottom:1px solid var(--line); background:#e9eeeb; }
-.design-card-media img { display:block; width:100%; aspect-ratio:1.935; object-fit:contain; }
+.design-card-media img { display:block; width:100%; aspect-ratio:2; object-fit:contain; }
 .design-card-body { display:flex; flex:1; flex-direction:column; padding:21px; }
 .design-card h3 { margin:.6em 0 .38em; font-size:1.32rem; line-height:1.15; letter-spacing:-.025em; }
 .design-card h3 a { color:var(--ink); text-decoration:none; }
@@ -78,7 +78,7 @@ def _design_card(
         )
     return f"""<article class="card design-card">
   <a class="design-card-media" href="designs/{slug}/" aria-label="Open {title} design review">
-    <img src="designs/{slug}/baseline_vs_optimized.png" alt="{title} baseline and optimized comparison" loading="lazy">
+    <img src="designs/{slug}/optimized-threeview.png" alt="{title} optimized exported-mesh top and side views" loading="lazy">
   </a>
   <div class="design-card-body">
     <div><span class="pill">{_text(design["kind"])}</span></div>
@@ -151,8 +151,8 @@ def render_index(
     </div>
   </div>
   <a class="hero-showcase" href="designs/{featured_slug}/" aria-label="Open featured design {featured_title}">
-    <img src="designs/{featured_slug}/baseline_vs_optimized.png" alt="{featured_title} baseline and optimized comparison">
-    <span class="hero-caption"><b>Featured · {featured_title}</b><span>Open the full interactive review →</span></span>
+    <img src="designs/{featured_slug}/optimized-threeview.png" alt="{featured_title} optimized exported-mesh top and side views">
+    <span class="hero-caption"><b>Featured · {featured_title}</b><span>Optimized top + side · open the interactive review →</span></span>
   </a>
 </div></section>
 

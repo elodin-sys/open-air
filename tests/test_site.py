@@ -1,16 +1,21 @@
+import base64
 import hashlib
 import subprocess
 from datetime import datetime, timezone
+from io import BytesIO
 from pathlib import Path
 
 import pytest
 import yaml
+from PIL import Image
 
 from openair.site.build import (
     OUTPUT_MARKER,
     PUBLISHED_ASSETS,
+    THREEVIEW_PREVIEW_ASSET,
     SiteBuildError,
     _rewrite_report,
+    _threeview_preview,
     _validate_local_links,
     build_site,
 )
@@ -25,6 +30,24 @@ BUILD_COMMIT = subprocess.run(
     capture_output=True,
     text=True,
 ).stdout.strip()
+
+
+def _report_with_embedded_threeview() -> str:
+    image = Image.new("RGB", (9, 3), "white")
+    for x, color in (
+        (0, (255, 0, 0)),
+        (3, (0, 128, 0)),
+        (6, (0, 0, 255)),
+    ):
+        image.paste(color, (x, 0, x + 3, 3))
+    encoded = BytesIO()
+    image.save(encoded, format="PNG")
+    payload = base64.b64encode(encoded.getvalue()).decode("ascii")
+    return (
+        '<!doctype html><div class="brand">open-air · concept review</div>'
+        '<h3>Exported-aircraft three-view</h3>'
+        f'<img src="data:image/png;base64,{payload}">'
+    )
 
 
 def test_shared_theme_retains_the_published_report_css():
@@ -58,6 +81,8 @@ def test_site_build_publishes_every_design_review(tmp_path: Path):
     assert "Aircraft concepts, engineered in the open." in index
     assert "Evidence, not claims" in index
     assert "Built from <a href=" in index
+    assert "baseline_vs_optimized.png" not in index
+    assert index.count(f"/{THREEVIEW_PREVIEW_ASSET}") == len(views) + 1
     assert "optimized 2.56 m span" in index
     assert "2.65 m span" not in index
     assert "source 65f48ec9" not in index
@@ -65,6 +90,10 @@ def test_site_build_publishes_every_design_review(tmp_path: Path):
         assert f'href="designs/{slug}/"' in index
         published = output / "designs" / slug
         assert (published / "index.html").is_file()
+        preview = published / THREEVIEW_PREVIEW_ASSET
+        assert preview.is_file()
+        with Image.open(preview) as image:
+            assert image.size == (1200, 600)
         for asset in PUBLISHED_ASSETS:
             assert (published / asset).is_file()
 
@@ -85,6 +114,23 @@ def test_site_build_publishes_every_design_review(tmp_path: Path):
     assert "Publication-only historical artifact" in holdout
     assert "designs/openair-x8-capstone/design.yaml" not in holdout
     assert "results/openair-x8-capstone/optimized/design.yaml" not in holdout
+
+
+def test_threeview_preview_retains_top_and_side_columns_only():
+    preview = _threeview_preview(
+        _report_with_embedded_threeview(),
+        slug="demo",
+    )
+
+    with Image.open(BytesIO(preview)) as image:
+        assert image.size == (6, 3)
+        assert image.getpixel((1, 1)) == (255, 0, 0)
+        assert image.getpixel((4, 1)) == (0, 128, 0)
+        assert all(
+            image.getpixel((x, y)) != (0, 0, 255)
+            for x in range(image.width)
+            for y in range(image.height)
+        )
 
 
 @pytest.mark.parametrize("mode", ["missing_manifest", "missing_report"])
@@ -205,7 +251,7 @@ def test_site_build_uses_revision_tree_and_rejects_worktree_symlinks(
         encoding="utf-8",
     )
     (results / "report.html").write_text(
-        '<!doctype html><div class="brand">open-air · concept review</div>',
+        _report_with_embedded_threeview(),
         encoding="utf-8",
     )
     for asset in PUBLISHED_ASSETS:
@@ -237,7 +283,7 @@ def test_site_build_uses_revision_tree_and_rejects_worktree_symlinks(
     untracked = repo / "results" / "untracked"
     untracked.mkdir()
     (untracked / "report.html").write_text(
-        '<!doctype html><div class="brand">open-air · concept review</div>',
+        _report_with_embedded_threeview(),
         encoding="utf-8",
     )
     for asset in PUBLISHED_ASSETS:

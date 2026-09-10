@@ -27,6 +27,9 @@ without rerunning the solver stack.
 - Moved the existing report stylesheet into an import-light shared theme and
   used it for a responsive landing page, design cards, workflow explanation,
   evidence-policy callout, and 404 page.
+- Replaced chart thumbnails with 2:1 optimized-aircraft previews by extracting
+  the tracked report's embedded three-view and retaining its top and side
+  columns. This keeps ignored stage images out of the publishing contract.
 - Added a native GitHub Pages workflow: relevant pull requests build and test
   the artifact, while `main` pushes and manual runs on `main` deploy through
   the protected `github-pages` environment. No `gh-pages` branch or solver
@@ -36,14 +39,14 @@ without rerunning the solver stack.
 
 The local artifact serves seven design reviews, including the frozen X8
 capstone without inventing a missing source or package. Browser review covered
-the landing page, complete comparison images, the Dolphin's embedded WebGL
-report, and its return path. Unit coverage freezes the report theme, enforces
-manifest/report parity, and exercises link failure. Publication begins after
-the repository's Pages source is set to GitHub Actions and this change reaches
-`main`.
+the landing page, top/side thumbnails for multiple aircraft classes, the
+Dolphin's embedded WebGL report, and its return path. Unit coverage freezes
+the report theme, enforces manifest/report parity and preview composition, and
+exercises link failure. Publication begins after the repository's Pages source
+is set to GitHub Actions and this change reaches `main`.
 
-Verification: the focused site/report suite passed 23/23 and the complete
-default suite passed 326 tests (3 deselected).
+Verification: the focused site/report suite passed 24/24 and the complete
+default suite passed 327 tests (3 deselected).
 
 The landing copy retains the project contract: stage success is not promoted
 to a verdict, baseline and optimized values remain phase-local, and stretch

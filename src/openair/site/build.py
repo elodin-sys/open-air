@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
 import html
 import json
 import os
@@ -10,11 +12,13 @@ import shutil
 import subprocess
 from datetime import datetime, timezone
 from html.parser import HTMLParser
+from io import BytesIO
 from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import quote, unquote, urlsplit
 
 import yaml
+from PIL import Image, UnidentifiedImageError
 
 from openair.site.templates import render_404, render_index
 
@@ -26,12 +30,17 @@ PUBLISHED_ASSETS = (
     "baseline_vs_optimized.png",
     "cg_np_balance.png",
 )
+THREEVIEW_PREVIEW_ASSET = "optimized-threeview.png"
 OUTPUT_MARKER = ".openair-generated-site"
 ALLOWED_KINDS = {"reproduction", "inspiration", "sealed holdout"}
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 REVISION_RE = re.compile(r"^[0-9a-fA-F]{7,64}$")
 REPO_PART_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
 DOC_LINK_RE = re.compile(r"""href=(["'])(\.\./\.\./docs/[^"']+)\1""")
+THREEVIEW_IMAGE_RE = re.compile(
+    r'<h3>Exported-aircraft three-view</h3>'
+    r'<img src="data:image/png;base64,([^"]+)"'
+)
 REPORT_BRAND = '<div class="brand">open-air · concept review</div>'
 REPORT_BRAND_LINK = (
     '<div class="brand"><a href="../../" '
@@ -465,6 +474,35 @@ def _rewrite_report(
     return rewritten
 
 
+def _threeview_preview(document: str, *, slug: str) -> bytes:
+    match = THREEVIEW_IMAGE_RE.search(document)
+    if match is None:
+        raise SiteBuildError(
+            f"{slug}: report has no embedded optimized three-view image"
+        )
+    try:
+        source = base64.b64decode(match.group(1), validate=True)
+        with Image.open(BytesIO(source)) as image:
+            image.load()
+            width, height = image.size
+            if image.format != "PNG" or not (2.5 <= width / height <= 3.5):
+                raise SiteBuildError(
+                    f"{slug}: embedded three-view has unexpected format or "
+                    f"dimensions ({image.format}, {width}x{height})"
+                )
+            # The report figure has three equal columns: top, side, front.
+            # Retaining top + side produces a legible 2:1 publishing image
+            # without depending on ignored stage artifacts.
+            preview = image.crop((0, 0, 2 * width // 3, height))
+            output = BytesIO()
+            preview.save(output, format="PNG", optimize=True)
+            return output.getvalue()
+    except (binascii.Error, UnidentifiedImageError, OSError) as exc:
+        raise SiteBuildError(
+            f"{slug}: embedded optimized three-view is not a valid PNG"
+        ) from exc
+
+
 def _copy_design(
     design: dict[str, Any],
     report_path: Path,
@@ -478,6 +516,9 @@ def _copy_design(
     destination = output_root / "designs" / slug
     destination.mkdir(parents=True, exist_ok=True)
     report = report_path.read_text(encoding="utf-8")
+    (destination / THREEVIEW_PREVIEW_ASSET).write_bytes(
+        _threeview_preview(report, slug=slug)
+    )
     (destination / "index.html").write_text(
         _rewrite_report(
             report,

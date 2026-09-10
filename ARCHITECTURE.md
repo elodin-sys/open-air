@@ -467,13 +467,16 @@ and HTML fragment is checked before publication.
 
 Published reports remain self-contained. The builder copies each one to
 `designs/<concept>/index.html`, adds a return link, and rewrites repository
-guidebook links to the exact build commit. `src/openair/theme.py` is shared by
-the report generator and landing page so both use one visual contract. The
-sealed X8 capstone receives a publication-only warning because its original
-report named source/generated YAML paths that were never committed. The
-native Pages workflow (`.github/workflows/deploy-site.yml`) builds on relevant
-pull requests and deploys only from `main`; `_site/` itself is generated and
-gitignored.
+guidebook links to the exact build commit. For landing/card artwork it extracts
+the optimized exported-mesh three-view already embedded in that tracked report
+and composes its top and side columns into a 2:1 `optimized-threeview.png`;
+ignored stage images never become publish inputs. `src/openair/theme.py` is
+shared by the report generator and landing page so both use one visual
+contract. The sealed X8 capstone receives a publication-only warning because
+its original report named source/generated YAML paths that were never
+committed. The native Pages workflow (`.github/workflows/deploy-site.yml`)
+builds on relevant pull requests and deploys only from `main`; `_site/` itself
+is generated and gitignored.
 
 ## Quality system
 

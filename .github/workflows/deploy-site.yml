@@ -43,7 +43,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install site test dependencies
-        run: python -m pip install PyYAML pytest
+        run: python -m pip install Pillow PyYAML pytest
 
       - name: Test site publishing contract
         env:
