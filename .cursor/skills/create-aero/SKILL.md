@@ -101,7 +101,8 @@ pipeline:
    acceptable only where the brief lists the feature as unrepresentable. For
    a sectioned wing, also read `geometry.json .wing.planform_mode`,
    `.openvsp.readback.wing_sections`, and
-   `.reference_fidelity.disclosed.p95_exposed_components_m.wing`; do not
+   `.reference_fidelity.disclosed.p95_model_to_reference_exposed_components_m.wing`;
+   this is model-to-reference only. Do not
    mistake the buried centreline carry-through's component p95 for exposed
    shape error.
 6. Require the concept inputs (`brief.md`, `design.yaml`, sketches, and

@@ -399,6 +399,29 @@ class WingSpec(PhysicalModel):
             total += (eta1 - eta0) * (chord0**2 + chord0 * chord1 + chord1**2) / 3.0
         return total
 
+    def thickness_chord_squared_integral_eta(
+        self, eta_start: float = 0.0, eta_end: float = 1.0
+    ) -> float:
+        """Exact ``integral(t_over_c(eta) * chord(eta)**2 d eta)``."""
+        start = min(max(float(eta_start), 0.0), 1.0)
+        end = min(max(float(eta_end), 0.0), 1.0)
+        if end <= start:
+            return 0.0
+        knots = [start]
+        if self.sections is not None:
+            knots.extend(
+                section.eta for section in self.sections if start < section.eta < end
+            )
+        knots.append(end)
+        total = 0.0
+        for eta0, eta1 in zip(knots, knots[1:]):
+            eta_mid = 0.5 * (eta0 + eta1)
+            value0 = self.t_over_c_at(eta0) * self.chord_at(eta0) ** 2
+            value_mid = self.t_over_c_at(eta_mid) * self.chord_at(eta_mid) ** 2
+            value1 = self.t_over_c_at(eta1) * self.chord_at(eta1) ** 2
+            total += (eta1 - eta0) * (value0 + 4.0 * value_mid + value1) / 6.0
+        return total
+
     @computed_field
     @property
     def tip_chord_m(self) -> float:
@@ -1020,17 +1043,18 @@ class VehicleSpec(PhysicalModel):
 
     def assert_cross_model_invariants(self) -> None:
         """Recheck invariants that nested assignment cannot trigger on the parent."""
-        if self.wing.sections is not None and not (
-            self.sketch is not None and self.sketch.treatment == "reproduction"
-        ):
-            raise ValueError(
-                "wing.sections currently requires sketch.treatment='reproduction'; "
-                "section-aware MDO design variables are not implemented"
+        if self.wing.sections is not None:
+            WingSpec.model_validate(
+                self.wing.model_dump(mode="python", exclude_computed_fields=True)
             )
-
-    @model_validator(mode="after")
-    def validate_reference_vehicle(self) -> Self:
-        self.assert_cross_model_invariants()
+            if not (
+                self.sketch is not None and self.sketch.treatment == "reproduction"
+            ):
+                raise ValueError(
+                    "wing.sections currently requires "
+                    "sketch.treatment='reproduction'; section-aware MDO design "
+                    "variables are not implemented"
+                )
         empty = self.mass.operating_empty_mass_kg
         empty_cg = self.mass.operating_empty_cg_x_m
         if empty is not None and empty < self.engine.dry_mass_kg:
@@ -1095,6 +1119,10 @@ class VehicleSpec(PhysicalModel):
                     "pitch_trim_control elevon requires exactly one wing control "
                     "surface with a collective pitch mixing group"
                 )
+
+    @model_validator(mode="after")
+    def validate_reference_vehicle(self) -> Self:
+        self.assert_cross_model_invariants()
         return self
 
     @computed_field

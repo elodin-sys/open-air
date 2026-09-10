@@ -2087,6 +2087,15 @@
           }
         });
       });
+      const measuredFin = clone(harnessDesign);
+      measuredFin.vtail.count = 2;
+      measuredFin.vtail.root_attachment = "measured";
+      measuredFin.vtail.y_root_m = .123;
+      measuredFin.vtail.z_root_m = .234;
+      const attachment = window.OpenAirHandles.finAttachment(measuredFin);
+      if (Math.abs(attachment.y - .123) > 1e-9 || Math.abs(attachment.z - .234) > 1e-9) {
+        failures.push("measured fin attachment did not preserve declared y/z");
+      }
       return {
         ok: failures.length === 0,
         definitions: window.OpenAirHandles.definitions().length,

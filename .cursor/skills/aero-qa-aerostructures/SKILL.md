@@ -32,9 +32,10 @@ Non-negotiables for this repo:
   wing must reset `pitch_trim_control` and drop the control surfaces.
 - A measured `wing.sections` seed already carries local LE/chord/z: its OAS
   surface dict must omit `taper`, `sweep`, and `dihedral`, and elevon
-  deflection uses taper factor 1. Scalar wings retain the historical OAS
-  transforms. OAS/wingbox t/c remains uniform even when OpenVSP/Studio carry
-  section-local loft t/c.
+  deflection uses taper factor 1. Its span grid must include every section
+  knot and reproduce section-integrated projected area. Scalar wings retain
+  the historical OAS transforms. OAS/wingbox t/c remains uniform even when
+  OpenVSP/Studio and geometric packing carry section-local loft t/c.
 - VSPAERO's built-in stability perturbation is only 0.01°. Require
   `stability.analysis.derivative_quality.ok`: convergence factors 0.01,
   symmetry-noise metrics ≤ 0.02, small/large-step CLα ratio 0.90–1.10, and

@@ -37,6 +37,7 @@ files are refused; the repository contains no vendor-specific code.
 ```bash
 python -m openair.reference ingest <mesh> --concept <name> --units mm \
     --axes "x:-z,y:-x,z:+y" [--expect-span-m 0.845] [--datum root-chord|body-axis] \
+    [--treatment reproduction|inspiration|requirement] \
     [--out designs/<name>/reference] [--sketch-dir designs/<name>] [--dry-run] [--force]
 python -m openair.reference compare <concept> [--phase baseline|optimized]
 ```
@@ -105,6 +106,9 @@ publishing. A staged concept bundle passes `--out <staging>/reference` and
    `reference-sections.png` (review figure), and `sketch-{top,side,front}.png`
    silhouettes (10 mm grid, scale bar, PNG text metadata with mm/px and
    origin; oriented like `threeview.png`: nose left, +y/+z up).
+   The default treatment is `reproduction`, which emits `wing.sections`.
+   `inspiration`/`requirement` retain the section candidate in disclosures but
+   emit a scalar suggested wing so the result remains valid for MDO.
 
 ## Reading the review figure
 
@@ -134,8 +138,10 @@ whole aircraft when component STLs are absent) and **IoU top ≥ 0.90 / side ≥
 at ingest). The wing and fins are already gated by the measured sketch priors
 (span, chords, sweep, taper, station, `fin_*`), so their p95 and the
 whole-aircraft p95 are **disclosed** (`disclosed`) rather than gating. For a
-sectioned wing the disclosure separately reports exposed-wing p95 outside the
-measured body/root exclusion; the full component still contains the invisible
+sectioned wing the disclosure separately reports **model-to-reference**
+exposed-wing p95 outside the measured body/root exclusion; pair it with the
+silhouette's reference-only area because this directional distance cannot
+detect omitted geometry. The full component still contains the invisible
 centreline carry-through inside the fuselage. A measured fin root
 removes that attachment abstraction but does not make the scan validation
 truth. The Dolphin made the case: a
@@ -143,9 +149,10 @@ render trace and a scan-grounded concept both scored 17.7 mm whole-aircraft
 p95 while their silhouette IoUs differed by 0.05–0.16. Honouring its measured
 fin junction later reduced fin p95 from 20–21 mm to 3–4 mm, whole-aircraft
 p95 to 13.4 mm, and raised front IoU from 0.664 to 0.787 without changing an
-acceptance band. Replacing its remaining single trapezoid with the measured
-12-section loft then raised top/front IoU to 0.969/0.897 (side 0.952),
-delivered 4.9 mm exposed-wing p95, and moved whole-aircraft p95 to 13.2 mm.
+acceptance band. Replacing its remaining single trapezoid with the audited
+11-section loft then raised top/front IoU to 0.968/0.899 (side 0.952),
+delivered 4.87 mm model-to-reference exposed-wing p95, and moved
+whole-aircraft p95 to 13.2 mm.
 The full wing-component p95 remains 16.0 mm because it includes buried
 carry-through surface. For
 `sketch.treatment: reproduction` the check is part of the geometry stage `ok`
@@ -168,9 +175,9 @@ disclosed, not gating.
    weak; their allowances must show up in the tolerances you publish.
 5b. For a sectioned reproduction, inspect
     `disclosures.wing_planform`: the body-exclusion width, source/selected
-    station counts, simplification tolerance, gross area, and equivalent
-    descriptors must agree with `suggested.wing` and the solid outline in
-    `reference-sections.png`.
+    station counts, z-asymmetry exclusions, LE/TE/z maximum simplification
+    residuals, tip method, gross area, and equivalent descriptors must agree
+    with `suggested.wing` and the solid outline in `reference-sections.png`.
 6. Open `reference-sections.png`; then after `python -m openair.geometry run`
    open `reference_overlay.png` and read `reference_fidelity.checks`.
 7. `reference.json .provenance.source_sha256` must match the file you were

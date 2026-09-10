@@ -54,12 +54,18 @@ def test_sectioned_oas_mesh_bakes_planform_and_omits_geometry_transforms():
 
     mesh = generate_oas_rect_mesh(spec)
     eta = np.abs(mesh[0, :, 1]) / (0.5 * spec.wing.span_m)
+    for section in spec.wing.sections:
+        assert np.any(np.isclose(eta, section.eta, atol=1e-12))
     for index, eta_value in enumerate(eta):
         assert mesh[0, index, 0] == pytest.approx(spec.wing.x_le_at(eta_value))
         assert mesh[-1, index, 0] - mesh[0, index, 0] == pytest.approx(
             spec.wing.chord_at(eta_value)
         )
         assert np.all(mesh[:, index, 2] == pytest.approx(spec.wing.z_le_at(eta_value)))
+    projected_area = 2.0 * abs(
+        np.trapezoid(mesh[-1, :, 0] - mesh[0, :, 0], mesh[0, :, 1])
+    )
+    assert projected_area == pytest.approx(spec.wing.area_m2, rel=1e-10)
 
     surface = wing_surface_dict(spec, aero_only=True, cd0_extra=0.0)
     assert "taper" not in surface
@@ -82,6 +88,34 @@ def test_wing_tank_volume_scales_with_length_cubed():
     scaled.wing.root_chord_m *= 2.0
 
     assert wing_tank_volume_m3(scaled) == pytest.approx(8.0 * base)
+
+
+def test_sectioned_wing_tank_integrates_local_thickness():
+    sections = [
+        {
+            "eta": eta,
+            "chord_m": 1.0,
+            "x_le_m": 0.4,
+            "z_le_m": 0.0,
+            "t_over_c": 0.1 - 0.05 * eta,
+        }
+        for eta in (0.0, 0.5, 1.0)
+    ]
+    spec = VehicleSpec.model_validate(
+        {
+            "sketch": {
+                "treatment": "reproduction",
+                "span_over_length": 1.0,
+                "root_over_length": 0.4,
+                "le_sweep_deg": 0.0,
+                "taper": 1.0,
+            },
+            "wing": {"span_m": 4.0, "sections": sections},
+        }
+    )
+
+    # Integral from eta 0..0.8 of (0.1 - 0.05 eta) is 0.064.
+    assert wing_tank_volume_m3(spec) == pytest.approx(0.25 * 4.0 * 0.064)
 
 
 def test_geometry_stage(tmp_path):

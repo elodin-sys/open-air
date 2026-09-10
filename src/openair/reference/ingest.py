@@ -834,12 +834,16 @@ def _wing_station_rows(
         )
     rows = []
     for y, matches in sorted(grouped.items()):
+        z_values = [row["z_le_m"] for row in matches]
         rows.append(
             {
                 "y_m": y,
                 "x_le_m": float(np.median([row["x_le_m"] for row in matches])),
                 "x_te_m": float(np.median([row["x_te_m"] for row in matches])),
-                "z_le_m": float(np.median([row["z_le_m"] for row in matches])),
+                "z_le_m": float(np.median(z_values)),
+                "z_asymmetry_m": (
+                    float(np.ptp(z_values)) if len(z_values) > 1 else 0.0
+                ),
             }
         )
     return rows
@@ -871,7 +875,7 @@ def _simplify_wing_rows(
                         + fraction * (rows[end][field] - rows[start][field])
                     )
                 )
-                for field in ("x_le_m", "x_te_m")
+                for field in ("x_le_m", "x_te_m", "z_le_m")
             )
             if error > best_error:
                 best_error = error
@@ -915,11 +919,28 @@ def _simplify_wing_rows(
                         + fraction * (rows[right][field] - rows[left][field])
                     )
                 )
-                for field in ("x_le_m", "x_te_m")
+                for field in ("x_le_m", "x_te_m", "z_le_m")
             )
             penalties.append((penalty, index))
         selected.remove(min(penalties)[1])
-    return sorted(selected), used_tolerance
+    selected_indices = sorted(selected)
+    selected_y = np.asarray([rows[index]["y_m"] for index in selected_indices])
+    forced_residual = max(
+        float(
+            np.max(
+                np.abs(
+                    np.asarray([row[field] for row in rows])
+                    - np.interp(
+                        np.asarray([row["y_m"] for row in rows]),
+                        selected_y,
+                        np.asarray([rows[index][field] for index in selected_indices]),
+                    )
+                )
+            )
+        )
+        for field in ("x_le_m", "x_te_m", "z_le_m")
+    )
+    return selected_indices, max(used_tolerance, forced_residual)
 
 
 def suggest_wing_sections(
@@ -945,10 +966,20 @@ def suggest_wing_sections(
         float(record.get("body_half_width_at_wing_m", 0.0)),
         *(body_half_widths or [0.0]),
     )
-    measured = _wing_station_rows(
+    measured_all = _wing_station_rows(
         record,
         body_half_width_m=body_half_width,
     )
+    z_asymmetry_limit = max(
+        6.0 * float(resolution_m),
+        0.02 * float(wing["root_chord_m"]),
+    )
+    z_asymmetry_excluded = [
+        row for row in measured_all if row["z_asymmetry_m"] > z_asymmetry_limit
+    ]
+    measured = [
+        row for row in measured_all if row["z_asymmetry_m"] <= z_asymmetry_limit
+    ]
     if len(measured) < 2:
         return None
 
@@ -963,19 +994,38 @@ def suggest_wing_sections(
         ),
         "z_le_m": float(wing["z_root_le_m"]),
     }
-    measured = [row for row in measured if row["y_m"] < semispan - 1e-9]
+    tip_capture_tolerance = max(2.0 * float(resolution_m), 1e-6)
+    measured = [
+        row for row in measured if row["y_m"] <= semispan + tip_capture_tolerance
+    ]
     if len(measured) < 2:
         return None
-    last, previous = measured[-1], measured[-2]
-    tip: dict[str, float] = {"y_m": semispan}
-    for field in ("x_le_m", "x_te_m", "z_le_m"):
-        slope = (last[field] - previous[field]) / max(
-            last["y_m"] - previous["y_m"], 1e-12
-        )
-        tip[field] = last[field] + slope * (semispan - last["y_m"])
+    usable_station_count = len(measured)
+    if abs(measured[-1]["y_m"] - semispan) <= tip_capture_tolerance:
+        tip = {**measured[-1], "y_m": semispan}
+        measured = measured[:-1]
+        tip_method = "nearest measured station within 2x resolution"
+    else:
+        measured = [row for row in measured if row["y_m"] < semispan]
+        if len(measured) < 2:
+            return None
+        last, previous = measured[-1], measured[-2]
+        tip = {"y_m": semispan}
+        for field in ("x_le_m", "x_te_m", "z_le_m"):
+            slope = (last[field] - previous[field]) / max(
+                last["y_m"] - previous["y_m"], 1e-12
+            )
+            tip[field] = last[field] + slope * (semispan - last["y_m"])
+        tip["z_asymmetry_m"] = last["z_asymmetry_m"]
+        tip_method = "linear extrapolation from the final two usable stations"
     tip_floor = 0.02 * float(wing["root_chord_m"])
-    if tip["x_te_m"] - tip["x_le_m"] < tip_floor:
+    tip_floor_applied = bool(
+        tip_method.startswith("linear") and tip["x_te_m"] - tip["x_le_m"] < tip_floor
+    )
+    if tip_floor_applied:
         tip["x_le_m"] = tip["x_te_m"] - tip_floor
+    if tip["x_te_m"] <= tip["x_le_m"]:
+        raise ReferenceInputError("measured wing tip station has non-positive chord")
 
     rows = [root, *measured, tip]
     straight = wing.get("straight_range_abs_y_m") or [
@@ -1002,6 +1052,33 @@ def suggest_wing_sections(
         tolerance_m=max(0.0015, 2.0 * float(resolution_m)),
         required=required,
     )
+    selected_y = np.asarray([rows[index]["y_m"] for index in selected_indices])
+    simplification_residuals = {
+        field: float(
+            np.max(
+                np.abs(
+                    np.asarray([row[field] for row in rows])
+                    - np.interp(
+                        np.asarray([row["y_m"] for row in rows]),
+                        selected_y,
+                        np.asarray([rows[index][field] for index in selected_indices]),
+                    )
+                )
+            )
+        )
+        for field in ("x_le_m", "x_te_m", "z_le_m")
+    }
+    simplification_acceptance = max(
+        0.003,
+        8.0 * float(resolution_m),
+        0.03 * float(wing["root_chord_m"]),
+    )
+    if max(simplification_residuals.values()) > simplification_acceptance:
+        raise ReferenceInputError(
+            "measured wing outline cannot be represented by at most 12 sections: "
+            f"maximum residual {max(simplification_residuals.values()):.4f} m "
+            f"exceeds {simplification_acceptance:.4f} m"
+        )
     airfoil = record.get("airfoil_summary") or {}
     mean_t_over_c = float(airfoil.get("t_over_c_mean") or 0.12)
     x_le_root = float(wing["x_le_root_m"])
@@ -1033,10 +1110,22 @@ def suggest_wing_sections(
     equivalent = WingSpec.equivalent_trapezoid(sections, span_m)
     disclosure = {
         "mode": "measured multi-section loft",
-        "source_station_count": len(measured),
+        "source_station_count": len(measured_all),
+        "usable_station_count": usable_station_count,
         "section_count": len(sections),
         "body_exclusion_half_width_m": body_half_width,
+        "z_asymmetry_limit_m": z_asymmetry_limit,
+        "z_asymmetry_excluded_count": len(z_asymmetry_excluded),
+        "z_asymmetry_max_excluded_m": max(
+            (row["z_asymmetry_m"] for row in z_asymmetry_excluded),
+            default=0.0,
+        ),
         "simplification_tolerance_m": used_tolerance,
+        "simplification_acceptance_m": simplification_acceptance,
+        "simplification_max_residual_m": simplification_residuals,
+        "tip_method": tip_method,
+        "tip_capture_tolerance_m": tip_capture_tolerance,
+        "tip_chord_floor_applied": tip_floor_applied,
         "sections_area_m2": equivalent["area_m2"],
         "area_convention": (
             "gross projected area of the measured multi-section outline, "
@@ -1065,9 +1154,14 @@ def suggest_wing_sections(
 
 
 def suggest_spec_values(
-    record: dict[str, Any], align: dict[str, Any]
+    record: dict[str, Any],
+    align: dict[str, Any],
+    *,
+    treatment: str = "reproduction",
 ) -> dict[str, Any]:
     """Translate the measurement record into schema-ready values with tolerances."""
+    if treatment not in {"reproduction", "inspiration", "requirement"}:
+        raise ReferenceInputError(f"unsupported sketch treatment {treatment!r}")
     resolution = float(align["resolution_m"])
     base = max(2.0 * resolution, M.LENGTH_TOL_FLOOR_M)
     sym = align.get("symmetry") or {}
@@ -1144,13 +1238,20 @@ def suggest_spec_values(
             resolution_m=resolution,
         )
         if section_suggestion is not None:
-            wing_sections, wing_disclosure = section_suggestion
+            candidate_sections, wing_disclosure = section_suggestion
+            wing_disclosure["applicability"] = (
+                "wing.sections is emitted only for sketch.treatment=reproduction"
+            )
+            disclosures["wing_planform"] = wing_disclosure
+        else:
+            candidate_sections = None
+        if candidate_sections is not None and treatment == "reproduction":
+            wing_sections = candidate_sections
             span_value = round(wing["span_m"], 4)
             equivalent = WingSpec.equivalent_trapezoid(
                 wing_sections,
                 span_value,
             )
-            disclosures["wing_planform"] = wing_disclosure
         else:
             wing_sections = None
             span_value = round(wing["span_m"], 4)
@@ -1205,6 +1306,7 @@ def suggest_spec_values(
                 for section in wing_sections
             ]
         suggested["sketch"] = {
+            "treatment": treatment,
             "span_over_length": round(span_value / length, 4),
             "span_over_length_tol": round(
                 max(0.01, (span_tol + wing["span_m"] / length * base) / length), 4
@@ -1311,7 +1413,7 @@ def suggest_spec_values(
                 "(rounded or raked tips); wing.sections preserves the measured "
                 "outline while the scalar taper/sweep remain equivalent descriptors."
             )
-    if wing.get("ok") and section_suggestion is not None:
+    if wing.get("ok") and wing_sections is not None:
         notes.append(
             "wing.sections t_over_c values are inferred loft controls: the measured "
             "mean t/c is scaled where the root/deck outline adds chord so absolute "
@@ -1411,6 +1513,7 @@ def ingest_reference(
     dry_run: bool = False,
     force: bool = False,
     acceptance: dict[str, float] | None = None,
+    treatment: str = "reproduction",
 ) -> dict[str, Any]:
     """Run the full ingest and write ``reference/`` plus silhouettes."""
     from openair.reference.silhouette import render_sections_figure, render_silhouettes
@@ -1467,7 +1570,7 @@ def ingest_reference(
     record = measure_reference(
         mesh, resolution_m=align["resolution_m"], sidecar=sidecar
     )
-    suggestions = suggest_spec_values(record, align)
+    suggestions = suggest_spec_values(record, align, treatment=treatment)
     if not dry_run:
         out_dir.mkdir(parents=True, exist_ok=True)
         sketch_dir.mkdir(parents=True, exist_ok=True)

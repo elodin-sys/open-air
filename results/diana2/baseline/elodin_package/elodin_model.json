@@ -149,7 +149,7 @@
     "validity_component_required": true
   },
   "concept": "diana2",
-  "created_at": "2026-09-10T04:15:18+00:00",
+  "created_at": "2026-09-10T05:18:22+00:00",
   "credibility": "geometry-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -240,7 +240,7 @@
     "geometry_vsp3": {
       "path": "geometry/diana2.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "d60d59f623cfc21de1a3d46eebe2e431df6909d6a9dd167aa2f45b683ba3d0c0",
+      "sha256": "bf0031e5803a022f8bd719a231273f0a2b06d95653cb51c8fa13f72d16346fa1",
       "size_bytes": 277534
     },
     "geometry_whole_stl": {
@@ -264,7 +264,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "1a5332afed6ce3237675ac82c7d3995750817d75c265f47025d1fe3f298699fc",
+      "sha256": "a8b2cce6acf90f70a64a8d872bddcb8c17dd1dde00d7bd900138cf0db7069aa9",
       "size_bytes": 1314
     },
     "render_glb": {
@@ -436,17 +436,17 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "72019251bf27f503af00630181ef4e78371671877325e37f0ec3feb511ff5537",
-    "pipeline_run_id": "3c3def385b2e45eab3c2c4c3f7fbdf4c",
-    "source_git_commit": "0aee6b4a57e96f360a0cebe84cb754744f5428b4",
+    "model_source_sha256": "ed3c5ebf61d678e1ba3a758b2610806616a9d172810fd403377103ce2b5199b7",
+    "pipeline_run_id": "800fa51ad696419db7c3a87a23e3c834",
+    "source_git_commit": "d772c0edec594d0737e3607499a7db50e67527fa",
     "upstream_sha256": {
-      "aero.json": "32e77c156f4991bb2943a143ca97c03fd74651012f3a86b38b51b51f68fcce34",
-      "flightdyn.json": "75e773da497de3872bec26bc4532e4440e9c3116c5416d0562eabc17682fb12f",
-      "geometry.json": "c8a562bc0ad7d83645c729738e8698443d730abde17173d7b46487ad10e78432",
+      "aero.json": "3da5c3bdf8bc1068011303893b90e665082cadda29ae76dc08143f13008bb504",
+      "flightdyn.json": "f6dd63c1dc3de9ccb533c87009c2bec0ab2387ab5e90420f1d67ca91c3c85d95",
+      "geometry.json": "1bb5bf2acfa042f47f467edb7fd5a4b6c3a2121120c4eb68627eee77a04106c9",
       "mass_breakdown.json": "f55ea974dba549bfd80efd395cbefa9304d279e74cd6e5474f2f2e09a1edd630",
-      "sizing.json": "75cd0e579b2304a05bcd3bf47551c2d7b0fb977e69c8ac8edc22e0f6b71fd65f",
-      "structures.json": "bcc75a7582794e2ef5cd4b2d24a83bfab117e454761cd3556a55c3492ef86e52",
-      "validation.json": "d14ab6257299982e343b75ebb8dab025727922df8025ba61f1fc2509aac93c14"
+      "sizing.json": "d200797fd32d531261a71121c5de4f563217ee161ddde2c157846e5c340e90a9",
+      "structures.json": "6bc744bb15acd4f2096144d2d0c67ebd64389502f402e94cee289b05351a129b",
+      "validation.json": "d9066761c022aee22dd067936f60ba2799549151746d93a4b1bed93862dd9538"
     }
   },
   "reference_geometry": {

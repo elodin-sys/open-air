@@ -55,12 +55,15 @@ estimate; wave drag is a Korn-equation model that is exactly zero below Mcrit.
 - Scalar wings retain the rectangular seed plus OAS taper/sweep/dihedral
   transforms. A measured `wing.sections` reproduction instead bakes each
   spanwise node's true LE, chord, and z into the seed and omits those three
-  transforms; applying them again would double the planform. Its
+  transforms; applying them again would double the planform. The half-mesh
+  span grid is the union of the requested cosine nodes and every measured
+  section knot, so root/tip breaks cannot be smoothed away; seed projected
+  area must match the section integral to numerical precision. Its
   section-integrated projected area is `S_ref`. Twist remains a linear
   tip-to-root CP law, and OAS/wingbox thickness remains the declared uniform
   `wing.t_over_c`; section-local t/c is an inferred loft-fidelity input for
-  OpenVSP and Studio, explicitly not a direct airfoil measurement or spanwise
-  structural-property model.
+  OpenVSP, Studio, and geometric tank packing, explicitly not a direct airfoil
+  measurement or spanwise structural-property model.
 - Aero + trim: [`src/openair/aero/oas_backend.py`](../../src/openair/aero/oas_backend.py) —
   `run_vlm` (CM about a chosen x-ref), `trim_alpha` (L=W),
   `trim_pitch` (α + wing twist, α + fallback-tail incidence, or α + elevon

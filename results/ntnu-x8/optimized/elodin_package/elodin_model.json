@@ -133,7 +133,7 @@
     "validity_component_required": true
   },
   "concept": "ntnu-x8",
-  "created_at": "2026-09-10T04:12:03+00:00",
+  "created_at": "2026-09-10T05:14:48+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -224,7 +224,7 @@
     "geometry_vsp3": {
       "path": "geometry/ntnu-x8.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "de45891cce93cb8cb66d80e3fc954a2ff8e603befe4d093a369745ba5684c614",
+      "sha256": "9996c81de04b47e1dbb40913ff790b1a7438058a3c2cd0d1129625ee5acb00a6",
       "size_bytes": 254282
     },
     "geometry_whole_stl": {
@@ -248,7 +248,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "bbdd0980f0de31561d96de3af25e21767d2201ee95675bc44cb4da9c38e05814",
+      "sha256": "e200409386e14e7d67437b1f3d2e292086dda709d3420d39131f8bdae2becaf7",
       "size_bytes": 1220
     },
     "render_glb": {
@@ -476,15 +476,15 @@
       "propulsion": "C",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "72019251bf27f503af00630181ef4e78371671877325e37f0ec3feb511ff5537",
-    "pipeline_run_id": "fc130a155e7d4f7398a82f75b9ab7fcb",
-    "source_git_commit": "0aee6b4a57e96f360a0cebe84cb754744f5428b4",
+    "model_source_sha256": "ed3c5ebf61d678e1ba3a758b2610806616a9d172810fd403377103ce2b5199b7",
+    "pipeline_run_id": "027a2cae48754de4b808854b178f8f7f",
+    "source_git_commit": "d772c0edec594d0737e3607499a7db50e67527fa",
     "upstream_sha256": {
-      "aero.json": "5e9f2f4ba62a92dbb6c4554dbf3b62208f52bd8e8fc3cbd3909459679cfde54d",
-      "flightdyn.json": "69f0033df94e60ff766f8fc52b8c8857abedf351ce7754d4c0bfcdd8053e6c7c",
-      "geometry.json": "4cabec54d979414ae437b9cb012ae5aeb7b58f6657e5a83c4b27b9c48ee782b6",
-      "structures.json": "a54cbf6fd1e032600a69f56b161f2b1945f1ace75fdda3f720dbdb7e19d8f6c9",
-      "validation.json": "f0acc20ff1d13ac08045cfd5c83e8c1ce1cacc0b9c176a258b6b88caaefd4468"
+      "aero.json": "fe26ed6a6c5efa7242a8e93bea9a8ccbf6a2608547fd360623b41bfda68c8294",
+      "flightdyn.json": "82fba9f0b9e6abc837fbdc4514285eec902be0cc5f0a615028fddac28ae8420b",
+      "geometry.json": "4428f91c6ff5bc369ddc8365e620b8791116368a6103d40218d5bf41b103aaf8",
+      "structures.json": "ef318cdcbc82bc1feea9a35749534651b257728dab835a76b9c81654a6ea3aaa",
+      "validation.json": "e224812b6c9d708ffd32295e7f59465c62c4836ee8bb9c35eac9dec47c047794"
     }
   },
   "reference_geometry": {

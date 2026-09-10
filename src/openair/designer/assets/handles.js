@@ -63,6 +63,13 @@
 
   function finAttachment(design) {
     const fin = design.vtail;
+    const count = Math.round(number(fin.count, 2));
+    if (fin.root_attachment === "measured") {
+      return {
+        y: count === 1 ? 0 : Math.abs(number(fin.y_root_m)),
+        z: number(fin.z_root_m),
+      };
+    }
     const x = number(fin.x_le_m);
     const root = Math.max(number(fin.root_chord_m), .01);
     const sections = [
@@ -71,7 +78,7 @@
       interpolateBody(design, x + root),
     ];
     return {
-      y: Math.round(number(fin.count, 2)) === 1
+      y: count === 1
         ? 0
         : .3 * Math.min(...sections.map(section => section.width)),
       z: Math.min(...sections.map(section => section.z + .3 * section.height)),

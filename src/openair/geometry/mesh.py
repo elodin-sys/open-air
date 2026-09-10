@@ -104,19 +104,44 @@ def generate_oas_rect_mesh(
         te = mesh[-1]
         mesh = np.array([le + f * (te - le) for f in fractions])
     if spec.wing.sections is not None:
-        rectangular_le = np.array(mesh[0], copy=True)
-        rectangular_te = np.array(mesh[-1], copy=True)
-        rectangular_chord = rectangular_te[:, 0] - rectangular_le[:, 0]
-        node_fractions = (mesh[:, :, 0] - rectangular_le[None, :, 0]) / np.where(
-            np.abs(rectangular_chord) > 1e-12, rectangular_chord, 1.0
-        )[None, :]
         semispan = 0.5 * spec.wing.span_m
-        eta = np.abs(mesh[0, :, 1]) / max(semispan, 1e-12)
+        base_eta = np.abs(mesh[0, :, 1]) / max(semispan, 1e-12)
+        eta = np.unique(
+            np.round(
+                np.concatenate(
+                    (
+                        base_eta,
+                        np.asarray([section.eta for section in spec.wing.sections]),
+                    )
+                ),
+                12,
+            )
+        )[::-1]
+        root_chord = mesh[-1, -1, 0] - mesh[0, -1, 0]
+        node_fractions = (mesh[:, -1, 0] - mesh[0, -1, 0]) / max(root_chord, 1e-12)
+        y_sign = -1.0 if mesh[0, 0, 1] < 0.0 else 1.0
+        mesh = np.zeros((node_fractions.size, eta.size, 3))
         for index, eta_value in enumerate(eta):
             x_le = spec.wing.x_le_at(float(eta_value))
             chord = spec.wing.chord_at(float(eta_value))
-            mesh[:, index, 0] = x_le + node_fractions[:, index] * chord
+            mesh[:, index, 0] = x_le + node_fractions * chord
+            mesh[:, index, 1] = y_sign * eta_value * semispan
             mesh[:, index, 2] = spec.wing.z_le_at(float(eta_value))
+        projected_area = 2.0 * abs(
+            float(
+                np.trapezoid(
+                    mesh[-1, :, 0] - mesh[0, :, 0],
+                    mesh[0, :, 1],
+                )
+            )
+        )
+        if abs(projected_area - spec.wing.area_m2) > max(
+            1e-9, 1e-8 * spec.wing.area_m2
+        ):
+            raise ValueError(
+                "sectioned OAS seed area does not match WingSpec: "
+                f"{projected_area:.9g} vs {spec.wing.area_m2:.9g} m^2"
+            )
     return mesh
 
 

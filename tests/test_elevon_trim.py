@@ -263,6 +263,8 @@ def test_closed_form_elevon_requirement_has_trim_sign_and_freezes_twist():
     masses = closed_mass_breakdown(spec, spec.mass.fuel_mass_kg)
     bal = balance_report(spec, masses.mtow_kg, spec.mass.fuel_mass_kg)
     assert bal.trim_control == "elevon"
+    assert bal.sm_min == spec.mission.static_margin_min
+    assert bal.sm_max == spec.mission.static_margin_max
     assert bal.washout_required_deg == pytest.approx(bal.washout_available_deg)
     assert bal.elevon_travel_deg == (-30.0, 30.0)
     assert bal.elevon_model is not None
@@ -286,6 +288,53 @@ def test_closed_form_elevon_requirement_has_trim_sign_and_freezes_twist():
     assert halved["dcm_cg_ddelta_per_rad"] == pytest.approx(
         0.5 * derivative["dcm_cg_ddelta_per_rad"]
     )
+
+
+def test_sectioned_elevon_integrates_kinked_hinge_sweep_panel_by_panel():
+    def sectioned(x_mid: float) -> VehicleSpec:
+        sections = [
+            {
+                "eta": eta,
+                "chord_m": 1.0,
+                "x_le_m": x_le,
+                "z_le_m": 0.0,
+            }
+            for eta, x_le in ((0.0, 1.0), (0.5, x_mid), (1.0, 1.0))
+        ]
+        equivalent = VehicleSpec().wing.equivalent_trapezoid(sections, 4.0)
+        return VehicleSpec.model_validate(
+            {
+                "sketch": {
+                    "treatment": "reproduction",
+                    "span_over_length": 1.0,
+                    "root_over_length": 0.4,
+                    "le_sweep_deg": equivalent["le_sweep_deg"],
+                    "taper": equivalent["taper"],
+                },
+                "wing": {"span_m": 4.0, "sections": sections},
+                "mission": {"pitch_trim_control": "elevon"},
+                "flight_dynamics": {"control_surfaces": [ELEVON]},
+            }
+        )
+
+    straight = sectioned(1.0)
+    kinked = sectioned(1.8)
+    straight_result = elevon_pitch_derivative(
+        straight, straight.flight_dynamics.control_surfaces[0], 1.1
+    )
+    kinked_result = elevon_pitch_derivative(
+        kinked, kinked.flight_dynamics.control_surfaces[0], 1.1
+    )
+
+    expected_cosine = 1.0 / math.sqrt(1.0 + 0.8**2)
+    assert kinked_result["hinge_sweep_cos_area_weighted"] == pytest.approx(
+        expected_cosine, rel=1e-4
+    )
+    assert kinked_result["dcl_ddelta_per_rad"] / straight_result[
+        "dcl_ddelta_per_rad"
+    ] == pytest.approx(expected_cosine, rel=1e-4)
+    assert kinked_result["hinge_sweep_range_deg"][0] < 0.0
+    assert kinked_result["hinge_sweep_range_deg"][1] > 0.0
 
 
 def test_evaluate_design_reports_the_elevon_gap_instead_of_washout():

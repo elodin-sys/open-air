@@ -393,10 +393,16 @@ elevon balance, and aeroelastic strips. OpenVSP gets one driver/read-back row
 per panel plus an aggregate-span nudge/restore and reopen test. Reference
 ingest mirror-averages stations, excludes the measured body width, preserves
 straight-band and tip anchors, and simplifies at a resolution-aware bound.
+The follow-up audit added z to that bound, rejects left/right z outliers,
+refuses outlines that need more than 12 stations, preserves exact measured
+tips, and requires OAS to include every retained knot with exact area parity.
+Local inferred thickness now drives tank packing and kinked elevon hinges are
+integrated panel by panel.
 
-The Dolphin's 12-section loft raised top/front IoU to 0.969/0.897 (side
-0.952) and gave 4.9 mm exposed-wing p95; full wing p95 remains 16.0 mm only
-because the component STL includes invisible carry-through inside the body.
+The Dolphin's audited 11-section loft raised top/front IoU to 0.968/0.899
+(side 0.952) and gave 4.87 mm model-to-reference exposed-wing p95; full wing
+p95 remains 16.1 mm only because the component STL includes invisible
+carry-through inside the body.
 The changed gross area put generic Vv at 0.0191, so the measured fins were not
 resized: a quality-gated full-aircraft probe established `Cn_beta > 0`,
 `Cn_r < 0`, and `CY_beta < 0`. Its panelized grid also exposed residual

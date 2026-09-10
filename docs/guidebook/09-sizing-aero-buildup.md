@@ -24,6 +24,11 @@ know their assumptions to catch them lying.
   Fuselage frames, landing gear, and contingency depend on MTOW, so
   `closed_mass_breakdown` iterates them to a fixed point; a single
   `breakdown` call is not a closed aircraft (audit F20).
+- Packing integrates usable wing-tank volume as
+  `0.25*b*integral(t/c(eta)*c(eta)^2 d eta)` over the inner 80% semispan.
+  Scalar wings recover the exact trapezoid formula; measured section lofts
+  use their inferred absolute-thickness controls instead of multiplying the
+  whole root/deck chord by one global t/c.
 - Sizing: [`src/openair/mission/sizing.py`](../../src/openair/mission/sizing.py) —
   fixed-point iteration of breakdown + Breguet-jet endurance
   `E = (1/c)(L/D)ln(Wi/Wf)`; dash = bisection for max TAS with T ≥ D capped

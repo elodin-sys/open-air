@@ -52,7 +52,8 @@ Non-negotiables for this repo:
   `ok` and the Geometry-truth gate require `reference_fidelity.ok`; otherwise
   it is disclosed evidence. Open the overlay. Any departure must trace to a
   documented unrepresentable feature in the brief, never to measurement error.
-  For a sectioned wing, use the disclosed exposed-wing p95 outside the
-  scan-derived body exclusion; retain full component p95 as buried
-  carry-through disclosure. The reference is measured design input — not
-  validation truth.
+  For a sectioned wing, the disclosed exposed-wing p95 is model-to-reference
+  outside the scan-derived body exclusion; pair it with silhouette
+  reference-only area so omitted geometry cannot hide. Retain full component
+  p95 as buried carry-through disclosure. The reference is measured design
+  input — not validation truth.

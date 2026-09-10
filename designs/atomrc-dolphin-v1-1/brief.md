@@ -44,7 +44,7 @@ leading edge), not features.
 |---|---|---|---|
 | Wing span | 0.8496 m (mesh y-extent 0.8487) | scan | ±0.002 m; published 0.845 and CAD-measured 0.8472 agree within 0.5 % |
 | Overall length (nose tip -> tail cap) | 0.712 m | scan (centreline) | ±0.002 m; CAD measure 712.00 mm; published 0.710 |
-| Wing gross projected area (12-section measured outline) | 0.1669 m^2 | scan station integration, including root blend/deck extension and centreline carry-through | published 0.1524 m^2 excludes the body carry-through and root appendage outline |
+| Wing gross projected area (11-section measured outline) | 0.1668 m^2 | scan station integration, including root blend/deck extension and centreline carry-through | published 0.1524 m^2 excludes the body carry-through and root appendage outline |
 | Operating empty mass (flight configuration) | 0.889 kg | owner bench measurement, 2026-09-09 (measurement form section 1; single reading, scale resolution not recorded) | assume ±0.005 kg; replaces the 1.30 kg v3 estimate, which double-counted or overstated installed items by ~0.41 kg |
 | Operating empty CG | x = 0.419 m from the nose tip | owner bench measurement, 2026-09-09 (form section 1; method and repeats not recorded) | assume ±0.005 m; measured along the body axis, which differs from the root-chord datum by < 1 mm at this station |
 | Payload / fuel | 0 kg / 0 kg fixed | v3 brief | electric reproduction; endurance not applicable |
@@ -57,7 +57,7 @@ leading edge), not features.
 
 Unit conversions used: 5 Ah x 14.8 V = 74 Wh; 0.889 kg x 9.80665 = 8.7181 N;
 7.0 in = 177.8 mm; scan file mm -> m (x 0.001). Wing loading on the measured
-0.1669 m^2 gross outline: 53.3 g/dm^2.
+0.1668 m^2 gross outline: 53.3 g/dm^2.
 
 ## 4. Coordinate frame, scale, and alignment
 
@@ -95,12 +95,12 @@ noted.
 | Span | `measurements.wing.span_m` 0.8496; mesh y-extent 0.8487 | 0.8496 m | ±0.002 m | measured (reference model) |
 | Root chord (centreline extrapolation) | LE/TE robust line fits over the straight band |y| 0.127–0.397 m | 0.2601 m | ±0.011 m (includes 2 %-chord open-nose allowance) | measured (reference model) |
 | x_le_root (centreline) | `x_le_root_m` | 0.4071 m (x/L 0.5718) | ±0.010 m | measured (reference model) |
-| Equivalent LE sweep | chord-weighted MAC-locus match to the measured section loft | −12.12° (forward) | ±2.0° | derived descriptor |
+| Equivalent LE sweep | chord-weighted MAC-locus match to the measured section loft | −12.07° (forward) | ±2.0° | derived descriptor |
 | Outer straight-band LE sweep | robust LE fit over |y| 0.127–0.397 m | −6.38° (forward) | ±2.0° | measured (reference model) |
 | TE sweep | slope of the TE fit | −26.08° | — | measured (reference model) |
 | Actual tip chord | final measured/extrapolated section at η 1.0 | 0.0368 m (rounded tip) | station resolution | measured (reference model) |
-| Equivalent taper | exact area match to the 0.1669 m^2 section loft with the measured centreline root chord | 0.5104 (equivalent tip 0.1328 m; not the physical tip) | ±0.062 | derived descriptor |
-| Equivalent dihedral | chord-weighted z-locus match to the section loft | −1.92° (anhedral) | ±0.5°; includes bench support sag | derived descriptor |
+| Equivalent taper | exact area match to the 0.1668 m^2 section loft with the measured centreline root chord | 0.5093 (equivalent tip 0.1325 m; not the physical tip) | ±0.062 | derived descriptor |
+| Equivalent dihedral | chord-weighted z-locus match to the section loft | −1.91° (anhedral) | ±0.5°; includes bench support sag | derived descriptor |
 | Twist (root / tip) | undeflected chord-line incidence, straight-band medians (linear fit gives 3.0° / 1.0°) | +1.6° / +0.5° | ±1.4° | measured (reference model) |
 | z_root (root LE height) | `z_root_le_m` | 0.0245 m | ±0.002 m | measured (reference model) |
 | span/L, root/L, x_le/L | derived | 1.1933, 0.3653, 0.5718 | 0.010, 0.0149, 0.0139 | derived |
@@ -109,10 +109,12 @@ The wing leading edge was not captured at 33 % of the stations (both skins
 end at the same station: the dark carbon leading edge defeated the scanner)
 and one skin is missing over more than 3 % chord at 39 %. Chord lines therefore
 use the mid-line extrapolated to the nose, and chord/x_le carry a 2 %-chord
-allowance. `wing.sections` uses 12 deterministic breakpoints after excluding
-body-contaminated slabs inside |y| = 0.0705 m. It keeps the root blend/deck
-extension and the rounded, drooped tip; its scalar root/taper/sweep/dihedral
-are equivalent descriptors used by models that still require one trapezoid.
+allowance. `wing.sections` uses 11 deterministic breakpoints after excluding
+body-contaminated slabs inside |y| = 0.0705 m and four z-asymmetric stations
+(maximum L/R discrepancy 29.1 mm). Its bounded LE/TE/z simplification
+residuals are 5.9/3.8/5.7 mm. It keeps the root blend/deck extension and the
+rounded, drooped tip; its scalar root/taper/sweep/dihedral are equivalent
+descriptors used by models that still require one trapezoid.
 
 ### Airfoil
 
@@ -122,8 +124,8 @@ are equivalent descriptors used by models that still require one trapezoid.
 | Camber | NACA four-digit least-squares fit, camber 1.0 % at ~20–30 % chord | code `1209`; global OAS t/c 0.1004 is the six-cut mean | camber rms 0.3 % c | measured (reference model) |
 | Reflex | aft camber sign after rotating the elevon to neutral | none (0 of 6 sections) | — | measured (reference model) |
 
-The section-loft t/c values (0.0612–0.1004) are **inferred**, not twelve
-additional thickness measurements. The ingest holds the six-cut mean t/c on
+The section-loft t/c values (0.0612–0.1004) are **inferred**, not additional
+thickness measurements. The ingest holds the six-cut mean t/c on
 the straight wing and reduces t/c where the root/deck outline adds chord,
 preserving the measured absolute wing thickness instead of creating a thick
 root slab. OAS and the wingbox use the measured global mean uniformly.
@@ -196,7 +198,7 @@ superseded; it inferred the root from the deck edge in a side render.
 | Aft avionics bay (Aleph) | centre x=0.455±0.030 | — | published; NOT the schema bay (section 7) |
 | fuel_tank_x_m | 0.30 (inert; zero fuel, electric) | — | placeholder |
 | Mass / CG | 0.889 kg @ x=0.419 | ±0.005 / ±0.005 (assumed) | measured (bench, owner) |
-| Cruise point | 18 m/s at 100 m -> M 0.0530; CL = 8.7181/(196.55 x 0.1669) = 0.2658 | inferred speed | inferred (X8-style reference speed); CL on the measured weight and section-integrated gross area |
+| Cruise point | 18 m/s at 100 m -> M 0.0530; CL = 8.7181/(196.55 x 0.1668) = 0.2660 | inferred speed | inferred (X8-style reference speed); CL on the measured weight and section-integrated gross area |
 | dash_mach_cap 0.11, cl_max 1.0 (aircraft), stall limit 12 m/s (measured weight gives 9.5 m/s at CLmax 1.0) | — | wide | inferred placeholders |
 
 ### Do-not-invent placeholders (excluded from any validation claim)
@@ -392,7 +394,8 @@ stretch solvers only).
   stations with zero reported span/area/chord relative error, the written
   VSP3 reopens unchanged, bbox is 0.712 × 0.852 × 0.166 m, and all exported
   mesh checks pass. Reference fidelity improves top/side/front IoU
-  **0.912/0.953/0.787 -> 0.969/0.952/0.897**. Exposed-wing p95 is **4.9 mm**;
+  **0.912/0.953/0.787 -> 0.969/0.952/0.897**. Model-to-reference
+  exposed-wing p95 is **4.9 mm**;
   the full wing component remains 16.0 mm because its invisible centreline
   carry-through lies inside the body. Body p95 remains 11.6 mm and
   whole-aircraft p95 improves 13.4 -> 13.2 mm.
@@ -412,6 +415,30 @@ stretch solvers only).
   Optimized validation passes 15/15 and the canonical gate verdict is 12/12.
   The baseline aero row remains intentionally red because +3.0° is the
   as-scanned position, not the solved flight trim.
+- Iteration 7 (2026-09-09): post-implementation audit — four wing stations
+  with left/right z disagreement above 5.2 mm (maximum 29.1 mm) are now
+  rejected before simplification, and z joins LE/TE in the bounded error
+  metric. The resulting 11-section loft has LE/TE/z maximum residuals
+  5.9/3.8/5.7 mm, area 0.166767 m², equivalent taper 0.5093, sweep −12.07°,
+  and dihedral −1.91°. OAS now unions all 11 measured knots with its cosine
+  grid (17 half-wing nodes) and reproduces that area exactly instead of
+  smoothing the root blend 1.24% high. Geometric tank packing integrates the
+  inferred local thickness, reducing its placeholder volume 0.000910 ->
+  0.000778 m³; this electric zero-fuel reproduction is unaffected.
+
+  The closed-form elevon seed now integrates each kinked hinge segment
+  (`hinge_sweep_deg` 21.88°, local range −25.59° to +8.04°) rather than using
+  one endpoint sweep, while OAS remains the trim verdict. The final optimized
+  solution is **+9.6398° trailing edge up**, α 5.619°, NP 0.42890 m, static
+  margin 0.04318 MAC, and CM residual −1.15e−6. Reference top/side/front IoU
+  is 0.968/0.952/0.899; model-to-reference exposed-wing p95 is 4.87 mm,
+  whole-aircraft p95 13.24 mm. Full-aircraft VSPAERO still establishes
+  `Cn_beta = +0.04339/rad`, `Cn_r = −0.02279`, and
+  `CY_beta = −0.15894/rad`; VSPAERO/OAS CL-alpha and elevon-moment ratios are
+  1.016 and 1.284. Validation remains 15/15 and all 12 gates pass. The audit
+  also corrected serialized static-margin bounds, measured-fin placement in
+  Studio 2-D views, inspiration-mode section suggestions, directional
+  distance labeling, and fail-closed VSP3 provenance checks.
 
 <!-- OPENAIR_SKETCH_WORKSHEET_START -->
 ## Sketch measurement worksheet
@@ -421,9 +448,9 @@ Rectification: orthographic projection of the reference mesh, 0.5 mm/px,
 (scan sha256 701272c3…), open-air frame with the root chord level. Fuselage
 length 0.712 m = 71.2 grid squares.
 
-Current geometry: span 0.8496 m; 12-section measured wing with centreline root
-chord 0.2601 m, actual tip chord 0.0368 m, gross area 0.1669 m², equivalent
-taper 0.5104 / LE sweep −12.12° / dihedral −1.92°; wing root LE x 0.4071 m
+Current geometry: span 0.8496 m; 11-section measured wing with centreline root
+chord 0.2601 m, actual tip chord 0.0368 m, gross area 0.1668 m², equivalent
+taper 0.5093 / LE sweep −12.07° / dihedral −1.91°; wing root LE x 0.4071 m
 (x/L 0.5718); twist +1.6°/+0.5°; fuselage 0.712 m long, max width 0.150 m,
 max height 0.107 m, 8 stations, root-chord datum, z = 0 at the nose tip; twin
 fins span 0.119 m, root chord 0.107 m, LE sweep

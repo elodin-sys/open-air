@@ -326,6 +326,11 @@ def run_report_stage(
     root_t, root_tol = sketch_shape_targets(spec)["root_over_length"]
     sw_t, sw_tol = sketch_shape_targets(spec)["le_sweep_deg"]
     sweep_word = "forward-swept" if spec.wing.le_sweep_deg < 0 else "aft-swept"
+    wing_shape = (
+        f"{len(spec.wing.sections)}-section measured wing"
+        if spec.wing.sections is not None
+        else f"{sweep_word} trapezoidal wing"
+    )
     source_tail_required = requirements.htail.span_m > 0.05
     topology_text = (
         "with the required conventional horizontal tail"
@@ -472,7 +477,7 @@ def run_report_stage(
         f"- Payload: {requirements.mission.payload_kg} kg",
         f"- Endurance required: {endurance_requirement_text}",
         f"- Dash: maximize TAS, VLM/Euler validity cap M = {spec.mission.dash_mach_cap}",
-        f"- Shape: {sweep_word} trapezoidal wing, pointed fuselage, "
+        f"- Shape: {wing_shape}, pointed fuselage, "
         f"{installation_text}, {topology_text} with {fin_topology} "
         f"({sketch_context})",
         "",

@@ -87,7 +87,9 @@ is tool-agnostic on purpose.
 
    ```bash
    python -m openair.reference ingest <mesh> --concept <name> --units mm \
-       --axes "<mapping>" --expect-span-m <anchor> --out <staging>/reference --dry-run
+       --axes "<mapping>" --expect-span-m <anchor> \
+       --treatment <reproduction|inspiration|requirement> \
+       --out <staging>/reference --dry-run
    ```
 
    View `reference-sections-dryrun.png`. Confirm the body edge excludes the
@@ -115,6 +117,9 @@ is tool-agnostic on purpose.
     tolerance. Section-local t/c is an inferred absolute-thickness loft
     control, not another airfoil cut; keep the measured global
     `wing.t_over_c` for OAS/wingbox physics.
+    For inspiration or requirement intent, pass that treatment to ingest;
+    sections remain disclosed as a reproduction alternative but
+    `suggested.wing` stays scalar and valid for MDO.
 4b. When the fin measurement resolves a root junction, write its mirrored
    absolute y and shared z into `vtail.y_root_m/z_root_m` and set
    `vtail.root_attachment: measured`. The default `derived` mode intentionally

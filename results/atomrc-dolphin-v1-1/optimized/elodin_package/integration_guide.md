@@ -33,20 +33,20 @@ do not restate S, b, MAC, mass, coefficients, thrust, or trim in code.
 
 ## 3. Low-fidelity longitudinal model
 
-References: S = 0.166884 m^2, b = 0.8496 m, c = 0.229453 m (MAC). Mass state:
+References: S = 0.166767 m^2, b = 0.8496 m, c = 0.2293 m (MAC). Mass state:
 0.889 kg with 0 kg fuel aboard (`mass_properties`). With alpha in radians and
-elevon held at 9.5588 deg (trailing edge up positive; solver trim, not a
+elevon held at 9.6398 deg (trailing edge up positive; solver trim, not a
 measured neutral):
 
 ```text
-CL = -0.1086 + 4.01705*alpha
-Cm = 0.0150839 - 0.161901*alpha   (about the CG)
-CD = 0.0349464 + 0.0772863*CL^2
+CL = -0.128098 + 4.01823*alpha
+Cm = 0.0170149 - 0.173517*alpha   (about the CG)
+CD = 0.0343835 + 0.0707852*CL^2
 ```
 
 Dimensionalize with qbar = 0.5*rho*V^2 and apply the section 2 adapter.
-Initialize from `trim_map.csv` (cruise row: 100 m, 17.9995 m/s TAS, alpha
-5.33915 deg, throttle 0.3); re-solve equilibrium for any other condition
+Initialize from `trim_map.csv` (cruise row: 100 m, 17.999 m/s TAS, alpha
+5.61875 deg, throttle 0.3); re-solve equilibrium for any other condition
 instead of reusing a trim row off-condition. Never clamp alpha or floor CL:
 evaluate the model, then publish an `aero_valid` flag from section 5.
 Regression tests must read `performance_anchors` from the JSON rather than
@@ -66,7 +66,7 @@ copying numbers.
 ## 5. Validity envelope
 
 Mach 0 to 0.11; attached-flow alpha -12 to +12 deg; tabulated alpha -2 to 8
-deg; Re/m 1.22259e+06 (single tabulated condition). Policy
+deg; Re/m 1.22256e+06 (single tabulated condition). Policy
 `flag_invalid_do_not_clamp`: outside any bound, leave the physics untouched,
 keep integrating, and report the state as invalid.
 

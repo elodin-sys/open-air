@@ -1,8 +1,8 @@
 {
  "schema": "openair.reference/1",
- "generated": "2026-09-10T04:06:34+00:00",
+ "generated": "2026-09-10T05:08:43+00:00",
  "concept": "atomrc-dolphin-v1-1",
- "model_source_sha256": "72019251bf27f503af00630181ef4e78371671877325e37f0ec3feb511ff5537",
+ "model_source_sha256": "ed3c5ebf61d678e1ba3a758b2610806616a9d172810fd403377103ce2b5199b7",
  "provenance": {
   "source_path": "/home/elo/dev/open-air/scratch/dolphin/dolphin_scan.stl",
   "source_name": "dolphin_scan.stl",
@@ -11199,9 +11199,9 @@
   "wing": {
    "span_m": 0.8496,
    "root_chord_m": 0.2601,
-   "taper": 0.5104,
-   "le_sweep_deg": -12.12,
-   "dihedral_deg": -1.92,
+   "taper": 0.5093,
+   "le_sweep_deg": -12.07,
+   "dihedral_deg": -1.91,
    "twist_root_deg": 3.0,
    "twist_tip_deg": 1.01,
    "t_over_c": 0.1004,
@@ -11242,13 +11242,6 @@
      "chord_m": 0.2317,
      "x_le_m": 0.3832,
      "z_le_m": 0.0196,
-     "t_over_c": 0.0951
-    },
-    {
-     "eta": 0.287198,
-     "chord_m": 0.2259,
-     "x_le_m": 0.3813,
-     "z_le_m": 0.0192,
      "t_over_c": 0.0951
     },
     {
@@ -11296,13 +11289,14 @@
    ]
   },
   "sketch": {
+   "treatment": "reproduction",
    "span_over_length": 1.1933,
    "span_over_length_tol": 0.01,
    "root_over_length": 0.3653,
    "root_over_length_tol": 0.0149,
-   "le_sweep_deg": -12.12,
+   "le_sweep_deg": -12.07,
    "le_sweep_tol_deg": 2.0,
-   "taper": 0.5104,
+   "taper": 0.5093,
    "taper_tol": 0.0615,
    "x_le_root_over_length": 0.5718,
    "x_le_root_over_length_tol": 0.0139,
@@ -11471,12 +11465,6 @@
      "z_le_m": 0.0016530833578557772
     },
     {
-     "eta": 0.287198,
-     "chord_m": 0.004257586699196014,
-     "x_le_m": 0.004257586699196014,
-     "z_le_m": 0.0016530833578557772
-    },
-    {
      "eta": 0.298968,
      "chord_m": 0.004257586699196014,
      "x_le_m": 0.004257586699196014,
@@ -11583,22 +11571,36 @@
   "wing_planform": {
    "mode": "measured multi-section loft",
    "source_station_count": 71,
-   "section_count": 12,
+   "usable_station_count": 67,
+   "section_count": 11,
    "body_exclusion_half_width_m": 0.07049999999999998,
-   "simplification_tolerance_m": 0.0054907267048889515,
-   "sections_area_m2": 0.16688372844888003,
+   "z_asymmetry_limit_m": 0.005201333378060631,
+   "z_asymmetry_excluded_count": 4,
+   "z_asymmetry_max_excluded_m": 0.029079873298661525,
+   "simplification_tolerance_m": 0.007412481051600085,
+   "simplification_acceptance_m": 0.0078020000670909456,
+   "simplification_max_residual_m": {
+    "x_le_m": 0.005860256371184203,
+    "x_te_m": 0.0037549346858850585,
+    "z_le_m": 0.005656845441430559
+   },
+   "tip_method": "linear extrapolation from the final two usable stations",
+   "tip_capture_tolerance_m": 0.0016530833578557772,
+   "tip_chord_floor_applied": false,
+   "sections_area_m2": 0.16676722675152,
    "area_convention": "gross projected area of the measured multi-section outline, including root blends/deck extensions represented by the station curve",
    "section_t_over_c_basis": "inferred from the measured mean wing t/c by preserving the straight-band absolute thickness where root/deck chord is larger; not a direct section-thickness measurement",
    "equivalent_trapezoid": {
     "root_chord_m": 0.2601,
-    "taper": 0.5103901118800462,
-    "le_sweep_deg": -12.117167114274846,
-    "dihedral_deg": -1.923964441805884,
+    "taper": 0.5093357070357556,
+    "le_sweep_deg": -12.065489346817268,
+    "dihedral_deg": -1.9117172148769384,
     "x_le_root_m": 0.4071,
     "z_root_m": 0.0245,
-    "mac_m": 0.22945318631651823,
-    "x_le_mac_m": 0.37152225891584434
-   }
+    "mac_m": 0.22929967367927973,
+    "x_le_mac_m": 0.3716715575916125
+   },
+   "applicability": "wing.sections is emitted only for sketch.treatment=reproduction"
   }
  }
 }

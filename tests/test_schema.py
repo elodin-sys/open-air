@@ -146,6 +146,10 @@ def test_sectioned_wing_validation_and_reproduction_opt_in():
     )
     assert restored.wing.sections == spec.wing.sections
     assert restored.wing.t_over_c_at(0.5) == pytest.approx(0.09)
+    stale = restored.model_copy(deep=True)
+    stale.wing.sections[0].chord_m = 0.9
+    with pytest.raises(ValidationError, match="section-derived equivalent"):
+        stale.assert_cross_model_invariants()
     restored.sketch.treatment = "requirement"
     with pytest.raises(ValueError, match="sketch.treatment='reproduction'"):
         restored.assert_cross_model_invariants()
@@ -255,6 +259,9 @@ def test_physical_bounds_reject_nonsense():
 
 
 def test_electric_reproduction_allows_zero_liquid_fuel_and_no_endurance_claim():
+    import pytest
+    from pydantic import ValidationError
+
     spec = VehicleSpec.model_validate(
         {
             "sketch": {
@@ -282,14 +289,20 @@ def test_electric_reproduction_allows_zero_liquid_fuel_and_no_endurance_claim():
     assert spec.engine.energy_source == "electric"
     assert spec.mass.fuel_mass_kg == 0.0
     assert not spec.mission.endurance_required
-
-    import pytest
-    from pydantic import ValidationError
+    mutated = spec.model_copy(deep=True)
+    mutated.mass.fuel_mass_kg = 0.1
+    with pytest.raises(ValueError, match="fixed zero liquid-fuel"):
+        mutated.assert_cross_model_invariants()
 
     payload = spec.model_dump(mode="python", exclude_computed_fields=True)
     payload["mass"]["fuel_mass_kg"] = 0.1
     with pytest.raises(ValidationError, match="fixed zero liquid-fuel"):
         VehicleSpec.model_validate(payload)
+
+    no_tail = VehicleSpec()
+    no_tail.mission.pitch_trim_control = "tail_incidence"
+    with pytest.raises(ValueError, match="requires a horizontal tail"):
+        no_tail.assert_cross_model_invariants()
 
 
 def test_forward_sweep_is_allowed():

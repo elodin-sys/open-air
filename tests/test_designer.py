@@ -333,7 +333,7 @@ def test_sectioned_studio_preserves_reproduction_and_true_wing_metrics(tmp_path)
     assert spec.sketch.treatment == "reproduction"
     assert spec.sketch.hard_scale == pytest.approx(1.0)
     assert spec.wing.sections is not None
-    assert len(spec.wing.sections) == 12
+    assert len(spec.wing.sections) == 11
     for handle_id in (
         "wing-root-le",
         "wing-root-te",
@@ -353,9 +353,9 @@ def test_sectioned_studio_preserves_reproduction_and_true_wing_metrics(tmp_path)
     assert brief_match
     brief = html_lib.unescape(brief_match.group(1))
     assert "Wing actual tip chord | 0.0368 m" in brief
-    assert "Wing equivalent tip chord | 0.1328 m" in brief
-    assert "Wing projected area | 0.1669 m²" in brief
-    assert "Wing mean aerodynamic chord | 0.2295 m" in brief
+    assert "Wing equivalent tip chord | 0.1325 m" in brief
+    assert "Wing projected area | 0.1668 m²" in brief
+    assert "Wing mean aerodynamic chord | 0.2293 m" in brief
 
 
 def test_blank_disabled_optional_section_does_not_block_openvsp(tmp_path):

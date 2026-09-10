@@ -232,7 +232,7 @@ def elevon_pitch_derivative(
     Strip integration of the thin-airfoil flap increments over the wing
     planform between the surface's span fractions:
 
-        dCL/ddelta   = CL_alpha_wing tau (S_e / S) cos(Lambda_hinge)
+        dCL/ddelta   = CL_alpha_wing tau / S * integral(c cos(Lambda_hinge) dy)
         dCm/ddelta   = dCm_ac/ddelta * integral(c^2 dy) / (S cbar)
                        - dCL/ddelta * (x_qc(eta_c) - x_cg) / cbar
 
@@ -246,31 +246,57 @@ def elevon_pitch_derivative(
     flap = plain_flap_theory(surface.chord_fraction)
     semispan = 0.5 * w.span_m
     eta_s, eta_e = surface.span_start_fraction, surface.span_end_fraction
-    n = 400
-    etas = np.linspace(eta_s, eta_e, n)
+    eta_knots = [eta_s, eta_e]
+    if w.sections is not None:
+        eta_knots.extend(
+            section.eta for section in w.sections if eta_s < section.eta < eta_e
+        )
+    etas = np.unique(
+        np.concatenate((np.linspace(eta_s, eta_e, 400), np.asarray(eta_knots)))
+    )
     chords = np.array([w.chord_at(e) for e in etas])
     x_le = np.array([w.x_le_at(e) for e in etas])
     chord_integral = float(np.trapezoid(chords, etas))
     strip_area = 2.0 * semispan * chord_integral
-    chord_sq_integral = 2.0 * semispan * float(np.trapezoid(chords**2, etas))
+    chord_sq_integral = 2.0 * semispan * w.chord_squared_integral_eta(eta_s, eta_e)
     eta_c = float(np.trapezoid(chords * etas, etas) / max(chord_integral, 1e-12))
     x_qc = x_le + 0.25 * chords
-    x_qc_c = float(np.trapezoid(chords * x_qc, etas) / max(chord_integral, 1e-12))
     hinge_fraction = 1.0 - surface.chord_fraction
-    hinge_x_start = w.x_le_at(eta_s) + hinge_fraction * w.chord_at(eta_s)
-    hinge_x_end = w.x_le_at(eta_e) + hinge_fraction * w.chord_at(eta_e)
-    hinge_sweep = math.atan2(
-        hinge_x_end - hinge_x_start,
-        max((eta_e - eta_s) * semispan, 1e-12),
+    hinge_x = x_le + hinge_fraction * chords
+    delta_eta = np.diff(etas)
+    delta_y = semispan * delta_eta
+    local_hinge_sweep = np.arctan2(np.diff(hinge_x), delta_y)
+    local_hinge_cos = np.cos(local_hinge_sweep)
+    chord_mid = np.array([w.chord_at(0.5 * (a + b)) for a, b in zip(etas, etas[1:])])
+    x_qc_mid = np.array(
+        [
+            w.x_le_at(0.5 * (a + b)) + 0.25 * w.chord_at(0.5 * (a + b))
+            for a, b in zip(etas, etas[1:])
+        ]
     )
+    lift_weight_integral = float(np.sum(chord_mid * local_hinge_cos * delta_eta))
+    x_lift_integral = float(
+        np.sum(
+            local_hinge_cos
+            * delta_eta
+            * (
+                chords[:-1] * x_qc[:-1]
+                + 4.0 * chord_mid * x_qc_mid
+                + chords[1:] * x_qc[1:]
+            )
+            / 6.0
+        )
+    )
+    x_qc_c = x_lift_integral / max(lift_weight_integral, 1e-12)
+    effective_hinge_cos = lift_weight_integral / max(chord_integral, 1e-12)
+    effective_hinge_sweep = math.acos(min(max(effective_hinge_cos, -1.0), 1.0))
     wing_slope = (
         spec.solver.wing_body_cl_alpha_per_deg * 180.0 / math.pi
         if spec.solver.wing_body_cl_alpha_per_deg is not None
         else _lift_curve_slope_per_rad(w.aspect_ratio)
     )
-    dcl_ddelta = (
-        wing_slope * flap["tau"] * (strip_area / w.area_m2) * math.cos(hinge_sweep)
-    )
+    effective_strip_area = 2.0 * semispan * lift_weight_integral
+    dcl_ddelta = wing_slope * flap["tau"] * effective_strip_area / w.area_m2
     dcm_ddelta = (
         flap["dcm_ac_ddelta_per_rad"] * chord_sq_integral / (w.area_m2 * w.mac_m)
         - dcl_ddelta * (x_qc_c - x_cg_m) / w.mac_m
@@ -282,7 +308,12 @@ def elevon_pitch_derivative(
         "section_dcm_ac_ddelta_per_rad": flap["dcm_ac_ddelta_per_rad"],
         "strip_area_fraction": strip_area / w.area_m2,
         "strip_area_centroid_eta": eta_c,
-        "hinge_sweep_deg": math.degrees(hinge_sweep),
+        "hinge_sweep_deg": math.degrees(effective_hinge_sweep),
+        "hinge_sweep_range_deg": [
+            math.degrees(float(np.min(local_hinge_sweep))),
+            math.degrees(float(np.max(local_hinge_sweep))),
+        ],
+        "hinge_sweep_cos_area_weighted": effective_hinge_cos,
         "dcl_ddelta_per_rad": dcl_ddelta * factor,
         "dcm_cg_ddelta_per_rad": dcm_ddelta * factor,
         "dcl_ddelta_per_deg": dcl_ddelta * factor * math.pi / 180.0,
@@ -490,8 +521,8 @@ def balance_report(spec: VehicleSpec, mtow_kg: float, fuel_kg: float) -> Balance
     xr = cg_x(spec, masses, masses.reserve_fuel_kg)
     sm_f = (x_np - xf) / mac
     sm_r = (x_np - xr) / mac
-    lo, hi = spec.mission.static_margin_min, spec.mission.static_margin_max
-    in_band = (lo <= sm_f <= hi) and (lo <= sm_r <= hi)
+    sm_lo, sm_hi = spec.mission.static_margin_min, spec.mission.static_margin_max
+    in_band = (sm_lo <= sm_f <= sm_hi) and (sm_lo <= sm_r <= sm_hi)
     # The cruise pitch-trim solve and OAS verification use the full-fuel CG.
     # Reserve-fuel margin remains a separate stability gate; fixed twist cannot
     # close two different CG states without an explicit control-surface model.
@@ -534,10 +565,10 @@ def balance_report(spec: VehicleSpec, mtow_kg: float, fuel_kg: float) -> Balance
         spec.sketch is not None and spec.sketch.treatment == "reproduction"
     )
     if control == "elevon":
-        lo, hi = elevon_travel  # type: ignore[misc]
+        travel_lo, travel_hi = elevon_travel  # type: ignore[misc]
         trim_ok = (
             abs(elevon_spec - elevon_req) <= 1.5  # type: ignore[operator]
-            and lo + 0.5 <= elevon_req <= hi - 0.5  # type: ignore[operator]
+            and travel_lo + 0.5 <= elevon_req <= travel_hi - 0.5  # type: ignore[operator]
         )
     elif tail_incidence_req is not None:
         trim_ok = (
@@ -561,8 +592,8 @@ def balance_report(spec: VehicleSpec, mtow_kg: float, fuel_kg: float) -> Balance
         x_cg_reserve_m=xr,
         sm_full=sm_f,
         sm_reserve=sm_r,
-        sm_min=lo,
-        sm_max=hi,
+        sm_min=sm_lo,
+        sm_max=sm_hi,
         in_band=in_band,
         washout_required_deg=wash_req,
         washout_available_deg=wash_avail,

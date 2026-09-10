@@ -70,8 +70,10 @@ def wing_tank_volume_m3(spec: VehicleSpec) -> float:
     the local ``chord × thickness`` rectangle after spars/ribs/unusable volume.
     """
     eta = 0.80
-    chord_squared_integral = spec.wing.chord_squared_integral_eta(0.0, eta)
-    return 0.25 * spec.wing.t_over_c * spec.wing.span_m * chord_squared_integral
+    thickness_chord_squared_integral = spec.wing.thickness_chord_squared_integral_eta(
+        0.0, eta
+    )
+    return 0.25 * spec.wing.span_m * thickness_chord_squared_integral
 
 
 def _minimum_local_section(

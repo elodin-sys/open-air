@@ -2,9 +2,9 @@
 
 - Phase: `baseline`
 - Credibility: **geometry-correlated**
-- Pipeline run: `fc130a155e7d4f7398a82f75b9ab7fcb`
+- Pipeline run: `027a2cae48754de4b808854b178f8f7f`
 - Design SHA-256: `b6aad28f15e10c19b0da200435c286c10d69d0f2c96011809cc88e6fc834f825`
-- Source git commit: `0aee6b4a57e96f360a0cebe84cb754744f5428b4`
+- Source git commit: `d772c0edec594d0737e3607499a7db50e67527fa`
 
 ## Evidence classes
 

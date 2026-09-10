@@ -36,9 +36,10 @@ extension.
 
 ## Outcome
 
-The Dolphin now uses 12 measured wing sections and 0.166884 m² gross projected
-area. Top/front silhouette IoU improved from 0.912/0.787 to 0.969/0.897 (side
-0.952); exposed-wing p95 is 4.9 mm and whole-aircraft p95 is 13.2 mm. Full
+The initial closure used 12 measured wing sections and 0.166884 m² gross
+projected area. Top/front silhouette IoU improved from 0.912/0.787 to
+0.969/0.897 (side 0.952); model-to-reference exposed-wing p95 was 4.9 mm and
+whole-aircraft p95 13.2 mm. Full
 wing-component p95 remains 16.0 mm because its STL includes invisible
 centreline carry-through inside the fuselage, which is now disclosed
 separately.
@@ -52,9 +53,26 @@ remain frozen. VSPAERO/OAS CL-alpha and elevon-moment ratios are 0.991 and
 The reference mesh is measured design input, not independent physical
 validation.
 
-Verification: `pytest` (297 passed, 3 deselected), `pytest -m truth`
+Verification: `pytest` (300 passed, 3 deselected), `pytest -m truth`
 (16 passed), `pytest -m stretch` (3 passed), `scripts/ci_reference_smoke.sh`
 (exit 0), and the final full Dolphin pipeline (12/12 gates).
+
+## Follow-up audit
+
+A post-implementation review found four station-height outliers, OAS span
+nodes that did not include every measured knot, uniform-t/c tank packing, and
+an endpoint-only hinge-sweep correction. The repaired ingest rejects z
+asymmetry above its evidence band and selects 11 sections with bounded
+LE/TE/z residuals; OAS unions all knots and now reproduces 0.166767 m² area
+exactly. Tank packing integrates inferred local thickness, and elevon strip
+theory integrates each hinge segment. Studio measured-fin placement,
+inspiration-mode suggestions, directional distance labels, static-margin
+serialization, and failed/cached VSP3 provenance were corrected at the same
+time.
+
+The audited closure retains 12/12 gates and 15/15 validation checks:
+top/side/front IoU 0.968/0.952/0.899, 4.87 mm model-to-reference exposed-wing
+p95, +9.6398° predicted elevon trim, and 0.04318 MAC static margin.
 
 ## Lessons and follow-ups
 

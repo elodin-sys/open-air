@@ -27,6 +27,7 @@ from openair.reference.ingest import (
     load_reference_mesh,
     parse_axes,
     refusal_message,
+    suggest_spec_values,
     suggest_wing_sections,
 )
 from openair.schemas import VehicleSpec
@@ -277,6 +278,34 @@ def test_ingest_recovers_known_geometry(ingested):
             "vtail": summary["suggested"]["vtail"],
         }
     )
+    inspired = suggest_spec_values(
+        summary["measurements"],
+        summary["alignment"],
+        treatment="inspiration",
+    )
+    assert inspired["suggested"]["sketch"]["treatment"] == "inspiration"
+    assert inspired["suggested"]["wing"]["sections"] is None
+    VehicleSpec.model_validate(
+        {
+            "name": "synthetic-inspired",
+            "sketch": inspired["suggested"]["sketch"],
+            "wing": {
+                key: value
+                for key, value in inspired["suggested"]["wing"].items()
+                if value is not None
+            },
+            "fuselage": {
+                **inspired["suggested"]["fuselage"],
+                "max_width_m": max(
+                    inspired["suggested"]["fuselage"]["max_width_m"], 0.06
+                ),
+                "max_height_m": max(
+                    inspired["suggested"]["fuselage"]["max_height_m"], 0.06
+                ),
+            },
+            "vtail": inspired["suggested"]["vtail"],
+        }
+    )
 
     fins = summary["suggested"]["vtail"]
     assert fins["count"] == 2
@@ -302,7 +331,12 @@ def test_section_suggestion_excludes_body_and_keeps_rounded_tip():
                     "x_le_m": leading,
                     "x_te_m": trailing,
                     "x_te_undeflected_m": trailing,
-                    "z_chord_mid_m": 0.02 - 0.01 * y,
+                    "z_chord_mid_m": (
+                        0.02
+                        - 0.01 * y
+                        + (0.03 if y == 0.70 else 0.0)
+                        + (0.02 if side > 0.0 and y == 0.30 else 0.0)
+                    ),
                     "incidence_deg": 0.0,
                 }
             )
@@ -342,6 +376,65 @@ def test_section_suggestion_excludes_body_and_keeps_rounded_tip():
     assert sections[-1]["chord_m"] < sections[-2]["chord_m"]
     assert disclosure["body_exclusion_half_width_m"] == pytest.approx(0.10)
     assert disclosure["section_count"] <= 12
+    assert disclosure["z_asymmetry_excluded_count"] == 1
+    assert disclosure["z_asymmetry_max_excluded_m"] == pytest.approx(0.02)
+    assert (
+        disclosure["simplification_max_residual_m"]["z_le_m"]
+        <= disclosure["simplification_tolerance_m"] + 1e-12
+    )
+    assert disclosure["tip_method"].startswith("linear extrapolation")
+
+    exact_tip_record = json.loads(json.dumps(record))
+    for station in exact_tip_record["wing"]["stations"]:
+        if abs(abs(station["y_m"]) - 0.97) < 1e-9:
+            station["y_m"] = math.copysign(1.0, station["y_m"])
+            station["x_te_m"] = station["x_le_m"] + 0.001
+            station["x_te_undeflected_m"] = station["x_te_m"]
+    exact_tip = suggest_wing_sections(exact_tip_record, resolution_m=0.0005)
+    assert exact_tip is not None
+    assert exact_tip[1]["tip_method"].startswith("nearest measured station")
+    assert not exact_tip[1]["tip_chord_floor_applied"]
+    assert exact_tip[0][-1]["chord_m"] == pytest.approx(0.001)
+
+
+def test_section_suggestion_rejects_outline_beyond_section_budget():
+    stations = []
+    for side in (-1.0, 1.0):
+        for index, y in enumerate(np.linspace(0.1, 0.98, 24)):
+            x_le = 0.2 if index % 2 == 0 else 0.5
+            stations.append(
+                {
+                    "y_m": side * y,
+                    "x_le_m": x_le,
+                    "x_te_m": x_le + 0.2,
+                    "x_te_undeflected_m": x_le + 0.2,
+                    "z_chord_mid_m": 0.0,
+                    "incidence_deg": 0.0,
+                }
+            )
+    record = {
+        "overall": {"length_m": 1.2},
+        "stations": [],
+        "body_half_width_at_wing_m": 0.05,
+        "airfoil_summary": {"t_over_c_mean": 0.1},
+        "wing": {
+            "ok": True,
+            "stations": stations,
+            "span_m": 2.0,
+            "semispan_m": 1.0,
+            "body_half_width_m": 0.05,
+            "x_le_root_m": 0.3,
+            "x_te_root_m": 0.5,
+            "root_chord_m": 0.2,
+            "z_root_le_m": 0.0,
+            "le_sweep_deg": 0.0,
+            "te_sweep_deg": 0.0,
+            "straight_range_abs_y_m": [0.2, 0.8],
+        },
+    }
+
+    with pytest.raises(ReferenceInputError, match="at most 12 sections"):
+        suggest_wing_sections(record, resolution_m=0.0005)
 
 
 def test_ingest_writes_reference_bundle_and_silhouettes(ingested):
@@ -396,12 +489,20 @@ def test_compare_scores_the_same_shape_as_a_match(ingested, tmp_path):
     spec = VehicleSpec(name="synthetic-ref")
     spec.fuselage.length_m = LENGTH
     result = compare_reference(
-        spec, tmp_path, stl_path=model_path, reference_dir=out / "reference"
+        spec,
+        tmp_path,
+        stl_path=model_path,
+        component_stls={"wing": model_path},
+        reference_dir=out / "reference",
     )
     assert result["available"] is True
     assert result["ok"] is True
     assert result["distance_model_to_reference"]["p95_m"] < 0.003
     assert result["silhouettes"]["top"]["iou"] > 0.97
+    assert (
+        result["disclosed"]["p95_model_to_reference_exposed_components_m"]["wing"]
+        < 0.003
+    )
     assert (tmp_path / "reference_fidelity.json").is_file()
     assert (tmp_path / "reference_overlay.png").read_bytes().startswith(PNG_SIGNATURE)
 

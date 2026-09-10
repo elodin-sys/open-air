@@ -398,7 +398,7 @@ def compare_reference(
             for name, stats in components.items()
             if "p95_m" in stats
         },
-        "p95_exposed_components_m": {
+        "p95_model_to_reference_exposed_components_m": {
             name: stats["exposed"]["p95_m"]
             for name, stats in components.items()
             if isinstance(stats.get("exposed"), dict) and "p95_m" in stats["exposed"]
