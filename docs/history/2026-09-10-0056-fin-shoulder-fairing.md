@@ -2,7 +2,7 @@
 
 - Type: milestone
 - Window: 2026-09-09 – 2026-09-10
-- Commits: recorded in the follow-up history commit
+- Commits: `95f8af4`
 
 The scan-grounded Dolphin's measured fin position and aerodynamic validation
 were correct, but its exported STL visibly showed daylight beneath both fin
