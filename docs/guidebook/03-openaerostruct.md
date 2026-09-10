@@ -52,6 +52,15 @@ estimate; wave drag is a Korn-equation model that is exactly zero below Mcrit.
 
 - Surface dicts: [`src/openair/aero/oas_common.py`](../../src/openair/aero/oas_common.py)
   (projected S_ref, NACA section data, `CD0` = fuselage+fins+base buildup).
+- Scalar wings retain the rectangular seed plus OAS taper/sweep/dihedral
+  transforms. A measured `wing.sections` reproduction instead bakes each
+  spanwise node's true LE, chord, and z into the seed and omits those three
+  transforms; applying them again would double the planform. Its
+  section-integrated projected area is `S_ref`. Twist remains a linear
+  tip-to-root CP law, and OAS/wingbox thickness remains the declared uniform
+  `wing.t_over_c`; section-local t/c is an inferred loft-fidelity input for
+  OpenVSP and Studio, explicitly not a direct airfoil measurement or spanwise
+  structural-property model.
 - Aero + trim: [`src/openair/aero/oas_backend.py`](../../src/openair/aero/oas_backend.py) —
   `run_vlm` (CM about a chosen x-ref), `trim_alpha` (L=W),
   `trim_pitch` (α + wing twist, α + fallback-tail incidence, or α + elevon
@@ -65,8 +74,9 @@ estimate; wave drag is a Korn-equation model that is exactly zero below Mcrit.
   the hinge (`geometry.mesh.elevon_chord_fractions`, six rows) and the rows
   aft of it are sheared in z by `deflect_trailing_edge`. OAS tapers the seed
   about the quarter chord *after* we deflect it and scales only x, so the
-  z-drop is pre-multiplied by the local taper factor `k(η)`; the resulting
-  flap slope is `tan δ` everywhere. Spanwise coverage is area-weighted over
+  z-drop is pre-multiplied by the local taper factor `k(η)`; a sectioned seed
+  already has true local chord and therefore uses `k=1`. The resulting flap
+  slope is `tan δ` everywhere. Spanwise coverage is area-weighted over
   each node's interval so the elevon edges need not sit on nodes. Twist
   stays frozen; the outer secant runs on the deflection (trailing edge up
   positive), clamped to the declared travel, and a solution pinned within
@@ -99,6 +109,10 @@ estimate; wave drag is a Korn-equation model that is exactly zero below Mcrit.
    to reference MTOW, and structural mass vs the buildup wing mass remains
    within a factor band (0.4–2.5; different idealizations).
 6. Finite outputs: NaN CL means a missing `aero_states` connection.
+7. For `wing.sections`, inspect `oas_wing_mesh.npy`: every node must reproduce
+   `x_le_at(eta)`, `chord_at(eta)`, and `z_le_at(eta)`, and the wing surface
+   dict must not contain `taper`, `sweep`, or `dihedral`. The rectangular
+   analytical validation copy must clear `sections` before changing span.
 
 ## Known lies
 

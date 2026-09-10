@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,8 @@ from openair.flightdyn.sixdof import (
     verify_elodin_linear_model,
 )
 from openair.flightdyn.stability import (
+    _assess_stability_derivatives,
+    _control_groups,
     derivative_quality,
     parse_stab,
     parse_stability_history,
@@ -80,6 +83,17 @@ X_np 0.448 Lunit
         "units": "deg",
     }
     assert parsed["perturbations"]["elevator"]["delta"] == pytest.approx(0.1)
+
+
+def test_state_derivative_probe_allows_no_control_groups():
+    class NoControls:
+        @staticmethod
+        def GetNumControlSurfaceGroups():
+            return 0
+
+    assert _control_groups(NoControls(), required=False) == []
+    with pytest.raises(ValueError, match="no VSPAERO control groups"):
+        _control_groups(NoControls(), required=True)
 
 
 def test_stability_history_requires_each_perturbation_to_converge(tmp_path: Path):
@@ -167,6 +181,57 @@ def test_derivative_quality_rejects_noise_dominated_small_step():
     )
     assert not stalled["ok"]
     assert not stalled["relaxed_wake_residual_ok"]
+
+
+def test_derivative_quality_can_escalate_to_central_beta(monkeypatch, tmp_path):
+    spec = load_spec(BASELINE_DESIGN)
+    coefficients = {
+        "CL": {
+            "base": 0.3,
+            "derivatives": {"alpha": 4.0, "beta": 0.2},
+        },
+        "Cm": {
+            "base": -0.01,
+            "derivatives": {"alpha": -0.3, "beta": 0.1},
+        },
+        "CY": {"base": 0.0, "derivatives": {"alpha": 0.001}},
+        "Cl": {"base": 0.0, "derivatives": {"alpha": 0.001}},
+        "Cn": {"base": 0.0, "derivatives": {"alpha": 0.001}},
+    }
+    points = iter(
+        [
+            {"ok": True, "CL": 0.3},
+            {"ok": True, "CL": 0.3 + 4.0 * math.radians(1.0)},
+            {"ok": True, "CL": 0.31, "Cm": -0.02},
+            {"ok": True, "CL": 0.31, "Cm": -0.02},
+        ]
+    )
+    monkeypatch.setattr(
+        "openair.flightdyn.stability._run_large_step_cl",
+        lambda *args, **kwargs: next(points),
+    )
+
+    assessed = _assess_stability_derivatives(
+        spec,
+        tmp_path / "unused.vsp3",
+        {
+            "ok": True,
+            "stab": {"coefficients": coefficients},
+            "wake_convergence": {"available": True, "converged": True},
+        },
+        alpha_deg=4.0,
+        airspeed_mps=18.0,
+        altitude_m=0.0,
+        lifting_names={"wing"},
+        fixed_wake=True,
+    )
+
+    quality = assessed["derivative_quality"]
+    assert quality["ok"]
+    assert quality["small_step_noise_metrics"]["Cm_beta_over_Cm_alpha"] > 0.02
+    assert quality["noise_metrics"]["Cm_beta_over_Cm_alpha"] == pytest.approx(0.0)
+    assert quality["noise_estimate"] == "central +/-1 deg beta escalation"
+    assert assessed["central_beta_noise_check"]["ok"]
 
 
 def test_aeroelastic_flap_effectiveness_uses_shared_glauert_theory():

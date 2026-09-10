@@ -65,7 +65,9 @@ A prototype passes QA only when all of these hold, in this order:
 6b. **Directional stability/authority**: sized concepts require fin volume
    coefficient `balance.vv` in [0.02, 0.09] (cant-corrected; F15 — yaw was
    previously unassessed). A source-locked `reproduction` keeps the documented
-   fin and applies only the Vv ≥ 0.02 authority screen; this is not a full
+   fin and applies only the Vv ≥ 0.02 authority screen or, when that generic
+   screen is marginal, same-run quality-gated VSPAERO evidence
+   (`Cn_beta > 0`, `Cn_r < 0`, `CY_beta < 0`); this is not a full
    directional-stability claim. In both modes, validation check
    `fin_te_within_body` must pass.
 7. **Structures**: the method must be in its declared span/MTOW domain;
@@ -107,7 +109,10 @@ A prototype passes QA only when all of these hold, in this order:
     pitching-moment agreement. Every VSPAERO derivative table must also carry
     `derivative_quality.ok`: symmetry-noise metrics ≤ 0.02, 0.01°/1° CLα
     ratio in 0.90–1.10, and converged relaxed-wake perturbation histories (or
-    a recorded fixed-wake escalation). Elevon-trim designs add
+    a recorded fixed-wake escalation). A central ±1° beta escalation may
+    replace only beta symmetry-noise estimates when the 0.01° column is below
+    the grid-noise floor; the original metrics remain disclosed and the same
+    0.02 limit applies. Elevon-trim designs add
     `elevon_cm_delta_vspaero_vs_oas`: the fixed-alpha OAS `dCm_cg/dδ` must
     agree in sign and within a 0.6–1.6 ratio with a wing-only VSPAERO control
     derivative from the serialized control groups (chapter 02); the

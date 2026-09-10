@@ -15,6 +15,7 @@ from openair.controls import (
     te_down_deg,
     trim_control_values,
 )
+from openair.aero.oas_common import elevon_wing_mesh
 from openair.geometry.mesh import deflect_trailing_edge, elevon_chord_fractions
 from openair.mission.balance import (
     balance_report,
@@ -193,6 +194,66 @@ def test_deflect_trailing_edge_rotates_only_the_covered_flap():
             deflection_te_down_deg=5.0,
             taper=spec.wing.taper,
         )
+
+
+def test_sectioned_elevon_deflection_uses_actual_local_chord():
+    from openair.geometry.mesh import generate_oas_rect_mesh
+
+    scalar = _elevon_spec()
+    data = scalar.model_dump(mode="python", exclude_computed_fields=True)
+    data["sketch"]["treatment"] = "reproduction"
+    wing = data["wing"]
+    span = wing["span_m"]
+    root = wing["root_chord_m"]
+    x_root = wing["x_le_root_m"]
+    sections = [
+        {
+            "eta": 0.0,
+            "chord_m": root,
+            "x_le_m": x_root,
+            "z_le_m": wing["z_root_m"],
+        },
+        {
+            "eta": 0.55,
+            "chord_m": 0.78 * root,
+            "x_le_m": x_root - 0.06,
+            "z_le_m": wing["z_root_m"] - 0.015,
+        },
+        {
+            "eta": 1.0,
+            "chord_m": 0.30 * root,
+            "x_le_m": x_root + 0.04,
+            "z_le_m": wing["z_root_m"] - 0.04,
+        },
+    ]
+    for name in (
+        "root_chord_m",
+        "taper",
+        "le_sweep_deg",
+        "dihedral_deg",
+        "x_le_root_m",
+        "z_root_m",
+    ):
+        wing.pop(name)
+    wing["sections"] = sections
+    sectioned = VehicleSpec.model_validate(data)
+
+    baseline = generate_oas_rect_mesh(
+        sectioned,
+        chord_fractions=elevon_chord_fractions(1.0 - ELEVON["chord_fraction"]),
+    )
+    deflected, _ = elevon_wing_mesh(sectioned, deflection_te_up_deg=-10.0)
+    eta = np.abs(baseline[0, :, 1]) / (0.5 * span)
+    fully_covered = (eta > 0.45) & (eta < 0.9)
+    dz = deflected[-1, :, 2] - baseline[-1, :, 2]
+    flap_chord = ELEVON["chord_fraction"] * np.asarray(
+        [sectioned.wing.chord_at(value) for value in eta]
+    )
+    assert np.allclose(
+        -dz[fully_covered] / flap_chord[fully_covered],
+        math.tan(math.radians(10.0)),
+        rtol=0.05,
+    )
 
 
 def test_closed_form_elevon_requirement_has_trim_sign_and_freezes_twist():
@@ -456,7 +517,17 @@ def test_validation_elevon_cross_check_requires_derivative_quality(
     from openair.validation.runner import _elevon_pitch_derivative_cross_check
 
     spec = _elevon_spec()
-    (tmp_path / "elevon.vsp3").touch()
+    vsp3 = tmp_path / "elevon.vsp3"
+    vsp3.touch()
+    (tmp_path / "geometry.json").write_text(
+        json.dumps(
+            {
+                "ok": True,
+                "openvsp": {"ok": True, "vsp3": str(vsp3)},
+            }
+        ),
+        encoding="utf-8",
+    )
     (tmp_path / "aero.json").write_text(
         json.dumps(
             {

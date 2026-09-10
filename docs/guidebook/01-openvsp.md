@@ -48,13 +48,24 @@ CAD kernel — components overlap unless you run CompGeom.
 builds fuselage (XSec width/height rescale via `GetXSec` +
 `SetXSecWidthHeight`; explicit stations may use split super-ellipses with
 independent side/top/bottom powers), the swept wing (driver group
-SPAN/ROOTC/TIPC, LE sweep, NACA camber/thickness on `XSecCurve_0/1`), twin
+SPAN/ROOTC/TIPC, LE sweep, NACA camber/thickness on its XSec curves), twin
 canted fins (wings yawed 90° with symmetry off), exports `.vsp3` + STL +
 DegenGeom + MassProp, and then **verifies itself**: section type/dimensions/
 exponents and planform parm read-back plus an STL bounding-box check. Runtime
 paths come from
 [`src/openair/paths.py`](../../src/openair/paths.py) (extracted `.deb` under
 `tools/openvsp`, extra libs under `tools/libs`).
+
+`wing.sections` is the measured-reproduction alternative to one trapezoid.
+It carries 3–12 centreline-to-tip stations (`eta`, chord, LE x/z, optional
+t/c). The builder inserts one WING XSec per station, sets a driver group on
+every panel, and derives each panel's physical span, LE sweep, and dihedral
+from adjacent stations. `WingSpec` integrates the sections for gross projected
+area, MAC, and MAC locus; scalar root/taper/sweep/dihedral are validated
+equivalent descriptors, not a second geometry source. OpenVSP 3.51 leaves
+`XSec_1.Area` stale after insertion, so the builder deliberately nudges and
+restores `WingGeom.TotalSpan` before write. Per-panel read-back and reopening
+the VSP3 both guard against the silent rescaling that otherwise occurs.
 
 Fin placement is explicit in `vtail.root_attachment`.
 `derived` (default) preserves the historical close-set rule at 60% of the
@@ -69,13 +80,17 @@ same mode.
 ## Check your work
 
 1. `geometry.json .openvsp.readback.matches_spec == true` and `rel_err` all
-   ≤ 0.02. If read-back fails, a `_set` call silently missed.
+   ≤ 0.02. For `planform_mode: sections`, also require
+   `wing_sections.matches` and every panel row `matches`. If read-back fails,
+   a `_set` call silently missed.
 2. `stl_bbox.size_xyz_m`: y-extent ≈ span (±10%), x-extent ≈ fuselage length.
 3. `errors` array: read it. Queued errors name the exact parm that failed.
 4. MassProp default density is 1.0 — `Total_Mass` is a volume proxy, not
    kilograms, unless densities were assigned. Do not quote it as mass.
 5. Re-open the written `.vsp3` (`ReadVSPFile`) and re-run read-back when
    touching the builder — proves the artifact matches the in-memory model.
+   This is mandatory for a multi-section wing because stale aggregate area can
+   rescale its panels only when the file is reopened.
 6. `mesh_checks` (in `geometry.json .openvsp.mesh_checks`): per-component
    STL extents (wing span horizontal, fin span vertical = span·cos(cant)),
    whole-model height computed from the spec, and root-section attachment.
@@ -112,6 +127,10 @@ same mode.
   replaced them with the 60%-body heuristic. Any measured attachment must
   opt into `root_attachment: measured`; its read-back and mesh attachment are
   separate checks.
+- Inserting wing XSecs and reading every requested chord back correctly does
+  not prove the saved wing is stable. OpenVSP 3.51 can retain the original
+  `XSec_1.Area`/`TotalArea`, then rescale all panels on reopen. Force the
+  aggregate-span recomputation and test the reopened VSP3 (audit F35).
 - `geometry.json` in the first run pointed at `_degen.csv`, a file that never
   existed — the analysis writes `_DegenGeom.csv`.
 - `ok: true` used to mean only "a .vsp3 file exists"; it now requires

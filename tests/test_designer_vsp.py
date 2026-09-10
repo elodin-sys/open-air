@@ -170,6 +170,49 @@ def _shape_roundtrip_spec() -> VehicleSpec:
     return VehicleSpec.model_validate(data)
 
 
+def _sectioned_roundtrip_spec() -> VehicleSpec:
+    source = _roundtrip_spec()
+    data = source.model_dump(mode="json", exclude_computed_fields=True)
+    data["name"] = "vsp-sectioned-roundtrip"
+    sections = [
+        {"eta": 0.0, "chord_m": 1.05, "x_le_m": 1.10, "z_le_m": 0.03},
+        {
+            "eta": 0.35,
+            "chord_m": 0.92,
+            "x_le_m": 1.02,
+            "z_le_m": 0.02,
+            "t_over_c": 0.11,
+        },
+        {"eta": 0.75, "chord_m": 0.58, "x_le_m": 1.12, "z_le_m": 0.0},
+        {
+            "eta": 1.0,
+            "chord_m": 0.24,
+            "x_le_m": 1.25,
+            "z_le_m": -0.03,
+            "t_over_c": 0.08,
+        },
+    ]
+    equivalent = source.wing.equivalent_trapezoid(sections, source.wing.span_m)
+    data["sketch"] = {
+        "treatment": "reproduction",
+        "span_over_length": source.wing.span_m / source.fuselage.length_m,
+        "root_over_length": sections[0]["chord_m"] / source.fuselage.length_m,
+        "le_sweep_deg": equivalent["le_sweep_deg"],
+        "taper": equivalent["taper"],
+    }
+    for name in (
+        "root_chord_m",
+        "taper",
+        "le_sweep_deg",
+        "dihedral_deg",
+        "x_le_root_m",
+        "z_root_m",
+    ):
+        data["wing"].pop(name)
+    data["wing"]["sections"] = sections
+    return VehicleSpec.model_validate(data)
+
+
 def _write_or_skip(spec: VehicleSpec, path: Path) -> None:
     result = write_vsp3(spec, path)
     if result.get("reason") == "openvsp_import_failed":
@@ -219,6 +262,50 @@ def test_station_loft_naca_and_htail_round_trip(tmp_path: Path):
     assert imported.htail.incidence_deg == pytest.approx(
         spec.htail.incidence_deg, abs=1e-5
     )
+
+
+def test_sectioned_wing_round_trips_gui_edits_and_rederives_equivalents(
+    tmp_path: Path,
+):
+    spec = _sectioned_roundtrip_spec()
+    path = tmp_path / "sectioned-wing.vsp3"
+    _write_or_skip(spec, path)
+
+    geometry = import_vsp3(path, spec)
+    assert geometry_changes(spec, geometry) == []
+    assert len(geometry["wing"]["sections"]) == len(spec.wing.sections)
+
+    def edit(vsp, geoms):
+        wing_id = geoms["wing"]
+        vsp.SetParmVal(wing_id, "Sweep", "XSec_2", 10.0)
+        vsp.SetParmVal(wing_id, "Tip_Chord", "XSec_2", 0.62)
+        vsp.SetParmVal(wing_id, "ThickChord", "XSecCurve_2", 0.095)
+
+    _edit_vsp3(path, edit)
+    geometry = import_vsp3(path, spec)
+    imported = _merge(spec, geometry)
+
+    assert geometry_changes(spec, geometry)
+    assert imported.wing.sections[2].chord_m == pytest.approx(0.62)
+    assert imported.wing.sections[2].t_over_c == pytest.approx(0.095)
+    equivalent = imported.wing.equivalent_trapezoid(
+        imported.wing.sections, imported.wing.span_m
+    )
+    assert imported.wing.taper == pytest.approx(equivalent["taper"])
+    assert imported.wing.le_sweep_deg == pytest.approx(equivalent["le_sweep_deg"])
+
+
+def test_sectioned_wing_rejects_non_linear_interior_twist(tmp_path: Path):
+    spec = _sectioned_roundtrip_spec()
+    path = tmp_path / "sectioned-twist.vsp3"
+    _write_or_skip(spec, path)
+
+    def edit(vsp, geoms):
+        vsp.SetParmVal(geoms["wing"], "Twist", "XSec_2", 7.0)
+
+    _edit_vsp3(path, edit)
+    with pytest.raises(ImportRejected, match="root-to-tip linear law"):
+        import_vsp3(path, spec)
 
 
 def test_measured_twin_fin_root_round_trips_gui_edits(tmp_path: Path):
@@ -360,7 +447,7 @@ def test_import_rejects_geometry_outside_schema(tmp_path: Path, unsupported: str
     expected = {
         "extra-geom": "unsupported geoms added",
         "missing-geom": "required geoms missing",
-        "wing-section": "expected exactly 2 wing sections",
+        "wing-section": "multi-section geometry requires",
     }
     assert expected[unsupported] in message
 

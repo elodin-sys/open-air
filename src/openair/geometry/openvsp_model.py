@@ -15,7 +15,7 @@ from openair.geometry.fin_attachment import fin_attachment
 from openair.geometry.mesh import (
     generate_oas_rect_mesh,
     save_mesh,
-    trapezoid_planform_points,
+    wing_planform_points,
 )
 from openair.geometry.packing import external_nacelle_y_positions, packing_report
 from openair.paths import configure_runtime
@@ -40,6 +40,20 @@ def _set(vsp, gid: str, name: str, group: str, value: float) -> bool:
         return True
     except Exception:
         return False
+
+
+def _subsurface_parm_value(vsp, subsurface_id: str, name: str) -> float:
+    """Read a SubSurf parm by ID; serialized group names gain numeric suffixes."""
+    matches = [
+        parm_id
+        for parm_id in vsp.GetSubSurfParmIDs(subsurface_id)
+        if str(vsp.GetParmName(parm_id)) == name
+    ]
+    if len(matches) != 1:
+        raise RuntimeError(
+            f"subsurface {subsurface_id} has {len(matches)} parms named {name!r}"
+        )
+    return float(vsp.GetParmVal(matches[0]))
 
 
 # Fuselage XSec scale table used by the builder: stations (fraction of
@@ -71,11 +85,11 @@ def _drain_vsp_errors(vsp) -> list[str]:
     return errors
 
 
-def _set_wing_driver_group(vsp, geom_id: str) -> None:
+def _set_wing_driver_group(vsp, geom_id: str, section_index: int = 1) -> None:
     try:
         vsp.SetDriverGroup(
             geom_id,
-            1,
+            section_index,
             vsp.SPAN_WSECT_DRIVER,
             vsp.ROOTC_WSECT_DRIVER,
             vsp.TIPC_WSECT_DRIVER,
@@ -84,13 +98,121 @@ def _set_wing_driver_group(vsp, geom_id: str) -> None:
         try:
             vsp.SetDriverGroup(
                 geom_id,
-                1,
+                section_index,
                 vsp.AREA_WSECT_DRIVER,
                 vsp.ROOTC_WSECT_DRIVER,
                 vsp.TIPC_WSECT_DRIVER,
             )
         except Exception:
             pass
+
+
+def _wing_twist_at(spec: VehicleSpec, eta: float) -> float:
+    return spec.wing.twist_root_deg + float(eta) * (
+        spec.wing.twist_tip_deg - spec.wing.twist_root_deg
+    )
+
+
+def _configure_wing(vsp, wing_id: str, spec: VehicleSpec) -> None:
+    """Write either the scalar trapezoid or the measured section loft."""
+    wing = spec.wing
+    _set(vsp, wing_id, "X_Rel_Location", "XForm", wing.x_le_root_m)
+    _set(vsp, wing_id, "Z_Rel_Location", "XForm", wing.z_root_m)
+    code = wing.airfoil
+    camber = int(code[0]) / 100.0
+    camber_loc = int(code[1]) / 10.0
+
+    if wing.sections is None:
+        _set_wing_driver_group(vsp, wing_id)
+        _set(vsp, wing_id, "Span", "XSec_1", 0.5 * wing.span_m)
+        _set(vsp, wing_id, "TotalSpan", "WingGeom", wing.span_m)
+        _set(vsp, wing_id, "Root_Chord", "XSec_1", wing.root_chord_m)
+        _set(vsp, wing_id, "Tip_Chord", "XSec_1", wing.tip_chord_m)
+        _set(vsp, wing_id, "Sweep", "XSec_1", wing.le_sweep_deg)
+        _set(vsp, wing_id, "Sweep_Location", "XSec_1", 0.0)
+        _set(vsp, wing_id, "Dihedral", "XSec_1", wing.dihedral_deg)
+        _set(vsp, wing_id, "Twist", "XSec_0", wing.twist_root_deg)
+        _set(vsp, wing_id, "Twist", "XSec_1", wing.twist_tip_deg)
+        for index in range(2):
+            group = f"XSecCurve_{index}"
+            _set(vsp, wing_id, "Camber", group, camber)
+            _set(vsp, wing_id, "CamberLoc", group, camber_loc)
+            _set(vsp, wing_id, "ThickChord", group, wing.t_over_c)
+        vsp.Update()
+        return
+
+    xsec_surf = vsp.GetXSecSurf(wing_id, 0)
+    while int(vsp.GetNumXSec(xsec_surf)) < len(wing.sections):
+        last_index = int(vsp.GetNumXSec(xsec_surf)) - 1
+        vsp.InsertXSec(wing_id, last_index, vsp.XS_FOUR_SERIES)
+        vsp.Update()
+    if int(vsp.GetNumXSec(xsec_surf)) != len(wing.sections):
+        raise RuntimeError(
+            "OpenVSP wing section count does not match wing.sections: "
+            f"{vsp.GetNumXSec(xsec_surf)} != {len(wing.sections)}"
+        )
+
+    for index in range(1, len(wing.sections)):
+        _set_wing_driver_group(vsp, wing_id, index)
+    for index, section in enumerate(wing.sections):
+        curve_group = f"XSecCurve_{index}"
+        _set(vsp, wing_id, "Camber", curve_group, camber)
+        _set(vsp, wing_id, "CamberLoc", curve_group, camber_loc)
+        _set(
+            vsp,
+            wing_id,
+            "ThickChord",
+            curve_group,
+            wing.t_over_c if section.t_over_c is None else section.t_over_c,
+        )
+        _set(
+            vsp,
+            wing_id,
+            "Twist",
+            f"XSec_{index}",
+            _wing_twist_at(spec, section.eta),
+        )
+        if index == 0:
+            continue
+        inner = wing.sections[index - 1]
+        dy = (section.eta - inner.eta) * 0.5 * wing.span_m
+        dz = section.z_le_m - inner.z_le_m
+        panel_group = f"XSec_{index}"
+        _set(vsp, wing_id, "Span", panel_group, math.hypot(dy, dz))
+        _set(vsp, wing_id, "Root_Chord", panel_group, inner.chord_m)
+        _set(vsp, wing_id, "Tip_Chord", panel_group, section.chord_m)
+        _set(
+            vsp,
+            wing_id,
+            "Sweep",
+            panel_group,
+            math.degrees(math.atan2(section.x_le_m - inner.x_le_m, dy)),
+        )
+        _set(vsp, wing_id, "Sweep_Location", panel_group, 0.0)
+        _set(
+            vsp,
+            wing_id,
+            "Dihedral",
+            panel_group,
+            math.degrees(math.atan2(dz, dy)),
+        )
+    vsp.Update()
+    # OpenVSP 3.51 leaves XSec_1.Area and WingGeom.TotalArea at their
+    # pre-insertion defaults even though all section parms read back correctly.
+    # Nudging and restoring the aggregate span forces those derived values to
+    # recompute and, critically, makes the written VSP3 reopen with the same
+    # panel chords instead of rescaling the wing to the stale total area.
+    total_span = 2.0 * sum(
+        math.hypot(
+            (outer.eta - inner.eta) * 0.5 * wing.span_m,
+            outer.z_le_m - inner.z_le_m,
+        )
+        for inner, outer in zip(wing.sections, wing.sections[1:])
+    )
+    _set(vsp, wing_id, "TotalSpan", "WingGeom", total_span * 1.001)
+    vsp.Update()
+    _set(vsp, wing_id, "TotalSpan", "WingGeom", total_span)
+    vsp.Update()
 
 
 def _mirrored_control_gains(mode: str) -> tuple[float, float]:
@@ -102,7 +224,9 @@ def _mirrored_control_gains(mode: str) -> tuple[float, float]:
     raise ValueError(f"unsupported mirrored control mode: {mode}")
 
 
-def _configure_control_groups(vsp, controls: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _configure_control_groups(
+    vsp, controls: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     """Create all overlapping logical VSPAERO groups in one model."""
     if not controls:
         return []
@@ -255,28 +379,10 @@ def _construct_model(
 
     wid = vsp.AddGeom("WING", "")
     vsp.SetGeomName(wid, "wing")
-    _set_wing_driver_group(vsp, wid)
-    _set(vsp, wid, "X_Rel_Location", "XForm", spec.wing.x_le_root_m)
-    _set(vsp, wid, "Z_Rel_Location", "XForm", spec.wing.z_root_m)
-    _set(vsp, wid, "Span", "XSec_1", 0.5 * spec.wing.span_m)
-    _set(vsp, wid, "TotalSpan", "WingGeom", spec.wing.span_m)
-    _set(vsp, wid, "Root_Chord", "XSec_1", spec.wing.root_chord_m)
-    _set(vsp, wid, "Tip_Chord", "XSec_1", spec.wing.tip_chord_m)
-    _set(vsp, wid, "Sweep", "XSec_1", spec.wing.le_sweep_deg)
-    _set(vsp, wid, "Sweep_Location", "XSec_1", 0.0)
-    _set(vsp, wid, "Dihedral", "XSec_1", spec.wing.dihedral_deg)
-    # Root incidence lives on XSec_0 and washout on XSec_1.
-    _set(vsp, wid, "Twist", "XSec_0", spec.wing.twist_root_deg)
-    _set(vsp, wid, "Twist", "XSec_1", spec.wing.twist_tip_deg)
-    code = spec.wing.airfoil
-    camber = int(code[0]) / 100.0
-    camber_loc = int(code[1]) / 10.0
-    thick = int(code[2:]) / 100.0
-    for xs in ("XSecCurve_0", "XSecCurve_1"):
-        _set(vsp, wid, "Camber", xs, camber)
-        _set(vsp, wid, "CamberLoc", xs, camber_loc)
-        _set(vsp, wid, "ThickChord", xs, thick)
-    vsp.Update()
+    try:
+        _configure_wing(vsp, wid, spec)
+    except Exception as exc:
+        errors.append(f"wing_sections: {exc}")
 
     # A WING geom spans +y. One X-axis roll makes a vertical fin while
     # preserving streamwise chord: right 90-cant, left 90+cant. The shared
@@ -486,6 +592,209 @@ def _construct_model(
     }
 
 
+def _rebind_serialized_model_ids(vsp, built: dict[str, Any]) -> dict[str, Any]:
+    """Rebind IDs that OpenVSP regenerates while reopening a VSP3.
+
+    Geom IDs are normally serialized, but SubSurf IDs are not stable. Read-back
+    and component exports must therefore use IDs discovered from the reopened
+    artifact, not handles retained from the in-memory construction.
+    """
+    by_name = {str(vsp.GetGeomName(gid)): gid for gid in vsp.FindGeoms()}
+    required = {"fuselage", "wing"}
+    fin_names = ["vtailc"] if len(built["vtails"]) == 1 else ["vtailr", "vtaill"]
+    required.update(fin_names)
+    if built["htail"] is not None:
+        required.add("htail")
+    missing = required - by_name.keys()
+    if missing:
+        raise RuntimeError(
+            f"reopened VSP3 is missing geometry names: {sorted(missing)}"
+        )
+
+    old_to_new_subsurf: dict[str, str] = {}
+    controls: list[dict[str, Any]] = []
+    for control in built["control_surfaces"]:
+        subsurfaces = []
+        for old in control["subsurfaces"]:
+            geom_name = str(old["geom_name"])
+            geom_id = by_name[geom_name]
+            candidates = [
+                str(subsurf_id)
+                for subsurf_id in vsp.GetSubSurfIDVec(geom_id)
+                if str(vsp.GetSubSurfName(geom_id, subsurf_id)) == control["id"]
+            ]
+            if len(candidates) != 1:
+                raise RuntimeError(
+                    f"reopened {geom_name} has {len(candidates)} subsurfaces "
+                    f"named {control['id']!r}, expected one"
+                )
+            subsurface_id = candidates[0]
+            old_to_new_subsurf[str(old["subsurface_id"])] = subsurface_id
+            subsurfaces.append(
+                {
+                    **old,
+                    "geom_id": geom_id,
+                    "subsurface_id": subsurface_id,
+                }
+            )
+        controls.append({**control, "subsurfaces": subsurfaces})
+
+    control_groups = []
+    for group in built["control_groups"]:
+        control_groups.append(
+            {
+                **group,
+                "expected_gains": {
+                    old_to_new_subsurf.get(
+                        str(subsurface_id), str(subsurface_id)
+                    ): gains
+                    for subsurface_id, gains in group["expected_gains"].items()
+                },
+            }
+        )
+    engine_pods = [
+        by_name[name] for _, name in built["engine_pod_positions"] if name in by_name
+    ]
+    return {
+        **built,
+        "fuselage": by_name["fuselage"],
+        "fuselage_xsurf": vsp.GetXSecSurf(by_name["fuselage"], 0),
+        "wing": by_name["wing"],
+        "control_surfaces": controls,
+        "control_groups": control_groups,
+        "vtails": [by_name[name] for name in fin_names],
+        "htail": by_name.get("htail"),
+        "engine_pods": engine_pods,
+    }
+
+
+def _sectioned_wing_readback(
+    vsp,
+    spec: VehicleSpec,
+    wing_id: str,
+) -> tuple[dict[str, Any], bool]:
+    """Read every OpenVSP panel and reconstruct its outer planform station."""
+    wing = spec.wing
+    assert wing.sections is not None
+    xsec_surf = vsp.GetXSecSurf(wing_id, 0)
+    count = int(vsp.GetNumXSec(xsec_surf))
+    count_ok = count == len(wing.sections)
+    root_chord = float(vsp.GetParmVal(wing_id, "Root_Chord", "XSec_1"))
+    x_le = float(vsp.GetParmVal(wing_id, "X_Rel_Location", "XForm"))
+    z_le = float(vsp.GetParmVal(wing_id, "Z_Rel_Location", "XForm"))
+    y = 0.0
+    section_rows = [
+        {
+            "index": 0,
+            "eta": 0.0,
+            "chord_m": root_chord,
+            "x_le_m": x_le,
+            "z_le_m": z_le,
+            "twist_deg": float(vsp.GetParmVal(wing_id, "Twist", "XSec_0")),
+            "t_over_c": float(vsp.GetParmVal(wing_id, "ThickChord", "XSecCurve_0")),
+        }
+    ]
+    panel_rows: list[dict[str, Any]] = []
+    projected_area = 0.0
+    sections_ok = count_ok
+    if not count_ok:
+        return {
+            "count": count,
+            "expected_count": len(wing.sections),
+            "sections": section_rows,
+            "panels": panel_rows,
+            "matches": False,
+        }, False
+
+    root_want = wing.sections[0]
+    sections_ok = sections_ok and (
+        abs(root_chord - root_want.chord_m) <= 1e-4
+        and abs(x_le - root_want.x_le_m) <= 1e-4
+        and abs(z_le - root_want.z_le_m) <= 1e-4
+        and abs(section_rows[0]["twist_deg"] - _wing_twist_at(spec, 0.0)) <= 0.1
+        and abs(
+            section_rows[0]["t_over_c"]
+            - (wing.t_over_c if root_want.t_over_c is None else root_want.t_over_c)
+        )
+        <= 1e-4
+    )
+    semispan = 0.5 * wing.span_m
+    for index in range(1, count):
+        group = f"XSec_{index}"
+        curve_group = f"XSecCurve_{index}"
+        span = float(vsp.GetParmVal(wing_id, "Span", group))
+        projected_span = float(vsp.GetParmVal(wing_id, "ProjectedSpan", group))
+        root = float(vsp.GetParmVal(wing_id, "Root_Chord", group))
+        tip = float(vsp.GetParmVal(wing_id, "Tip_Chord", group))
+        sweep = float(vsp.GetParmVal(wing_id, "Sweep", group))
+        sweep_location = float(vsp.GetParmVal(wing_id, "Sweep_Location", group))
+        dihedral = float(vsp.GetParmVal(wing_id, "Dihedral", group))
+        twist = float(vsp.GetParmVal(wing_id, "Twist", group))
+        t_over_c = float(vsp.GetParmVal(wing_id, "ThickChord", curve_group))
+        y += projected_span
+        x_le += projected_span * math.tan(math.radians(sweep))
+        z_le += span * math.sin(math.radians(dihedral))
+        projected_area += (root + tip) * projected_span
+        inner_want = wing.sections[index - 1]
+        outer_want = wing.sections[index]
+        want_dy = (outer_want.eta - inner_want.eta) * semispan
+        want_dz = outer_want.z_le_m - inner_want.z_le_m
+        want_span = math.hypot(want_dy, want_dz)
+        want_sweep = math.degrees(
+            math.atan2(outer_want.x_le_m - inner_want.x_le_m, want_dy)
+        )
+        want_dihedral = math.degrees(math.atan2(want_dz, want_dy))
+        want_t_over_c = (
+            wing.t_over_c if outer_want.t_over_c is None else outer_want.t_over_c
+        )
+        panel_ok = (
+            abs(span - want_span) <= max(1e-4, 0.002 * want_span)
+            and abs(projected_span - want_dy) <= max(1e-4, 0.002 * want_dy)
+            and abs(root - inner_want.chord_m) <= 1e-4
+            and abs(tip - outer_want.chord_m) <= 1e-4
+            and abs(sweep - want_sweep) <= 0.1
+            and abs(sweep_location) <= 1e-6
+            and abs(dihedral - want_dihedral) <= 0.1
+            and abs(twist - _wing_twist_at(spec, outer_want.eta)) <= 0.1
+            and abs(t_over_c - want_t_over_c) <= 1e-4
+            and abs(x_le - outer_want.x_le_m) <= 5e-4
+            and abs(z_le - outer_want.z_le_m) <= 5e-4
+        )
+        sections_ok = sections_ok and panel_ok
+        panel_rows.append(
+            {
+                "index": index,
+                "span_m": span,
+                "projected_span_m": projected_span,
+                "root_chord_m": root,
+                "tip_chord_m": tip,
+                "sweep_deg": sweep,
+                "sweep_location": sweep_location,
+                "dihedral_deg": dihedral,
+                "matches": panel_ok,
+            }
+        )
+        section_rows.append(
+            {
+                "index": index,
+                "eta": y / max(semispan, 1e-12),
+                "chord_m": tip,
+                "x_le_m": x_le,
+                "z_le_m": z_le,
+                "twist_deg": twist,
+                "t_over_c": t_over_c,
+            }
+        )
+    return {
+        "count": count,
+        "expected_count": len(wing.sections),
+        "projected_area_m2": projected_area,
+        "sections": section_rows,
+        "panels": panel_rows,
+        "matches": sections_ok,
+    }, sections_ok
+
+
 def _construction_readback(
     vsp,
     spec: VehicleSpec,
@@ -496,36 +805,69 @@ def _construction_readback(
     xsurf = built["fuselage_xsurf"]
     errors: list[str] = []
     try:
-        got_span = float(vsp.GetParmVal(wid, "TotalSpan", "WingGeom"))
         got_area = float(vsp.GetParmVal(wid, "TotalArea", "WingGeom"))
         got_root = float(vsp.GetParmVal(wid, "Root_Chord", "XSec_1"))
-        got_tip = float(vsp.GetParmVal(wid, "Tip_Chord", "XSec_1"))
-        got_sweep = float(vsp.GetParmVal(wid, "Sweep", "XSec_1"))
         got_twist_root = float(vsp.GetParmVal(wid, "Twist", "XSec_0"))
-        got_twist_tip = float(vsp.GetParmVal(wid, "Twist", "XSec_1"))
 
         def _rel(got: float, want: float) -> float:
             return abs(got - want) / max(abs(want), 1e-9)
 
-        readback: dict[str, Any] = {
-            "span_m": got_span,
-            "area_m2": got_area,
-            "root_chord_m": got_root,
-            "tip_chord_m": got_tip,
-            "le_sweep_deg": got_sweep,
-            "twist_root_deg": got_twist_root,
-            "twist_tip_deg": got_twist_tip,
-            "rel_err": {
-                "span": _rel(got_span, spec.wing.span_m),
-                "area": _rel(got_area, spec.wing.area_m2),
-                "root_chord": _rel(got_root, spec.wing.root_chord_m),
-                "tip_chord": _rel(got_tip, spec.wing.tip_chord_m),
-            },
-        }
-        twist_ok = (
-            abs(got_twist_root - spec.wing.twist_root_deg) <= 0.1
-            and abs(got_twist_tip - spec.wing.twist_tip_deg) <= 0.1
-        )
+        if spec.wing.sections is None:
+            got_span = float(vsp.GetParmVal(wid, "TotalSpan", "WingGeom"))
+            got_tip = float(vsp.GetParmVal(wid, "Tip_Chord", "XSec_1"))
+            got_sweep = float(vsp.GetParmVal(wid, "Sweep", "XSec_1"))
+            got_twist_tip = float(vsp.GetParmVal(wid, "Twist", "XSec_1"))
+            readback: dict[str, Any] = {
+                "planform_mode": "trapezoid",
+                "span_m": got_span,
+                "area_m2": got_area,
+                "root_chord_m": got_root,
+                "tip_chord_m": got_tip,
+                "le_sweep_deg": got_sweep,
+                "twist_root_deg": got_twist_root,
+                "twist_tip_deg": got_twist_tip,
+                "rel_err": {
+                    "span": _rel(got_span, spec.wing.span_m),
+                    "area": _rel(got_area, spec.wing.area_m2),
+                    "root_chord": _rel(got_root, spec.wing.root_chord_m),
+                    "tip_chord": _rel(got_tip, spec.wing.tip_chord_m),
+                },
+            }
+            twist_ok = (
+                abs(got_twist_root - spec.wing.twist_root_deg) <= 0.1
+                and abs(got_twist_tip - spec.wing.twist_tip_deg) <= 0.1
+            )
+            sections_ok = True
+        else:
+            section_readback, sections_ok = _sectioned_wing_readback(vsp, spec, wid)
+            got_span = float(vsp.GetParmVal(wid, "TotalProjectedSpan", "WingGeom"))
+            got_tip = float(section_readback["sections"][-1]["chord_m"])
+            got_twist_tip = float(section_readback["sections"][-1]["twist_deg"])
+            projected_area = float(section_readback.get("projected_area_m2", 0.0))
+            readback = {
+                "planform_mode": "sections",
+                "span_m": got_span,
+                "area_m2": got_area,
+                "projected_area_m2": projected_area,
+                "root_chord_m": got_root,
+                "actual_tip_chord_m": got_tip,
+                "equivalent_tip_chord_m": spec.wing.tip_chord_m,
+                "le_sweep_deg": spec.wing.le_sweep_deg,
+                "twist_root_deg": got_twist_root,
+                "twist_tip_deg": got_twist_tip,
+                "wing_sections": section_readback,
+                "rel_err": {
+                    "span": _rel(got_span, spec.wing.span_m),
+                    "area": _rel(projected_area, spec.wing.area_m2),
+                    "root_chord": _rel(got_root, spec.wing.root_chord_m),
+                    "tip_chord": _rel(got_tip, spec.wing.chord_at(1.0)),
+                },
+            }
+            twist_ok = (
+                abs(got_twist_root - spec.wing.twist_root_deg) <= 0.1
+                and abs(got_twist_tip - spec.wing.twist_tip_deg) <= 0.1
+            )
+        readback["wing_sections_match"] = sections_ok
         readback["twist_matches"] = twist_ok
         controls_ok = len(built["control_surfaces"]) == len(
             spec.flight_dynamics.control_surfaces
@@ -545,46 +887,29 @@ def _construction_readback(
                     "name": str(
                         vsp.GetSubSurfName(subsurface["geom_id"], subsurface_id)
                     ),
-                    "eta_flag": float(
-                        vsp.GetParmVal(subsurface_id, "EtaFlag", "SS_Control")
+                    "eta_flag": _subsurface_parm_value(vsp, subsurface_id, "EtaFlag"),
+                    "span_start_fraction": _subsurface_parm_value(
+                        vsp, subsurface_id, "EtaStart"
                     ),
-                    "span_start_fraction": float(
-                        vsp.GetParmVal(subsurface_id, "EtaStart", "SS_Control")
+                    "span_end_fraction": _subsurface_parm_value(
+                        vsp, subsurface_id, "EtaEnd"
                     ),
-                    "span_end_fraction": float(
-                        vsp.GetParmVal(subsurface_id, "EtaEnd", "SS_Control")
+                    "chord_fraction_start": _subsurface_parm_value(
+                        vsp, subsurface_id, "Length_C_Start"
                     ),
-                    "chord_fraction_start": float(
-                        vsp.GetParmVal(
-                            subsurface_id,
-                            "Length_C_Start",
-                            "SS_Control",
-                        )
-                    ),
-                    "chord_fraction_end": float(
-                        vsp.GetParmVal(
-                            subsurface_id,
-                            "Length_C_End",
-                            "SS_Control",
-                        )
+                    "chord_fraction_end": _subsurface_parm_value(
+                        vsp, subsurface_id, "Length_C_End"
                     ),
                 }
                 surface_values.append(values)
                 controls_ok = controls_ok and (
                     values["name"] == control["id"]
                     and abs(values["eta_flag"] - 1.0) <= 1e-8
-                    and abs(
-                        values["span_start_fraction"]
-                        - wanted.span_start_fraction
-                    )
+                    and abs(values["span_start_fraction"] - wanted.span_start_fraction)
                     <= 1e-5
-                    and abs(
-                        values["span_end_fraction"] - wanted.span_end_fraction
-                    )
+                    and abs(values["span_end_fraction"] - wanted.span_end_fraction)
                     <= 1e-5
-                    and abs(
-                        values["chord_fraction_start"] - wanted.chord_fraction
-                    )
+                    and abs(values["chord_fraction_start"] - wanted.chord_fraction)
                     <= 1e-5
                     and abs(values["chord_fraction_end"] - wanted.chord_fraction)
                     <= 1e-5
@@ -856,6 +1181,7 @@ def _construction_readback(
         readback["auxiliary_matches"] = auxiliary_ok
         readback["matches_spec"] = (
             twist_ok
+            and sections_ok
             and station_ok
             and auxiliary_ok
             and all(value <= 0.02 for value in readback["rel_err"].values())
@@ -874,21 +1200,52 @@ def write_vsp3(spec: VehicleSpec, path: Path) -> dict[str, Any]:
         return {"ok": False, "reason": "openvsp_import_failed"}
     target = Path(path).resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
+    diagnostic = target.with_suffix(".vsp3.failed")
+    if diagnostic.exists():
+        diagnostic.unlink()
     with VSP_LOCK:
         built = _construct_model(vsp, spec, filename=target)
-        readback, readback_errors = _construction_readback(vsp, spec, built)
+        prewrite_readback, prewrite_errors = _construction_readback(vsp, spec, built)
         vsp.Update()
         vsp.WriteVSPFile(str(target), vsp.SET_ALL)
+        write_errors = _drain_vsp_errors(vsp)
+        try:
+            vsp.ClearVSPModel()
+            vsp.ReadVSPFile(str(target))
+            vsp.Update()
+            built = _rebind_serialized_model_ids(vsp, built)
+            readback, readback_errors = _construction_readback(vsp, spec, built)
+        except Exception as exc:
+            readback = {"matches_spec": False, "error": str(exc)}
+            readback_errors = [f"reopen_readback: {exc}"]
         errors = [
             *built["errors"],
+            *prewrite_errors,
+            *write_errors,
             *readback_errors,
             *_drain_vsp_errors(vsp),
         ]
+        verified = bool(
+            target.is_file()
+            and prewrite_readback.get("matches_spec")
+            and readback.get("matches_spec")
+            and not errors
+        )
+        diagnostic_path = None
+        if not verified and target.exists():
+            try:
+                target.replace(diagnostic)
+                diagnostic_path = str(diagnostic)
+            except OSError as exc:
+                errors.append(f"reopen_diagnostic_move: {exc}")
+                try:
+                    target.unlink(missing_ok=True)
+                except OSError as unlink_exc:
+                    errors.append(f"rejected_vsp3_remove: {unlink_exc}")
         return {
-            "ok": target.is_file()
-            and bool(readback.get("matches_spec"))
-            and not errors,
-            "vsp3": str(target) if target.is_file() else None,
+            "ok": verified,
+            "vsp3": str(target) if verified else None,
+            "diagnostic_vsp3": diagnostic_path,
             "geom_ids": {
                 "fuselage": built["fuselage"],
                 "wing": built["wing"],
@@ -897,8 +1254,7 @@ def write_vsp3(spec: VehicleSpec, path: Path) -> dict[str, Any]:
                         "id": control["id"],
                         "host": control["host"],
                         "subsurface_ids": [
-                            item["subsurface_id"]
-                            for item in control["subsurfaces"]
+                            item["subsurface_id"] for item in control["subsurfaces"]
                         ],
                     }
                     for control in built["control_surfaces"]
@@ -907,10 +1263,71 @@ def write_vsp3(spec: VehicleSpec, path: Path) -> dict[str, Any]:
                 "htail": built["htail"],
                 "engine_pods": built["engine_pods"],
             },
+            "prewrite_readback": prewrite_readback,
             "readback": readback,
             "errors": errors,
             "openvsp_version": vsp.GetVSPVersion(),
         }
+
+
+def _failed_serialized_geometry_result(
+    vsp,
+    vsp3: Path,
+    built: dict[str, Any],
+    prewrite_readback: dict[str, Any],
+    readback: dict[str, Any],
+    errors: list[str],
+) -> dict[str, Any]:
+    """Fail closed without exposing a rejected VSP3 as a nominal artifact."""
+    for stale in (
+        vsp3.with_suffix(".stl"),
+        vsp3.with_name(f"{vsp3.stem}_DegenGeom.csv"),
+        *vsp3.parent.glob("component_*.stl"),
+    ):
+        try:
+            stale.unlink(missing_ok=True)
+        except OSError as exc:
+            errors.append(f"stale_geometry_remove: {stale}: {exc}")
+    diagnostic = vsp3.with_suffix(".vsp3.failed")
+    diagnostic_path = None
+    try:
+        if diagnostic.exists():
+            diagnostic.unlink()
+        if vsp3.exists():
+            vsp3.replace(diagnostic)
+            diagnostic_path = str(diagnostic)
+    except OSError as exc:
+        errors.append(f"reopen_diagnostic_move: {exc}")
+        try:
+            vsp3.unlink(missing_ok=True)
+        except OSError as unlink_exc:
+            errors.append(f"rejected_vsp3_remove: {unlink_exc}")
+    return {
+        "ok": False,
+        "vsp3": None,
+        "diagnostic_vsp3": diagnostic_path,
+        "stl": None,
+        "geom_ids": {
+            "fuselage": None,
+            "wing": None,
+            "control_surfaces": [],
+            "vtails": [],
+            "htail": None,
+            "engine_pods": [],
+        },
+        "fin_attach": built["fin_attach"],
+        "prewrite_readback": prewrite_readback,
+        "readback": readback,
+        "stl_bbox": None,
+        "mesh_checks": {
+            "ok": False,
+            "reason": "serialized VSP3 failed reopen/readback; no mesh exported",
+        },
+        "mass_props": {},
+        "degen": None,
+        "errors": errors,
+        "openvsp_version": vsp.GetVSPVersion(),
+    }
 
 
 def _build_openvsp_model_locked(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
@@ -919,18 +1336,55 @@ def _build_openvsp_model_locked(spec: VehicleSpec, outdir: Path) -> dict[str, An
         return {"ok": False, "reason": "openvsp_import_failed"}
 
     vsp3 = outdir / f"{spec.name}.vsp3"
+    for stale in (
+        vsp3,
+        vsp3.with_suffix(".vsp3.failed"),
+        vsp3.with_suffix(".stl"),
+        vsp3.with_name(f"{vsp3.stem}_DegenGeom.csv"),
+        *outdir.glob("component_*.stl"),
+    ):
+        stale.unlink(missing_ok=True)
     built = _construct_model(vsp, spec, filename=vsp3)
+    errors = list(built["errors"])
+    prewrite_readback, prewrite_errors = _construction_readback(vsp, spec, built)
+    errors.extend(prewrite_errors)
+    vsp.Update()
+    vsp.WriteVSPFile(str(vsp3), vsp.SET_ALL)
+    errors.extend(_drain_vsp_errors(vsp))
+    try:
+        vsp.ClearVSPModel()
+        vsp.ReadVSPFile(str(vsp3))
+        vsp.Update()
+        built = _rebind_serialized_model_ids(vsp, built)
+        readback, readback_errors = _construction_readback(vsp, spec, built)
+        errors.extend(readback_errors)
+    except Exception as exc:
+        errors.append(f"reopen_readback: {exc}")
+        readback = {"matches_spec": False, "error": str(exc)}
+        return _failed_serialized_geometry_result(
+            vsp,
+            vsp3,
+            built,
+            prewrite_readback,
+            readback,
+            errors,
+        )
+    if not (prewrite_readback.get("matches_spec") and readback.get("matches_spec")):
+        return _failed_serialized_geometry_result(
+            vsp,
+            vsp3,
+            built,
+            prewrite_readback,
+            readback,
+            errors,
+        )
+
     fid = built["fuselage"]
     wid = built["wing"]
     vtails = built["vtails"]
     hid = built["htail"]
     engine_pods = built["engine_pods"]
     fin_attach = built["fin_attach"]
-    errors = list(built["errors"])
-    readback, readback_errors = _construction_readback(vsp, spec, built)
-    errors.extend(readback_errors)
-
-    vsp.WriteVSPFile(str(vsp3), vsp.SET_ALL)
 
     stl_path = outdir / f"{spec.name}.stl"
     try:
@@ -1024,6 +1478,7 @@ def _build_openvsp_model_locked(spec: VehicleSpec, outdir: Path) -> dict[str, An
             "engine_pods": engine_pods,
         },
         "fin_attach": fin_attach,
+        "prewrite_readback": prewrite_readback,
         "readback": readback,
         "stl_bbox": stl_bbox,
         "mesh_checks": mesh_checks,
@@ -1041,14 +1496,16 @@ def build_openvsp_model(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
 
 
 def _expected_model_length_m(spec: VehicleSpec) -> float:
-    """Axis-aligned x-extent of fuselage + trapezoidal wing (handles FSW tips)."""
+    """Axis-aligned x-extent of fuselage + wing planform."""
     w = spec.wing
-    b2 = 0.5 * w.span_m
-    x_tip_le = w.x_le_root_m + b2 * math.tan(math.radians(w.le_sweep_deg))
-    x_tip_te = x_tip_le + w.tip_chord_m
-    x_root_te = w.x_le_root_m + w.root_chord_m
-    x_min = min(0.0, x_tip_le)
-    x_max = max(spec.fuselage.length_m, x_root_te, x_tip_te)
+    if w.sections is None:
+        x_le = [w.x_le_root_m, w.x_le_at(1.0)]
+        x_te = [w.x_le_root_m + w.root_chord_m, w.x_le_at(1.0) + w.tip_chord_m]
+    else:
+        x_le = [section.x_le_m for section in w.sections]
+        x_te = [section.x_le_m + section.chord_m for section in w.sections]
+    x_min = min(0.0, *x_le)
+    x_max = max(spec.fuselage.length_m, *x_te)
     return x_max - x_min
 
 
@@ -1086,10 +1543,11 @@ def _stl_bbox_check(stl_path: Path | str, spec: VehicleSpec) -> dict[str, Any]:
 
 
 def run_geometry_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
+    spec.assert_cross_model_invariants()
     outdir.mkdir(parents=True, exist_ok=True)
     mesh = generate_oas_rect_mesh(spec)
     mesh_path = save_mesh(outdir, mesh)
-    planform = trapezoid_planform_points(spec)
+    planform = wing_planform_points(spec)
     pack = packing_report(spec, spec.mass.fuel_mass_kg)
     vsp_info = build_openvsp_model(spec, outdir)
 
@@ -1136,7 +1594,10 @@ def run_geometry_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
     reference_fidelity: dict[str, Any] | None = None
     if vsp_info.get("stl"):
         try:
-            from openair.reference.compare import compare_reference, reference_dir_for_outdir
+            from openair.reference.compare import (
+                compare_reference,
+                reference_dir_for_outdir,
+            )
 
             reference_dir = reference_dir_for_outdir(outdir)
             if reference_dir is not None:
@@ -1144,7 +1605,10 @@ def run_geometry_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
                     spec,
                     outdir,
                     stl_path=vsp_info["stl"],
-                    component_stls=(vsp_info.get("mesh_checks") or {}).get("component_stls") or {},
+                    component_stls=(vsp_info.get("mesh_checks") or {}).get(
+                        "component_stls"
+                    )
+                    or {},
                     reference_dir=reference_dir,
                 )
         except Exception as exc:  # pragma: no cover - depends on artifacts
@@ -1154,8 +1618,14 @@ def run_geometry_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
     # acceptable only when the API is unavailable, not when it disagrees.
     vsp_attempted = vsp_info.get("reason") != "openvsp_import_failed"
     geometry_ok = pack["ok"] and (not vsp_attempted or bool(vsp_info.get("ok")))
-    reproduction = bool(spec.sketch is not None and spec.sketch.treatment == "reproduction")
-    if reproduction and reference_fidelity is not None and reference_fidelity.get("available"):
+    reproduction = bool(
+        spec.sketch is not None and spec.sketch.treatment == "reproduction"
+    )
+    if (
+        reproduction
+        and reference_fidelity is not None
+        and reference_fidelity.get("available")
+    ):
         geometry_ok = geometry_ok and bool(reference_fidelity.get("ok"))
     result = {
         "ok": geometry_ok,
@@ -1165,6 +1635,18 @@ def run_geometry_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
         "aspect_ratio": spec.wing.aspect_ratio,
         "mac_m": spec.wing.mac_m,
         "x_ac_m": spec.wing.x_ac_m,
+        "wing": {
+            "planform_mode": planform["planform_mode"],
+            "sections": planform["sections"],
+            "equivalent_trapezoid": {
+                "root_chord_m": spec.wing.root_chord_m,
+                "taper": spec.wing.taper,
+                "le_sweep_deg": spec.wing.le_sweep_deg,
+                "dihedral_deg": spec.wing.dihedral_deg,
+                "x_le_root_m": spec.wing.x_le_root_m,
+                "z_root_m": spec.wing.z_root_m,
+            },
+        },
         "planform": planform,
         "packing": pack,
         "openvsp": vsp_info,

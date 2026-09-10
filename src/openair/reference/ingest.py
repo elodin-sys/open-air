@@ -23,13 +23,43 @@ from scipy.spatial import cKDTree
 
 from openair.provenance import model_source_sha256
 from openair.reference import measure as M
+from openair.schemas import WingSpec
 
 MESH_SUFFIXES = {".stl", ".ply", ".obj", ".3mf", ".glb", ".gltf", ".off"}
 NATIVE_SUFFIXES = {
-    ".f3d", ".f3z", ".step", ".stp", ".iges", ".igs", ".sldprt", ".sldasm",
-    ".3dm", ".blend", ".skp", ".e57", ".fbx", ".x_t", ".x_b", ".sat", ".smt",
-    ".ipt", ".iam", ".catpart", ".catproduct", ".prt", ".dwg", ".dxf", ".rvt",
-    ".max", ".c4d", ".usd", ".usdz", ".pts", ".xyz", ".las", ".laz",
+    ".f3d",
+    ".f3z",
+    ".step",
+    ".stp",
+    ".iges",
+    ".igs",
+    ".sldprt",
+    ".sldasm",
+    ".3dm",
+    ".blend",
+    ".skp",
+    ".e57",
+    ".fbx",
+    ".x_t",
+    ".x_b",
+    ".sat",
+    ".smt",
+    ".ipt",
+    ".iam",
+    ".catpart",
+    ".catproduct",
+    ".prt",
+    ".dwg",
+    ".dxf",
+    ".rvt",
+    ".max",
+    ".c4d",
+    ".usd",
+    ".usdz",
+    ".pts",
+    ".xyz",
+    ".las",
+    ".laz",
 }
 UNIT_SCALE_M = {"mm": 1e-3, "cm": 1e-2, "m": 1.0, "in": 0.0254}
 CONTRACT_DOC = "docs/guidebook/13-reference-models.md"
@@ -72,7 +102,9 @@ def sidecar_path_for(mesh_path: Path) -> Path:
     return mesh_path.with_name(f"{mesh_path.stem}.reference.json")
 
 
-def load_sidecar(mesh_path: Path, override: Path | None = None) -> dict[str, Any] | None:
+def load_sidecar(
+    mesh_path: Path, override: Path | None = None
+) -> dict[str, Any] | None:
     candidate = override or sidecar_path_for(mesh_path)
     if not candidate.is_file():
         if override is not None:
@@ -141,13 +173,19 @@ def load_reference_mesh(
         )
     declared = str(declared).lower()
     if declared not in UNIT_SCALE_M:
-        raise ReferenceInputError(f"unsupported unit {declared!r}; use mm, cm, m, or in")
+        raise ReferenceInputError(
+            f"unsupported unit {declared!r}; use mm, cm, m, or in"
+        )
     try:
         loaded = trimesh.load(str(source), force="mesh", process=False)
     except Exception as exc:  # pragma: no cover - depends on trimesh internals
-        raise ReferenceInputError(f"{source.name}: could not read as a triangle mesh ({exc})") from exc
+        raise ReferenceInputError(
+            f"{source.name}: could not read as a triangle mesh ({exc})"
+        ) from exc
     if not isinstance(loaded, trimesh.Trimesh) or len(loaded.faces) == 0:
-        raise ReferenceInputError(f"{source.name}: no triangles found; export a triangle mesh")
+        raise ReferenceInputError(
+            f"{source.name}: no triangles found; export a triangle mesh"
+        )
     mesh = loaded
     raw_bounds = mesh.bounds.copy()
     raw_faces = int(len(mesh.faces))
@@ -179,7 +217,11 @@ def clean_mesh(mesh, *, min_area_fraction: float = 0.01):
 
     components = mesh.split(only_watertight=False)
     if len(components) <= 1:
-        return mesh, {"components_total": len(components), "components_kept": len(components), "dropped": []}
+        return mesh, {
+            "components_total": len(components),
+            "components_kept": len(components),
+            "dropped": [],
+        }
     areas = np.array([c.area for c in components])
     largest = float(areas.max())
     keep = [c for c, a in zip(components, areas) if a >= min_area_fraction * largest]
@@ -191,7 +233,9 @@ def clean_mesh(mesh, *, min_area_fraction: float = 0.01):
         "min_area_fraction": min_area_fraction,
         "dropped_count": int(len(dropped)),
         "dropped_area_m2": float(sum(c.area for c in dropped)),
-        "dropped_largest_extent_m": float(max((c.extents.max() for c in dropped), default=0.0)),
+        "dropped_largest_extent_m": float(
+            max((c.extents.max() for c in dropped), default=0.0)
+        ),
         "kept_extents_m": [c.extents.tolist() for c in keep],
     }
     return kept, report
@@ -214,7 +258,12 @@ def dense_point_field(mesh, *, seed: int = 23) -> M.PointField:
     """
     vertices = np.asarray(mesh.vertices)
     area = float(mesh.area)
-    wanted = int(min(MAX_SURFACE_SAMPLES, max(0.0, area / TARGET_POINT_SPACING_M**2 - vertices.shape[0])))
+    wanted = int(
+        min(
+            MAX_SURFACE_SAMPLES,
+            max(0.0, area / TARGET_POINT_SPACING_M**2 - vertices.shape[0]),
+        )
+    )
     points = vertices
     if wanted > 1000 and len(mesh.faces):
         try:
@@ -267,7 +316,13 @@ def fit_symmetry_plane(
 
     def normal_of(theta_z: float, theta_x: float) -> np.ndarray:
         # Small rotations of +y about z (yaw) and x (roll).
-        n = np.array([-math.sin(theta_z), math.cos(theta_z) * math.cos(theta_x), math.cos(theta_z) * math.sin(theta_x)])
+        n = np.array(
+            [
+                -math.sin(theta_z),
+                math.cos(theta_z) * math.cos(theta_x),
+                math.cos(theta_z) * math.sin(theta_x),
+            ]
+        )
         return n / np.linalg.norm(n)
 
     def reflected(params: np.ndarray, pts: np.ndarray) -> np.ndarray:
@@ -329,7 +384,9 @@ def align_mesh(
         )
         mesh.apply_transform(step)
         transform = step @ transform
-        sym_out = {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in sym.items()}
+        sym_out = {
+            k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in sym.items()
+        }
         sym_out["counts_as_evidence"] = not mirrored_half
         report["symmetry"] = sym_out
     field = dense_point_field(mesh)
@@ -350,7 +407,9 @@ def align_mesh(
         if centre.get("ok"):
             pitch_deg = float(centre["angle_deg"])
     else:
-        raise ReferenceInputError(f"unknown datum {datum!r}; use root-chord or body-axis")
+        raise ReferenceInputError(
+            f"unknown datum {datum!r}; use root-chord or body-axis"
+        )
     if pitch_deg:
         # incidence = atan2(z_le - z_te, chord) > 0 means LE up; a rotation of
         # -incidence about +y brings the reference chord line level.
@@ -368,14 +427,21 @@ def align_mesh(
     step = _homogeneous(np.eye(3), np.array([-nose_x, 0.0, -nose_z]))
     mesh.apply_transform(step)
     transform = step @ transform
-    report["nose_tip"] = {"x_m": nose_x, "y_m": nose_y, "z_m": nose_z, "points": int(tip.shape[0])}
+    report["nose_tip"] = {
+        "x_m": nose_x,
+        "y_m": nose_y,
+        "z_m": nose_z,
+        "points": int(tip.shape[0]),
+    }
     report["transform_source_to_openair"] = transform.tolist()
     report["resolution_m"] = resolution
     report["point_field_size"] = int(field.points.shape[0])
     return mesh, report
 
 
-def _root_chord_probe(field: M.PointField, semispan: float, x_min: float, x_max: float) -> dict[str, Any]:
+def _root_chord_probe(
+    field: M.PointField, semispan: float, x_min: float, x_max: float
+) -> dict[str, Any]:
     """Chord-line incidence just outboard of the body on both sides."""
     outboard = 0.35 * semispan
     probes = [M.wing_station(field, sign * outboard) for sign in (1.0, -1.0)]
@@ -391,7 +457,11 @@ def _root_chord_probe(field: M.PointField, semispan: float, x_min: float, x_max:
     roots = [M.wing_station(field, sign * y_root) for sign in (1.0, -1.0)]
     roots = [r for r in roots if r is not None]
     if not roots:
-        return {"ok": False, "reason": "no wing section at the root station", "body_half_width_m": half_width}
+        return {
+            "ok": False,
+            "reason": "no wing section at the root station",
+            "body_half_width_m": half_width,
+        }
     incidences = [r["incidence_deg"] for r in roots]
     return {
         "ok": True,
@@ -416,7 +486,11 @@ def _body_axis_probe(field: M.PointField, x_min: float, x_max: float) -> dict[st
     if len(keep) < 5:
         return {"ok": False, "reason": "too few body sections"}
     fit = M.robust_line_fit(np.array(keep), np.array(zs))
-    return {"ok": True, "angle_deg": math.degrees(math.atan(fit["slope"])), "fit_rms_m": fit["rms"]}
+    return {
+        "ok": True,
+        "angle_deg": math.degrees(math.atan(fit["slope"])),
+        "fit_rms_m": fit["rms"],
+    }
 
 
 # --------------------------------------------------------------------------
@@ -464,7 +538,11 @@ def decimate_mesh(mesh, *, target_faces: int = 150000):
             break
         cell *= math.sqrt(n / target_faces)
     result.remove_unreferenced_vertices()
-    return result, {"method": "vertex-clustering", "cell_m": cell, "faces": int(len(result.faces))}
+    return result, {
+        "method": "vertex-clustering",
+        "cell_m": cell,
+        "faces": int(len(result.faces)),
+    }
 
 
 # --------------------------------------------------------------------------
@@ -472,7 +550,9 @@ def decimate_mesh(mesh, *, target_faces: int = 150000):
 # --------------------------------------------------------------------------
 
 
-def measure_reference(mesh, *, resolution_m: float, sidecar: dict[str, Any] | None) -> dict[str, Any]:
+def measure_reference(
+    mesh, *, resolution_m: float, sidecar: dict[str, Any] | None
+) -> dict[str, Any]:
     field = dense_point_field(mesh)
     resolution_m = field.resolution_m
     points = field.points
@@ -505,20 +585,26 @@ def measure_reference(mesh, *, resolution_m: float, sidecar: dict[str, Any] | No
     else:
         x_mid = 0.5 * length
         body_half_width = 0.1 * semispan
-    planform = M.wing_planform(field, body_half_width_m=body_half_width, semispan_m=semispan)
+    planform = M.wing_planform(
+        field, body_half_width_m=body_half_width, semispan_m=semispan
+    )
     wing_model = M.WingModel(planform.get("stations") or [])
     if planform.get("ok") and probes:
         junction = M.body_section(field, x_mid, fit_powers=False, wing=wing_model)
         if junction is not None and 0.5 * junction["width_m"] < body_half_width - 0.002:
             body_half_width = 0.5 * junction["width_m"]
-            planform = M.wing_planform(field, body_half_width_m=body_half_width, semispan_m=semispan)
+            planform = M.wing_planform(
+                field, body_half_width_m=body_half_width, semispan_m=semispan
+            )
             wing_model = M.WingModel(planform.get("stations") or [])
     for station in planform.get("stations") or []:
         station.pop("envelope", None)
     out["wing"] = planform
 
     # Body profile along x (5 mm), with wing points removed.
-    profile = M.body_profile(field, length, wing=wing_model if wing_model.sides else None)
+    profile = M.body_profile(
+        field, length, wing=wing_model if wing_model.sides else None
+    )
     out["body_profile"] = [
         {k: v for k, v in r.items() if k not in {"edges"}} for r in profile
     ]
@@ -532,7 +618,10 @@ def measure_reference(mesh, *, resolution_m: float, sidecar: dict[str, Any] | No
     cell = max(3.0 * resolution_m, 0.003)
     airfoils: list[dict[str, Any]] = []
     for fraction in (0.35, 0.55, 0.75):
-        in_span = bool(law is not None and law["span"][0] - 0.03 <= fraction <= law["span"][1] + 0.03)
+        in_span = bool(
+            law is not None
+            and law["span"][0] - 0.03 <= fraction <= law["span"][1] + 0.03
+        )
         for sign in (1.0, -1.0):
             y = sign * fraction * semispan
             xz = M.plane_section_points(mesh, y)
@@ -551,14 +640,22 @@ def measure_reference(mesh, *, resolution_m: float, sidecar: dict[str, Any] | No
     for record in airfoils:
         # A nose missing over more than 8% chord makes the chord line, and
         # hence the camber sign, unreliable at that station.
-        record["quality"] = "low (leading edge incomplete)" if record.get("first_complete_x_over_c", 0.0) > 0.08 else "ok"
+        record["quality"] = (
+            "low (leading edge incomplete)"
+            if record.get("first_complete_x_over_c", 0.0) > 0.08
+            else "ok"
+        )
     out["airfoil_sections"] = airfoils
     usable = [a for a in airfoils if a["quality"] == "ok"] or airfoils
     if airfoils:
         ms = [a["naca4_fit"]["m"] for a in usable]
         ps = [a["naca4_fit"]["p"] for a in usable]
         ts = [a["naca4_fit"]["t"] for a in usable]
-        m_mean, p_mean, t_mean = float(np.mean(ms)), float(np.mean(ps)), float(np.mean(ts))
+        m_mean, p_mean, t_mean = (
+            float(np.mean(ms)),
+            float(np.mean(ps)),
+            float(np.mean(ts)),
+        )
         m_digit = int(np.clip(round(m_mean * 100.0), 0, 9))
         p_digit = int(np.clip(round(p_mean * 10.0), 0, 9)) if m_digit > 0 else 0
         t_digits = int(np.clip(round(t_mean * 100.0), 1, 99))
@@ -568,26 +665,47 @@ def measure_reference(mesh, *, resolution_m: float, sidecar: dict[str, Any] | No
             "sections_total": len(airfoils),
             "t_over_c_mean": float(np.mean([a["t_over_c"] for a in usable])),
             "t_over_c_spread": float(np.ptp([a["t_over_c"] for a in usable])),
-            "camber_max_mean_over_c": float(np.mean([a["camber_max_over_c"] for a in usable])),
-            "camber_max_spread_over_c": float(np.ptp([a["camber_max_over_c"] for a in usable])),
+            "camber_max_mean_over_c": float(
+                np.mean([a["camber_max_over_c"] for a in usable])
+            ),
+            "camber_max_spread_over_c": float(
+                np.ptp([a["camber_max_over_c"] for a in usable])
+            ),
             "reflex_sections": int(sum(a["reflex"] for a in usable)),
-            "reflex": bool(sum(a["reflex"] for a in usable) >= max(1, len(usable) // 2)),
-            "camber_rms_over_c": float(np.mean([a["naca4_fit"]["camber_rms_over_c"] for a in usable])),
-            "thickness_rms_over_c": float(np.mean([a["naca4_fit"]["thickness_rms_over_c"] for a in usable])),
+            "reflex": bool(
+                sum(a["reflex"] for a in usable) >= max(1, len(usable) // 2)
+            ),
+            "camber_rms_over_c": float(
+                np.mean([a["naca4_fit"]["camber_rms_over_c"] for a in usable])
+            ),
+            "thickness_rms_over_c": float(
+                np.mean([a["naca4_fit"]["thickness_rms_over_c"] for a in usable])
+            ),
         }
 
     # Control surface (hinge line and as-scanned deflection) from the planform pass.
-    out["control_surface"] = planform.get("elevon") or {"resolved": False, "detections": 0}
+    out["control_surface"] = planform.get("elevon") or {
+        "resolved": False,
+        "detections": 0,
+    }
 
     # Fins.
     deck_x, deck_z = M.deck_profile(profile)
-    out["fins"] = M.measure_fins(field, length_m=length, semispan_m=semispan, deck_x=deck_x, deck_z=deck_z)
+    out["fins"] = M.measure_fins(
+        field, length_m=length, semispan_m=semispan, deck_x=deck_x, deck_z=deck_z
+    )
 
     # Stations.
     anchors: list[float] = []
     if planform.get("ok"):
-        anchors.append(planform["x_le_root_m"] + body_half_width * math.tan(math.radians(planform["le_sweep_deg"])))
-        anchors.append(planform["x_te_root_m"] + body_half_width * math.tan(math.radians(planform["te_sweep_deg"])))
+        anchors.append(
+            planform["x_le_root_m"]
+            + body_half_width * math.tan(math.radians(planform["le_sweep_deg"]))
+        )
+        anchors.append(
+            planform["x_te_root_m"]
+            + body_half_width * math.tan(math.radians(planform["te_sweep_deg"]))
+        )
     fins = out["fins"]
     if fins.get("count"):
         mean = fins.get("mirrored_mean") or fins["fins"][0]
@@ -604,19 +722,40 @@ def measure_reference(mesh, *, resolution_m: float, sidecar: dict[str, Any] | No
     stations: list[dict[str, Any]] = []
     for fraction in fractions:
         if fraction <= 0.0:
-            stations.append({"x_over_length": 0.0, "width_m": 0.0, "height_m": 0.0, "z_offset_m": 0.0, "side_power": 2.0, "top_power": 2.0, "bottom_power": 2.0, "note": "nose tip (point)"})
+            stations.append(
+                {
+                    "x_over_length": 0.0,
+                    "width_m": 0.0,
+                    "height_m": 0.0,
+                    "z_offset_m": 0.0,
+                    "side_power": 2.0,
+                    "top_power": 2.0,
+                    "bottom_power": 2.0,
+                    "note": "nose tip (point)",
+                }
+            )
             continue
         x = min(fraction, 0.995) * length
-        hint = 0.5 * float(np.interp(x, profile_x, profile_w)) if profile_x.size else None
-        near_top_hole = bool(top_holed_x.size and np.min(np.abs(top_holed_x - x)) <= 0.0051)
-        near_bot_hole = bool(bot_holed_x.size and np.min(np.abs(bot_holed_x - x)) <= 0.0051)
+        hint = (
+            0.5 * float(np.interp(x, profile_x, profile_w)) if profile_x.size else None
+        )
+        near_top_hole = bool(
+            top_holed_x.size and np.min(np.abs(top_holed_x - x)) <= 0.0051
+        )
+        near_bot_hole = bool(
+            bot_holed_x.size and np.min(np.abs(bot_holed_x - x)) <= 0.0051
+        )
         section = M.body_section(
             field,
             x,
             half_width_hint=hint,
             wing=wing_model if wing_model.sides else None,
-            z_top_override=float(np.interp(x, profile_x, profile_top)) if near_top_hole else None,
-            z_bottom_override=float(np.interp(x, profile_x, profile_bot)) if near_bot_hole else None,
+            z_top_override=float(np.interp(x, profile_x, profile_top))
+            if near_top_hole
+            else None,
+            z_bottom_override=float(np.interp(x, profile_x, profile_bot))
+            if near_bot_hole
+            else None,
         )
         if section is None:
             continue
@@ -630,9 +769,15 @@ def measure_reference(mesh, *, resolution_m: float, sidecar: dict[str, Any] | No
                 "width_blended_m": section["width_blended_m"],
                 "height_m": section["height_m"],
                 "z_offset_m": section["z_offset_m"],
-                "side_power": float(np.clip(powers.get("side_power", 2.0), *M.POWER_BOUNDS)),
-                "top_power": float(np.clip(powers.get("top_power", 2.0), *M.POWER_BOUNDS)),
-                "bottom_power": float(np.clip(powers.get("bottom_power", 2.0), *M.POWER_BOUNDS)),
+                "side_power": float(
+                    np.clip(powers.get("side_power", 2.0), *M.POWER_BOUNDS)
+                ),
+                "top_power": float(
+                    np.clip(powers.get("top_power", 2.0), *M.POWER_BOUNDS)
+                ),
+                "bottom_power": float(
+                    np.clip(powers.get("bottom_power", 2.0), *M.POWER_BOUNDS)
+                ),
                 "powers_fit_rms_m": powers.get("rms_m"),
                 "powers_rejected_fraction": powers.get("rejected_fraction"),
                 "width_asymmetry_m": section["width_asymmetry_m"],
@@ -650,51 +795,388 @@ def measure_reference(mesh, *, resolution_m: float, sidecar: dict[str, Any] | No
     return out
 
 
-def suggest_spec_values(record: dict[str, Any], align: dict[str, Any]) -> dict[str, Any]:
+def _wing_station_rows(
+    record: dict[str, Any],
+    *,
+    body_half_width_m: float,
+) -> list[dict[str, float]]:
+    """Mirror-average usable wing stations outside the body-contaminated root."""
+    wing = record.get("wing") or {}
+    grouped: dict[float, list[dict[str, float]]] = {}
+    for station in wing.get("stations") or []:
+        y = abs(float(station.get("y_m", 0.0)))
+        if y + 1e-9 < body_half_width_m:
+            continue
+        x_le = station.get("x_le_m")
+        x_te = station.get("x_te_undeflected_m", station.get("x_te_m"))
+        if not isinstance(x_le, (int, float)) or not isinstance(x_te, (int, float)):
+            continue
+        chord = float(x_te) - float(x_le)
+        if chord <= 0.0:
+            continue
+        incidence = station.get(
+            "incidence_deg", station.get("incidence_chord_deg", 0.0)
+        )
+        z_mid = station.get("z_chord_mid_m")
+        if not isinstance(z_mid, (int, float)):
+            z_le = float(station.get("z_le_m", 0.0))
+        else:
+            z_le = float(z_mid) + 0.5 * chord * math.sin(
+                math.radians(float(incidence or 0.0))
+            )
+        grouped.setdefault(round(y, 6), []).append(
+            {
+                "y_m": y,
+                "x_le_m": float(x_le),
+                "x_te_m": float(x_te),
+                "z_le_m": z_le,
+            }
+        )
+    rows = []
+    for y, matches in sorted(grouped.items()):
+        rows.append(
+            {
+                "y_m": y,
+                "x_le_m": float(np.median([row["x_le_m"] for row in matches])),
+                "x_te_m": float(np.median([row["x_te_m"] for row in matches])),
+                "z_le_m": float(np.median([row["z_le_m"] for row in matches])),
+            }
+        )
+    return rows
+
+
+def _simplify_wing_rows(
+    rows: list[dict[str, float]],
+    *,
+    tolerance_m: float,
+    required: set[int],
+    max_sections: int = 12,
+) -> tuple[list[int], float]:
+    """Douglas-Peucker simplification of the coupled LE/TE polylines."""
+
+    def simplify_between(start: int, end: int, tolerance: float) -> set[int]:
+        if end <= start + 1:
+            return {start, end}
+        y0 = rows[start]["y_m"]
+        y1 = rows[end]["y_m"]
+        best_index = -1
+        best_error = -1.0
+        for index in range(start + 1, end):
+            fraction = (rows[index]["y_m"] - y0) / max(y1 - y0, 1e-12)
+            error = max(
+                abs(
+                    rows[index][field]
+                    - (
+                        rows[start][field]
+                        + fraction * (rows[end][field] - rows[start][field])
+                    )
+                )
+                for field in ("x_le_m", "x_te_m")
+            )
+            if error > best_error:
+                best_error = error
+                best_index = index
+        if best_error <= tolerance:
+            return {start, end}
+        return simplify_between(start, best_index, tolerance) | simplify_between(
+            best_index, end, tolerance
+        )
+
+    def select(tolerance: float) -> set[int]:
+        selected: set[int] = set(required)
+        anchors = sorted(required)
+        for start, end in zip(anchors, anchors[1:]):
+            selected.update(simplify_between(start, end, tolerance))
+        return selected
+
+    used_tolerance = max(float(tolerance_m), 1e-6)
+    selected = select(used_tolerance)
+    while len(selected) > max_sections and used_tolerance < 0.05:
+        used_tolerance *= 1.35
+        selected = select(used_tolerance)
+    while len(selected) > max_sections:
+        removable = sorted(selected - required)
+        if not removable:
+            break
+        penalties = []
+        ordered = sorted(selected)
+        for index in removable:
+            position = ordered.index(index)
+            left = ordered[position - 1]
+            right = ordered[position + 1]
+            fraction = (rows[index]["y_m"] - rows[left]["y_m"]) / max(
+                rows[right]["y_m"] - rows[left]["y_m"], 1e-12
+            )
+            penalty = max(
+                abs(
+                    rows[index][field]
+                    - (
+                        rows[left][field]
+                        + fraction * (rows[right][field] - rows[left][field])
+                    )
+                )
+                for field in ("x_le_m", "x_te_m")
+            )
+            penalties.append((penalty, index))
+        selected.remove(min(penalties)[1])
+    return sorted(selected), used_tolerance
+
+
+def suggest_wing_sections(
+    record: dict[str, Any],
+    *,
+    resolution_m: float,
+) -> tuple[list[dict[str, float]], dict[str, Any]] | None:
+    """Build a bounded multi-section wing loft from measured station curves."""
+    wing = record.get("wing") or {}
+    if not wing.get("ok") or not wing.get("stations"):
+        return None
+    semispan = float(wing["semispan_m"])
+    length = float((record.get("overall") or {}).get("length_m", 0.0))
+    root_x_lo = float(wing["x_le_root_m"])
+    root_x_hi = float(wing.get("x_te_root_m", root_x_lo + float(wing["root_chord_m"])))
+    body_half_widths = [
+        0.5 * float(station["width_m"])
+        for station in record.get("stations") or []
+        if root_x_lo <= float(station.get("x_over_length", 0.0)) * length <= root_x_hi
+    ]
+    body_half_width = max(
+        float(wing.get("body_half_width_m", 0.0)),
+        float(record.get("body_half_width_at_wing_m", 0.0)),
+        *(body_half_widths or [0.0]),
+    )
+    measured = _wing_station_rows(
+        record,
+        body_half_width_m=body_half_width,
+    )
+    if len(measured) < 2:
+        return None
+
+    root = {
+        "y_m": 0.0,
+        "x_le_m": float(wing["x_le_root_m"]),
+        "x_te_m": float(
+            wing.get(
+                "x_te_root_m",
+                float(wing["x_le_root_m"]) + float(wing["root_chord_m"]),
+            )
+        ),
+        "z_le_m": float(wing["z_root_le_m"]),
+    }
+    measured = [row for row in measured if row["y_m"] < semispan - 1e-9]
+    if len(measured) < 2:
+        return None
+    last, previous = measured[-1], measured[-2]
+    tip: dict[str, float] = {"y_m": semispan}
+    for field in ("x_le_m", "x_te_m", "z_le_m"):
+        slope = (last[field] - previous[field]) / max(
+            last["y_m"] - previous["y_m"], 1e-12
+        )
+        tip[field] = last[field] + slope * (semispan - last["y_m"])
+    tip_floor = 0.02 * float(wing["root_chord_m"])
+    if tip["x_te_m"] - tip["x_le_m"] < tip_floor:
+        tip["x_le_m"] = tip["x_te_m"] - tip_floor
+
+    rows = [root, *measured, tip]
+    straight = wing.get("straight_range_abs_y_m") or [
+        measured[0]["y_m"],
+        measured[-1]["y_m"],
+    ]
+
+    def closest_index(y: float) -> int:
+        return min(
+            range(len(rows)),
+            key=lambda index: abs(rows[index]["y_m"] - float(y)),
+        )
+
+    required = {
+        0,
+        1,
+        len(rows) - 2,
+        len(rows) - 1,
+        closest_index(straight[0]),
+        closest_index(straight[1]),
+    }
+    selected_indices, used_tolerance = _simplify_wing_rows(
+        rows,
+        tolerance_m=max(0.0015, 2.0 * float(resolution_m)),
+        required=required,
+    )
+    airfoil = record.get("airfoil_summary") or {}
+    mean_t_over_c = float(airfoil.get("t_over_c_mean") or 0.12)
+    x_le_root = float(wing["x_le_root_m"])
+    x_te_root = float(wing.get("x_te_root_m", x_le_root + float(wing["root_chord_m"])))
+    le_slope = math.tan(math.radians(float(wing["le_sweep_deg"])))
+    te_slope = math.tan(math.radians(float(wing["te_sweep_deg"])))
+    sections = []
+    for index in selected_indices:
+        row = rows[index]
+        chord = row["x_te_m"] - row["x_le_m"]
+        band_chord = (
+            x_te_root + row["y_m"] * te_slope - (x_le_root + row["y_m"] * le_slope)
+        )
+        local_t_over_c = mean_t_over_c * min(
+            1.0, max(band_chord, tip_floor) / max(chord, tip_floor)
+        )
+        sections.append(
+            {
+                "eta": round(row["y_m"] / semispan, 6),
+                "chord_m": round(chord, 4),
+                "x_le_m": round(row["x_le_m"], 4),
+                "z_le_m": round(row["z_le_m"], 4),
+                "t_over_c": round(local_t_over_c, 4),
+            }
+        )
+    sections[0]["eta"] = 0.0
+    sections[-1]["eta"] = 1.0
+    span_m = round(float(wing["span_m"]), 4)
+    equivalent = WingSpec.equivalent_trapezoid(sections, span_m)
+    disclosure = {
+        "mode": "measured multi-section loft",
+        "source_station_count": len(measured),
+        "section_count": len(sections),
+        "body_exclusion_half_width_m": body_half_width,
+        "simplification_tolerance_m": used_tolerance,
+        "sections_area_m2": equivalent["area_m2"],
+        "area_convention": (
+            "gross projected area of the measured multi-section outline, "
+            "including root blends/deck extensions represented by the station curve"
+        ),
+        "section_t_over_c_basis": (
+            "inferred from the measured mean wing t/c by preserving the "
+            "straight-band absolute thickness where root/deck chord is larger; "
+            "not a direct section-thickness measurement"
+        ),
+        "equivalent_trapezoid": {
+            key: equivalent[key]
+            for key in (
+                "root_chord_m",
+                "taper",
+                "le_sweep_deg",
+                "dihedral_deg",
+                "x_le_root_m",
+                "z_root_m",
+                "mac_m",
+                "x_le_mac_m",
+            )
+        },
+    }
+    return sections, disclosure
+
+
+def suggest_spec_values(
+    record: dict[str, Any], align: dict[str, Any]
+) -> dict[str, Any]:
     """Translate the measurement record into schema-ready values with tolerances."""
     resolution = float(align["resolution_m"])
     base = max(2.0 * resolution, M.LENGTH_TOL_FLOOR_M)
-    sym = (align.get("symmetry") or {})
-    sym_res = float(sym.get("residual_median_m", 0.0)) if sym.get("counts_as_evidence", True) else 0.0
+    sym = align.get("symmetry") or {}
+    sym_res = (
+        float(sym.get("residual_median_m", 0.0))
+        if sym.get("counts_as_evidence", True)
+        else 0.0
+    )
     overall = record["overall"]
     length = overall["length_m"]
     wing = record.get("wing") or {}
     stations = record.get("stations") or []
     suggested: dict[str, Any] = {"provenance": "measured (reference model)"}
     tolerances: dict[str, Any] = {}
+    disclosures: dict[str, Any] = {}
 
     if wing.get("ok"):
         lr = wing["left_right_delta_m"]
-        straight = wing.get("straight_range_abs_y_m") or [wing["body_half_width_m"], wing["semispan_m"]]
+        straight = wing.get("straight_range_abs_y_m") or [
+            wing["body_half_width_m"],
+            wing["semispan_m"],
+        ]
         span_straight = max(straight[1] - straight[0], 0.05)
         # A leading edge the scanner did not capture (open nose) hides a few
         # millimetres of chord ahead of the first captured skin.
-        nose_allowance = 0.02 * wing["root_chord_m"] * float(wing.get("nose_open_fraction", 0.0) > 0.2)
-        root_tol = M.length_tolerance(base, sym_res, wing["fit_rms_m"]["le"] + wing["fit_rms_m"]["te"] + nose_allowance, lr.get("le"), lr.get("te"))
-        xle_tol = M.length_tolerance(base, sym_res, wing["fit_rms_m"]["le"] + nose_allowance, lr.get("le"))
-        sweep_tol = M.angle_tolerance(math.degrees(math.atan(2.0 * wing["fit_rms_m"]["le"] / span_straight)))
-        taper_tol = max(0.02, abs(wing["taper_straight"] - wing["taper_area_equivalent"]) + base / max(wing["root_chord_m"], 1e-6))
+        nose_allowance = (
+            0.02
+            * wing["root_chord_m"]
+            * float(wing.get("nose_open_fraction", 0.0) > 0.2)
+        )
+        root_tol = M.length_tolerance(
+            base,
+            sym_res,
+            wing["fit_rms_m"]["le"] + wing["fit_rms_m"]["te"] + nose_allowance,
+            lr.get("le"),
+            lr.get("te"),
+        )
+        xle_tol = M.length_tolerance(
+            base, sym_res, wing["fit_rms_m"]["le"] + nose_allowance, lr.get("le")
+        )
+        sweep_tol = M.angle_tolerance(
+            math.degrees(math.atan(2.0 * wing["fit_rms_m"]["le"] / span_straight))
+        )
+        taper_tol = max(
+            0.02,
+            abs(wing["taper_straight"] - wing["taper_area_equivalent"])
+            + base / max(wing["root_chord_m"], 1e-6),
+        )
         span_tol = M.length_tolerance(base, 2.0 * sym_res)
         twist_tol = M.angle_tolerance(
             wing["twist_fit_rms_deg"],
-            abs(wing["twist_root_deg"] - wing.get("twist_root_median_deg", wing["twist_root_deg"])),
-            abs(wing["twist_tip_deg"] - wing.get("twist_tip_median_deg", wing["twist_tip_deg"])),
-            1.0 if wing.get("nose_open_fraction", 0.0) > 0.2 or wing.get("le_incomplete_fraction", 0.0) > 0.2 else 0.0,
+            abs(
+                wing["twist_root_deg"]
+                - wing.get("twist_root_median_deg", wing["twist_root_deg"])
+            ),
+            abs(
+                wing["twist_tip_deg"]
+                - wing.get("twist_tip_median_deg", wing["twist_tip_deg"])
+            ),
+            1.0
+            if wing.get("nose_open_fraction", 0.0) > 0.2
+            or wing.get("le_incomplete_fraction", 0.0) > 0.2
+            else 0.0,
         )
-        dihedral_tol = M.angle_tolerance(2.0 * math.degrees(math.atan(wing["fit_rms_m"]["z_mid"] / max(wing["semispan_m"], 1e-6))))
+        dihedral_tol = M.angle_tolerance(
+            2.0
+            * math.degrees(
+                math.atan(wing["fit_rms_m"]["z_mid"] / max(wing["semispan_m"], 1e-6))
+            )
+        )
         airfoil = record.get("airfoil_summary") or {}
+        section_suggestion = suggest_wing_sections(
+            record,
+            resolution_m=resolution,
+        )
+        if section_suggestion is not None:
+            wing_sections, wing_disclosure = section_suggestion
+            span_value = round(wing["span_m"], 4)
+            equivalent = WingSpec.equivalent_trapezoid(
+                wing_sections,
+                span_value,
+            )
+            disclosures["wing_planform"] = wing_disclosure
+        else:
+            wing_sections = None
+            span_value = round(wing["span_m"], 4)
+            equivalent = {
+                "root_chord_m": wing["root_chord_m"],
+                "taper": wing["taper_area_equivalent"],
+                "le_sweep_deg": wing["le_sweep_deg"],
+                "dihedral_deg": wing["dihedral_deg"],
+                "x_le_root_m": wing["x_le_root_m"],
+                "z_root_m": wing["z_root_le_m"],
+            }
         suggested["wing"] = {
-            "span_m": round(wing["span_m"], 4),
-            "root_chord_m": round(wing["root_chord_m"], 4),
-            "taper": round(wing["taper_area_equivalent"], 4),
-            "le_sweep_deg": round(wing["le_sweep_deg"], 2),
-            "dihedral_deg": round(wing["dihedral_deg"], 2),
+            "span_m": span_value,
+            "root_chord_m": round(equivalent["root_chord_m"], 4),
+            "taper": round(equivalent["taper"], 4),
+            "le_sweep_deg": round(equivalent["le_sweep_deg"], 2),
+            "dihedral_deg": round(equivalent["dihedral_deg"], 2),
             "twist_root_deg": round(wing["twist_root_deg"], 2),
             "twist_tip_deg": round(wing["twist_tip_deg"], 2),
-            "t_over_c": round(airfoil.get("t_over_c_mean", 0.0), 4) if airfoil else None,
+            "t_over_c": round(airfoil.get("t_over_c_mean", 0.0), 4)
+            if airfoil
+            else None,
             "airfoil": airfoil.get("naca4_code") if airfoil else None,
-            "x_le_root_m": round(wing["x_le_root_m"], 4),
-            "z_root_m": round(wing["z_root_le_m"], 4),
+            "x_le_root_m": round(equivalent["x_le_root_m"], 4),
+            "z_root_m": round(equivalent["z_root_m"], 4),
+            "sections": wing_sections,
         }
         tolerances["wing"] = {
             "span_m": span_tol,
@@ -705,18 +1187,35 @@ def suggest_spec_values(record: dict[str, Any], align: dict[str, Any]) -> dict[s
             "twist_tip_deg": twist_tol,
             "x_le_root_m": xle_tol,
             "z_root_m": M.length_tolerance(base, wing["fit_rms_m"]["z_mid"]),
-            "t_over_c": (airfoil.get("t_over_c_spread", 0.0) + 2.0 * resolution / max(wing["root_chord_m"], 1e-6)) if airfoil else None,
+            "t_over_c": (
+                airfoil.get("t_over_c_spread", 0.0)
+                + 2.0 * resolution / max(wing["root_chord_m"], 1e-6)
+            )
+            if airfoil
+            else None,
         }
+        if wing_sections is not None:
+            tolerances["wing"]["sections"] = [
+                {
+                    "eta": section["eta"],
+                    "chord_m": M.length_tolerance(base, lr.get("le"), lr.get("te")),
+                    "x_le_m": M.length_tolerance(base, lr.get("le")),
+                    "z_le_m": M.length_tolerance(base, wing["fit_rms_m"]["z_mid"]),
+                }
+                for section in wing_sections
+            ]
         suggested["sketch"] = {
-            "span_over_length": round(wing["span_m"] / length, 4),
-            "span_over_length_tol": round(max(0.01, (span_tol + wing["span_m"] / length * base) / length), 4),
-            "root_over_length": round(wing["root_chord_m"] / length, 4),
+            "span_over_length": round(span_value / length, 4),
+            "span_over_length_tol": round(
+                max(0.01, (span_tol + wing["span_m"] / length * base) / length), 4
+            ),
+            "root_over_length": round(equivalent["root_chord_m"] / length, 4),
             "root_over_length_tol": round(max(0.005, root_tol / length), 4),
-            "le_sweep_deg": round(wing["le_sweep_deg"], 2),
+            "le_sweep_deg": round(equivalent["le_sweep_deg"], 2),
             "le_sweep_tol_deg": round(sweep_tol, 2),
-            "taper": round(wing["taper_area_equivalent"], 4),
+            "taper": round(equivalent["taper"], 4),
             "taper_tol": round(taper_tol, 4),
-            "x_le_root_over_length": round(wing["x_le_root_m"] / length, 4),
+            "x_le_root_over_length": round(equivalent["x_le_root_m"] / length, 4),
             "x_le_root_over_length_tol": round(max(0.005, xle_tol / length), 4),
         }
     if stations:
@@ -744,7 +1243,11 @@ def suggest_spec_values(record: dict[str, Any], align: dict[str, Any]) -> dict[s
             "stations": [
                 {
                     "x_over_length": s["x_over_length"],
-                    "width_m": M.length_tolerance(base, s.get("width_asymmetry_m"), 2.0 * (s.get("powers_fit_rms_m") or 0.0)),
+                    "width_m": M.length_tolerance(
+                        base,
+                        s.get("width_asymmetry_m"),
+                        2.0 * (s.get("powers_fit_rms_m") or 0.0),
+                    ),
                     "height_m": M.length_tolerance(base, s.get("powers_fit_rms_m")),
                     "z_offset_m": M.length_tolerance(base, s.get("powers_fit_rms_m")),
                 }
@@ -757,6 +1260,7 @@ def suggest_spec_values(record: dict[str, Any], align: dict[str, Any]) -> dict[s
         delta = fins.get("left_right_delta") or {}
         suggested["vtail"] = {
             "count": 2 if fins.get("mirrored_mean") else 1,
+            "root_attachment": "measured",
             "span_m": round(mean["span_m"], 4),
             "root_chord_m": round(mean["root_chord_m"], 4),
             "taper": round(mean["taper"], 3),
@@ -770,7 +1274,9 @@ def suggest_spec_values(record: dict[str, Any], align: dict[str, Any]) -> dict[s
         fin_rms = max(f["fit_rms_m"]["le"] + f["fit_rms_m"]["te"] for f in fins["fins"])
         tolerances["vtail"] = {
             "span_m": M.length_tolerance(base, delta.get("span_m"), fin_rms),
-            "root_chord_m": M.length_tolerance(base, delta.get("root_chord_m"), fin_rms),
+            "root_chord_m": M.length_tolerance(
+                base, delta.get("root_chord_m"), fin_rms
+            ),
             "le_sweep_deg": M.angle_tolerance(delta.get("le_sweep_deg")),
             "cant_deg": M.angle_tolerance(delta.get("cant_deg")),
             "x_le_m": M.length_tolerance(base, delta.get("x_le_m"), fin_rms),
@@ -802,8 +1308,16 @@ def suggest_spec_values(record: dict[str, Any], align: dict[str, Any]) -> dict[s
         if outer < 0.95 * wing["semispan_m"]:
             notes.append(
                 f"Wing edges depart from straight lines outboard of |y| = {outer:.3f} m "
-                "(rounded or raked tips); the equivalent trapezoid preserves area, not the outline."
+                "(rounded or raked tips); wing.sections preserves the measured "
+                "outline while the scalar taper/sweep remain equivalent descriptors."
             )
+    if wing.get("ok") and section_suggestion is not None:
+        notes.append(
+            "wing.sections t_over_c values are inferred loft controls: the measured "
+            "mean t/c is scaled where the root/deck outline adds chord so absolute "
+            "wing thickness is not inflated. Only the six airfoil cuts are direct "
+            "section-thickness measurements."
+        )
     if wing.get("ok") and wing.get("nose_open_fraction", 0.0) > 0.2:
         notes.append(
             f"The wing leading-edge nose was not captured at {100 * wing['nose_open_fraction']:.0f}% of "
@@ -818,7 +1332,10 @@ def suggest_spec_values(record: dict[str, Any], align: dict[str, Any]) -> dict[s
             "span_end_fraction": round(control["span_end_fraction"], 3),
             "chord_fraction": round(control["chord_fraction"], 3),
             "as_scanned_deflection_deg": control.get("deflection_deg_median"),
-            "as_scanned_deflection_left_right_deg": [control.get("deflection_left_deg"), control.get("deflection_right_deg")],
+            "as_scanned_deflection_left_right_deg": [
+                control.get("deflection_left_deg"),
+                control.get("deflection_right_deg"),
+            ],
             "note": (
                 "Hinge line and span/chord fractions are measured; travel limits (max_up_deg/max_down_deg) "
                 "are not measurable from a static scan. The as-scanned deflection is the control position "
@@ -829,16 +1346,25 @@ def suggest_spec_values(record: dict[str, Any], align: dict[str, Any]) -> dict[s
             "hinge_x_over_c": control.get("hinge_x_over_c_spread"),
             "deflection_deg": control.get("deflection_deg_spread"),
         }
-        if control.get("deflection_deg_median") is not None and abs(control["deflection_deg_median"]) > 1.0:
+        if (
+            control.get("deflection_deg_median") is not None
+            and abs(control["deflection_deg_median"]) > 1.0
+        ):
             notes.append(
                 f"Elevons were scanned deflected ({control['deflection_deg_median']:+.1f} deg, trailing edge up "
                 "positive). Twist and airfoil camber were measured on the undeflected chord line; do not read "
                 "the deflection as a trimmed neutral without the measurement form section 2."
             )
     else:
-        notes.append("No trailing-edge hinge line was resolved in the scan; elevon geometry stays a placeholder.")
+        notes.append(
+            "No trailing-edge hinge line was resolved in the scan; elevon geometry stays a placeholder."
+        )
     suggested["notes"] = notes
-    return {"suggested": suggested, "tolerances": tolerances}
+    return {
+        "suggested": suggested,
+        "tolerances": tolerances,
+        "disclosures": disclosures,
+    }
 
 
 # --------------------------------------------------------------------------
@@ -920,7 +1446,13 @@ def ingest_reference(
     if anchor is not None:
         deviation = abs(span - anchor) / anchor
         anchor_check.update(
-            {"anchor_span_m": anchor, "source": anchor_source, "relative_deviation": deviation, "tolerance": anchor_tolerance, "ok": deviation <= anchor_tolerance}
+            {
+                "anchor_span_m": anchor,
+                "source": anchor_source,
+                "relative_deviation": deviation,
+                "tolerance": anchor_tolerance,
+                "ok": deviation <= anchor_tolerance,
+            }
         )
         if deviation > anchor_tolerance:
             raise ReferenceInputError(
@@ -928,9 +1460,13 @@ def ingest_reference(
                 f"({deviation:.1%} > {anchor_tolerance:.0%}); check --units/--axes"
             )
     else:
-        anchor_check.update({"ok": None, "note": "no span anchor supplied; unit scale unverified"})
+        anchor_check.update(
+            {"ok": None, "note": "no span anchor supplied; unit scale unverified"}
+        )
 
-    record = measure_reference(mesh, resolution_m=align["resolution_m"], sidecar=sidecar)
+    record = measure_reference(
+        mesh, resolution_m=align["resolution_m"], sidecar=sidecar
+    )
     suggestions = suggest_spec_values(record, align)
     if not dry_run:
         out_dir.mkdir(parents=True, exist_ok=True)
@@ -942,7 +1478,14 @@ def ingest_reference(
     if dry_run:
         out_dir.mkdir(parents=True, exist_ok=True)
         figure_path = out_dir / "reference-sections-dryrun.png"
-        render_sections_figure(record, mesh, figure_path)
+        render_sections_figure(
+            record,
+            mesh,
+            figure_path,
+            wing_sections=(suggestions.get("suggested") or {})
+            .get("wing", {})
+            .get("sections"),
+        )
         written.append(str(figure_path))
     else:
         silhouettes = render_silhouettes(
@@ -956,7 +1499,14 @@ def ingest_reference(
             },
         )
         written.extend(str(p) for p in silhouettes.values())
-        render_sections_figure(record, mesh, figure_path)
+        render_sections_figure(
+            record,
+            mesh,
+            figure_path,
+            wing_sections=(suggestions.get("suggested") or {})
+            .get("wing", {})
+            .get("sections"),
+        )
         written.append(str(figure_path))
         ply_path = out_dir / "reference.ply"
         decimated.export(str(ply_path))
@@ -971,7 +1521,9 @@ def ingest_reference(
         "alignment": align,
         "anchor_check": anchor_check,
         "decimation": decimation,
-        "silhouettes": {k: {"path": str(v), "mm_per_px": mm_per_px} for k, v in silhouettes.items()},
+        "silhouettes": {
+            k: {"path": str(v), "mm_per_px": mm_per_px} for k, v in silhouettes.items()
+        },
         "acceptance": {**DEFAULT_ACCEPTANCE, **(acceptance or {})},
         "evidence_class": (
             "measured design input (reference model); not validation truth; "

@@ -64,17 +64,13 @@ def fuel_volume_m3(spec: VehicleSpec, fuel_kg: float) -> float:
 
 
 def wing_tank_volume_m3(spec: VehicleSpec) -> float:
-    """Usable trapezoidal wing-box tank, integrated with cubic-length scaling.
+    """Usable wing-box tank, integrated with cubic-length scaling.
 
     The conceptual box occupies 50% chord, 80% of each semispan, and 50% of
     the local ``chord × thickness`` rectangle after spars/ribs/unusable volume.
     """
     eta = 0.80
-    root = spec.wing.root_chord_m
-    delta = spec.wing.tip_chord_m - root
-    chord_squared_integral = (
-        root**2 * eta + root * delta * eta**2 + delta**2 * eta**3 / 3.0
-    )
+    chord_squared_integral = spec.wing.chord_squared_integral_eta(0.0, eta)
     return 0.25 * spec.wing.t_over_c * spec.wing.span_m * chord_squared_integral
 
 
@@ -157,13 +153,9 @@ def packing_report(spec: VehicleSpec, fuel_kg: float) -> dict:
                 wing_clearances.append(y_abs - half_span)
                 continue
             eta = y_abs / max(half_span, 1e-9)
-            chord = spec.wing.root_chord_m + eta * (
-                spec.wing.tip_chord_m - spec.wing.root_chord_m
-            )
-            wing_z = spec.wing.z_root_m + y_abs * math.tan(
-                math.radians(spec.wing.dihedral_deg)
-            )
-            wing_half_thickness = 0.5 * spec.wing.t_over_c * chord
+            chord = spec.wing.chord_at(eta)
+            wing_z = spec.wing.z_le_at(eta)
+            wing_half_thickness = 0.5 * spec.wing.t_over_c_at(eta) * chord
             wing_clearances.append(
                 abs(spec.engine.z_m - wing_z) - radius - wing_half_thickness
             )

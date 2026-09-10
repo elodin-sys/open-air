@@ -1026,6 +1026,7 @@ def load_elodin_package(
 
 def build_elodin_package(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
     """Compose and atomically publish one phase's Elodin package."""
+    spec.assert_cross_model_invariants()
     outdir = outdir.resolve()
     payloads = {
         "sizing": _read_json(outdir / "sizing.json", required=False),

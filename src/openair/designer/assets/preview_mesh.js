@@ -160,7 +160,7 @@
     ];
   }
 
-  function loftSurface(collector, root, tip) {
+  function loftSurface(collector, root, tip, {capRoot = true, capTip = true} = {}) {
     const chordSegments = 16;
     const upperRoot = [];
     const upperTip = [];
@@ -180,13 +180,43 @@
     }
     collector.quad(upperRoot[0], lowerRoot[0], lowerTip[0], upperTip[0]);
     collector.quad(upperTip.at(-1), lowerTip.at(-1), lowerRoot.at(-1), upperRoot.at(-1));
-    collector.quad(upperRoot.at(-1), lowerRoot.at(-1), lowerRoot[0], upperRoot[0]);
-    collector.quad(upperTip[0], lowerTip[0], lowerTip.at(-1), upperTip.at(-1));
+    if (capRoot) {
+      collector.quad(upperRoot.at(-1), lowerRoot.at(-1), lowerRoot[0], upperRoot[0]);
+    }
+    if (capTip) {
+      collector.quad(upperTip[0], lowerTip[0], lowerTip.at(-1), upperTip.at(-1));
+    }
   }
 
   function loftWing(design, collector) {
     const wing = design.wing;
     const halfSpan = .5 * Math.max(number(wing.span_m), .01);
+    if (Array.isArray(wing.sections) && wing.sections.length >= 3) {
+      [-1, 1].forEach(side => {
+        const sections = wing.sections.map(section => {
+          const eta = Math.min(Math.max(number(section.eta), 0), 1);
+          return {
+            xLe: number(section.x_le_m),
+            y: side * eta * halfSpan,
+            z: number(section.z_le_m),
+            chord: Math.max(number(section.chord_m), .001),
+            twist: number(wing.twist_root_deg)
+              + eta * (number(wing.twist_tip_deg) - number(wing.twist_root_deg)),
+            tOverC: Math.max(number(section.t_over_c ?? wing.t_over_c), .001),
+            airfoil: wing.airfoil,
+          };
+        });
+        for (let index = 0; index < sections.length - 1; index += 1) {
+          loftSurface(
+            collector,
+            sections[index],
+            sections[index + 1],
+            {capRoot: index === 0, capTip: index === sections.length - 2},
+          );
+        }
+      });
+      return;
+    }
     const rootChord = Math.max(number(wing.root_chord_m), .01);
     const tipChord = rootChord * Math.max(number(wing.taper), .001);
     const rootX = number(wing.x_le_root_m);

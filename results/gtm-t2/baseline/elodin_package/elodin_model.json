@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "gtm-t2",
-  "created_at": "2026-09-09T19:51:42+00:00",
+  "created_at": "2026-09-10T04:09:21+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -145,7 +145,7 @@
     "geometry_vsp3": {
       "path": "geometry/gtm-t2.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "a3306830b735b6ae7b030fe17d0f7f69117822c35483cff819eb7ad69fb43953",
+      "sha256": "dde50dea172a4e4301d95352420eb3249fb51e591f3c798ace22737c5c656586",
       "size_bytes": 262948
     },
     "geometry_whole_stl": {
@@ -169,7 +169,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "71b35d84f4ecd2d1f731522922d29d50c18005428a7228e1179030d6896beb0e",
+      "sha256": "f971957898733f7f4cdc728f489fb912e205f547e9a115606702bc8c88cc1930",
       "size_bytes": 989
     },
     "render_glb": {
@@ -317,16 +317,16 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "6c3af6d21fb25a724ab412268a7a3de73594bd1cd02e72206ae46ae50e857281",
-    "pipeline_run_id": "8ff61ad0dfaa4f00ae58fa9a4b0081ba",
-    "source_git_commit": "770fd2c4c4b5d2ac91ea2ab39ec178b8bfe9269a",
+    "model_source_sha256": "72019251bf27f503af00630181ef4e78371671877325e37f0ec3feb511ff5537",
+    "pipeline_run_id": "a60442b57e3b493b86e0f0e06777ce92",
+    "source_git_commit": "0aee6b4a57e96f360a0cebe84cb754744f5428b4",
     "upstream_sha256": {
-      "aero.json": "6c05645f365fa9229a582747c3c05d81c186ffd8bce36f1ea20ef42dd99ebf83",
-      "geometry.json": "fd4681577b801e01c93988fe78b19cec3c55d95ce82cae999c2afa0ff602f492",
+      "aero.json": "3226a941dea788c912dbbb5ceb3d2626232f13a40282ee190997b9ebf687273b",
+      "geometry.json": "b04d0e8a5739e039df6977557b37ac67259cb0344ef606f6c29e1362779bbc7d",
       "mass_breakdown.json": "9bb6724cf3c8431495bb3ed37a56d830e68a2cd8fbc772875c03438e0d67ea26",
-      "sizing.json": "e6437ff67853cefb0f4c7e4e5c55b3798b07e46f218080daecdda3d2eebbefd4",
-      "structures.json": "7cdc378b719002725f6ce8b6cdde685a6e0306847e022c5997b789c875ffefb6",
-      "validation.json": "d266979bd231367d1164cad690aeb83c054a9e98a020f8cb9c55aa31d0225a1e"
+      "sizing.json": "2aaef93340cb6fb1b97923d64dfdda7b448a7612ef7d1568f725ae6c03864cd7",
+      "structures.json": "32a9b27d0412de2454ce0d11254612bb5a30ddeb2c56ad5bfdb9f9dbd970319f",
+      "validation.json": "016a41fcbfa8821ad8a91226f1360bee55044faeb8097e4e51254d5b80ecdb54"
     }
   },
   "reference_geometry": {
@@ -375,6 +375,7 @@
       "cant_deg": 0.0,
       "count": 1,
       "le_sweep_deg": 38.0,
+      "root_attachment": "derived",
       "root_chord_m": 0.42,
       "span_m": 0.4,
       "t_over_c": 0.1,
@@ -391,6 +392,7 @@
       "le_sweep_deg": 25.0,
       "mac_m": 0.2789834399996898,
       "root_chord_m": 0.376085409793,
+      "sections": null,
       "span_m": 2.08751424,
       "t_over_c": 0.12,
       "taper": 0.396781508797,

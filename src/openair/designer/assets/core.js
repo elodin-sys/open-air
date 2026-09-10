@@ -340,7 +340,20 @@
       const bounds = boundText(resolved);
       const label = `<label><span>${escapeHtml(titleFor(name, node))}</span><span>${escapeHtml(unit)}</span></label>`;
       const hint = `<span class="hint" title="${escapeHtml(resolved.description || "")}">${escapeHtml(bounds || resolved.description || path)}</span>`;
-      const common = `data-path="${escapeHtml(path)}" aria-label="${escapeHtml(path)}"`;
+      const sectionLocked = (
+        Array.isArray(design.wing.sections)
+        && design.wing.sections.length >= 3
+        && new Set([
+          "wing.span_m",
+          "wing.root_chord_m",
+          "wing.taper",
+          "wing.le_sweep_deg",
+          "wing.dihedral_deg",
+          "wing.x_le_root_m",
+          "wing.z_root_m",
+        ]).has(path)
+      );
+      const common = `data-path="${escapeHtml(path)}" aria-label="${escapeHtml(path)}"${sectionLocked ? ' disabled title="Derived from wing.sections"' : ""}`;
       if (resolved.enum) {
         const options = resolved.enum.map(option =>
           `<option value="${escapeHtml(option)}"${option === value ? " selected" : ""}>${escapeHtml(option)}</option>`
@@ -488,6 +501,10 @@
       const fuselage = source.fuselage;
       const length = Math.max(number(fuselage.length_m), .001);
       return {
+        ...clone(existing),
+        treatment: existing.treatment || "requirement",
+        hard_scale: number(existing.hard_scale, 3),
+        fidelity_weight: number(existing.fidelity_weight, 1),
         span_over_length: round(number(wing.span_m) / length),
         span_over_length_tol: number(existing.span_over_length_tol, .10),
         root_over_length: round(number(wing.root_chord_m) / length),
@@ -563,15 +580,80 @@
       const span = Math.max(number(w.span_m), .01);
       const root = Math.max(number(w.root_chord_m), .01);
       const taper = Math.max(number(w.taper), .001);
-      const tip = root * taper;
       const halfSpan = .5 * span;
       const xRoot = number(w.x_le_root_m);
-      const xTip = xRoot + halfSpan * Math.tan(radians(number(w.le_sweep_deg)));
-      const area = .5 * span * (root + tip);
-      const mac = (2 / 3) * root * (1 + taper + taper * taper) / (1 + taper);
-      const yMac = (span / 6) * (1 + 2 * taper) / (1 + taper);
-      const xLeMac = xRoot + yMac * Math.tan(radians(number(w.le_sweep_deg)));
-      return {span, root, taper, tip, halfSpan, xRoot, xTip, area, mac, yMac, xLeMac};
+      const sectioned = Array.isArray(w.sections) && w.sections.length >= 3;
+      const sections = sectioned
+        ? w.sections.map(section => ({
+          eta: Math.min(Math.max(number(section.eta), 0), 1),
+          chord: Math.max(number(section.chord_m), .001),
+          xLe: number(section.x_le_m),
+          zLe: number(section.z_le_m),
+        }))
+        : [
+          {eta: 0, chord: root, xLe: xRoot, zLe: number(w.z_root_m)},
+          {
+            eta: 1,
+            chord: root * taper,
+            xLe: xRoot + halfSpan * Math.tan(radians(number(w.le_sweep_deg))),
+            zLe: number(w.z_root_m) + halfSpan * Math.tan(radians(number(w.dihedral_deg))),
+          },
+        ];
+      const tip = sections.at(-1).chord;
+      const xTip = sections.at(-1).xLe;
+      const equivalentTip = root * taper;
+      let area;
+      let mac;
+      let yMac;
+      let xLeMac;
+      if (sectioned) {
+        let chordIntegral = 0;
+        let chordSquaredIntegral = 0;
+        let etaChordIntegral = 0;
+        let xChordIntegral = 0;
+        for (let index = 0; index < sections.length - 1; index += 1) {
+          const left = sections[index];
+          const right = sections[index + 1];
+          const delta = right.eta - left.eta;
+          const chordMid = .5 * (left.chord + right.chord);
+          const etaMid = .5 * (left.eta + right.eta);
+          const xMid = .5 * (left.xLe + right.xLe);
+          chordIntegral += .5 * delta * (left.chord + right.chord);
+          chordSquaredIntegral += delta * (
+            left.chord ** 2 + left.chord * right.chord + right.chord ** 2
+          ) / 3;
+          etaChordIntegral += delta * (
+            left.eta * left.chord + 4 * etaMid * chordMid + right.eta * right.chord
+          ) / 6;
+          xChordIntegral += delta * (
+            left.xLe * left.chord + 4 * xMid * chordMid + right.xLe * right.chord
+          ) / 6;
+        }
+        area = span * chordIntegral;
+        mac = chordSquaredIntegral / Math.max(chordIntegral, 1e-12);
+        yMac = halfSpan * etaChordIntegral / Math.max(chordIntegral, 1e-12);
+        xLeMac = xChordIntegral / Math.max(chordIntegral, 1e-12);
+      } else {
+        area = .5 * span * (root + equivalentTip);
+        mac = (2 / 3) * root * (1 + taper + taper * taper) / (1 + taper);
+        yMac = (span / 6) * (1 + 2 * taper) / (1 + taper);
+        xLeMac = xRoot + yMac * Math.tan(radians(number(w.le_sweep_deg)));
+      }
+      const rightLe = sections.map(section => [section.xLe, section.eta * halfSpan]);
+      const rightTe = sections.map(section => [section.xLe + section.chord, section.eta * halfSpan]);
+      const leftLe = rightLe.map(([x, y]) => [x, -y]);
+      const leftTe = rightTe.map(([x, y]) => [x, -y]);
+      const planform = [
+        ...rightLe,
+        ...rightTe.slice().reverse(),
+        ...leftTe.slice(1),
+        ...leftLe.slice().reverse().slice(0, -1),
+      ];
+      return {
+        span, root, taper, tip, equivalentTip, halfSpan, xRoot, xTip,
+        area, mac, yMac, xLeMac,
+        sectioned, sections, planform,
+      };
     }
 
     function bodyProfile() {
@@ -684,11 +766,10 @@
       const tailTipChord = number(tail.root_chord_m) * number(tail.taper);
       const tailTipX = number(tail.x_le_m) + tailHalfSpan * Math.tan(radians(number(tail.le_sweep_deg)));
       const maxY = Math.max(wing.halfSpan * 1.08, tailHalfSpan * 1.08, ...profile.map(section => section.width * .65), .5);
-      const xMin = Math.min(0, wing.xTip) - .05 * length;
+      const xMin = Math.min(0, ...wing.planform.map(point => point[0])) - .05 * length;
       const xMax = Math.max(
         length,
-        wing.xRoot + wing.root,
-        wing.xTip + wing.tip,
+        ...wing.planform.map(point => point[0]),
         number(tail.x_le_m) + number(tail.root_chord_m),
         tailTipX + tailTipChord,
       ) + .05 * length;
@@ -701,11 +782,7 @@
         ...profile.map(section => [section.x, .5 * section.width]),
         ...profile.slice().reverse().map(section => [section.x, -.5 * section.width]),
       ];
-      const planform = [
-        [wing.xRoot, 0], [wing.xTip, wing.halfSpan], [wing.xTip + wing.tip, wing.halfSpan],
-        [wing.xRoot + wing.root, 0], [wing.xTip + wing.tip, -wing.halfSpan],
-        [wing.xTip, -wing.halfSpan],
-      ];
+      const planform = wing.planform;
       const payloadX = number(f.payload_bay_x_m);
       const payloadEnd = payloadX + number(f.payload_bay_length_m);
       const payloadHalf = .5 * number(f.payload_bay_width_m);
@@ -765,15 +842,29 @@
         [finTipX + number(v.root_chord_m) * number(v.taper), finRootZ + finVertical],
         [finRootX + number(v.root_chord_m), finRootZ],
       ];
-      const yMin = Math.min(...profile.map(section => section.z - .5 * section.height), number(design.wing.z_root_m)) - .12;
+      const yMin = Math.min(
+        ...profile.map(section => section.z - .5 * section.height),
+        ...wing.sections.map(section => section.zLe),
+      ) - .12;
       const yMax = Math.max(...profile.map(section => section.z + .5 * section.height), finRootZ + finVertical) + .10;
-      const xMax = Math.max(length, finTipX + number(v.root_chord_m), wing.xRoot + wing.root) + .06 * length;
+      const xMax = Math.max(
+        length,
+        finTipX + number(v.root_chord_m),
+        ...wing.sections.map(section => section.xLe + section.chord),
+      ) + .06 * length;
       const frame = stableViewFrame(
         "side",
         makeFrame(-.04 * length, xMax, yMin, yMax),
       );
       frames.side = frame;
-      const wingLine = line(wing.xTip, number(design.wing.z_root_m), wing.xRoot + wing.root, number(design.wing.z_root_m), frame, "airframe");
+      const wingSide = [
+        ...wing.sections.map(section => [section.xLe, section.zLe]),
+        ...wing.sections.slice().reverse().map(section => [
+          section.xLe + section.chord,
+          section.zLe,
+        ]),
+      ];
+      const wingLine = `<path class="airframe" d="${pathData(wingSide, frame)}"></path>`;
       svg.innerHTML = [
         gridLines(frame, "side"),
         line(0, 0, xMax, 0, frame),
@@ -789,27 +880,27 @@
       const svg = $("#front-view");
       const wing = wingGeometry();
       const profile = bodyProfile();
-      const w = design.wing;
       const v = design.vtail;
       const largest = profile.reduce((best, section) => section.width * section.height > best.width * best.height ? section : best, profile[0]);
       const halfSpan = wing.halfSpan;
-      const zRoot = number(w.z_root_m);
-      const zTip = zRoot + halfSpan * Math.tan(radians(number(w.dihedral_deg)));
       const finAttachment = window.OpenAirHandles.finAttachment(design);
       const finBaseY = finAttachment.y;
       const finBaseZ = finAttachment.z;
       const finDY = number(v.span_m) * Math.sin(radians(number(v.cant_deg)));
       const finDZ = number(v.span_m) * Math.cos(radians(number(v.cant_deg)));
       const envelopeHeight = number(design.fuselage.max_height_m);
-      const maxZ = Math.max(zTip, largest.z + .5 * envelopeHeight, finBaseZ + finDZ) + .12;
-      const minZ = Math.min(0, largest.z - .5 * envelopeHeight, zRoot) - .10;
+      const maxZ = Math.max(...wing.sections.map(section => section.zLe), largest.z + .5 * envelopeHeight, finBaseZ + finDZ) + .12;
+      const minZ = Math.min(0, largest.z - .5 * envelopeHeight, ...wing.sections.map(section => section.zLe)) - .10;
       const frame = stableViewFrame(
         "front",
         makeFrame(-halfSpan * 1.08, halfSpan * 1.08, minZ, maxZ),
       );
       frames.front = frame;
       const section = window.OpenAirPreviewMesh.sectionPolygon(largest, 96);
-      const wingPoints = [[-halfSpan, zTip], [0, zRoot], [halfSpan, zTip]];
+      const wingPoints = [
+        ...wing.sections.slice().reverse().map(section => [-section.eta * halfSpan, section.zLe]),
+        ...wing.sections.slice(1).map(section => [section.eta * halfSpan, section.zLe]),
+      ];
       const finLines = Math.round(number(v.count, 2)) === 1
         ? [line(finBaseY, finBaseZ, finBaseY + finDY, finBaseZ + finDZ, frame, "fin-shape")]
         : [
@@ -971,10 +1062,13 @@
       const hi = number(design.mission.static_margin_max);
       const smGood = balance.sm >= lo && balance.sm <= hi && balance.smReserve >= lo && balance.smReserve <= hi;
       const vvGood = balance.vv >= .02 && balance.vv <= .09;
+      const planformNote = wing.sectioned
+        ? `${wing.sections.length}-section measured loft`
+        : "trapezoid";
       $("#derived").innerHTML = [
-        metric("Wing area S", `${wing.area.toFixed(3)} m²`, "trapezoid"),
+        metric("Wing area S", `${wing.area.toFixed(3)} m²`, planformNote),
         metric("Aspect ratio", (wing.span ** 2 / wing.area).toFixed(3), "b² / S"),
-        metric("Mean aerodynamic chord", `${wing.mac.toFixed(3)} m`, "trapezoid MAC"),
+        metric("Mean aerodynamic chord", `${wing.mac.toFixed(3)} m`, wing.sectioned ? "section-integrated MAC" : "trapezoid MAC"),
         metric("Estimated MTOW", `${balance.masses.mtow.toFixed(1)} kg`, "quick component buildup"),
         metric("Static margin", `${balance.sm.toFixed(3)} → ${balance.smReserve.toFixed(3)}`, `required ${lo.toFixed(2)}–${hi.toFixed(2)} MAC`, smGood),
         metric(`${number(design.vtail.count, 2) === 1 ? "Single-fin" : "Twin-fin"} volume Vv`, balance.vv.toFixed(4), "concept band 0.02–0.09", vvGood),
@@ -1239,8 +1333,9 @@
             lines.push(`${pad}${key}:`);
             child.forEach(item => {
               if (item && typeof item === "object" && !Array.isArray(item)) {
-                const entries = Object.entries(item).map(([itemKey, itemValue]) => `${itemKey}: ${yamlScalar(itemValue)}`);
-                lines.push(`${pad}  - {${entries.join(", ")}}`);
+                // JSON flow mappings are valid YAML and preserve nested lists
+                // such as control-surface mixing without "[object Object]".
+                lines.push(`${pad}  - ${JSON.stringify(item)}`);
               } else {
                 lines.push(`${pad}  - ${yamlScalar(item)}`);
               }
@@ -1273,7 +1368,18 @@
       const sketch = computedSketch();
       const f = design.fuselage;
       const wing = design.wing;
+      const wingModel = wingGeometry();
       const fin = design.vtail;
+      const wingRows = [
+        `| Wing ${wingModel.sectioned ? "actual tip chord" : "tip chord"} | ${wingModel.tip.toFixed(4)} m | ${wingModel.sectioned ? "outer wing section" : "derived from taper"} |`,
+        `| Wing projected area | ${wingModel.area.toFixed(4)} m² | ${wingModel.sectioned ? `${wingModel.sections.length}-section integral` : "trapezoid"} |`,
+        `| Wing mean aerodynamic chord | ${wingModel.mac.toFixed(4)} m | ${wingModel.sectioned ? "section integral" : "trapezoid"} |`,
+      ];
+      if (wingModel.sectioned) {
+        wingRows.push(
+          `| Wing equivalent tip chord | ${wingModel.equivalentTip.toFixed(4)} m | scalar area-equivalent descriptor, not physical tip |`,
+        );
+      }
       const lines = [
         WORKSHEET_START,
         "## Sketch measurement worksheet",
@@ -1305,7 +1411,7 @@
         `| Fuselage maximum height | ${number(f.max_height_m).toFixed(4)} m | station envelope |`,
         `| Wing span | ${number(wing.span_m).toFixed(4)} m | source grid resolution |`,
         `| Wing root chord | ${number(wing.root_chord_m).toFixed(4)} m | source grid resolution |`,
-        `| Wing tip chord | ${(number(wing.root_chord_m) * number(wing.taper)).toFixed(4)} m | derived from taper |`,
+        ...wingRows,
         `| Wing span / length | ${sketch.span_over_length.toFixed(6)} | ±${number(sketch.span_over_length_tol).toFixed(4)} |`,
         `| Wing root chord / length | ${sketch.root_over_length.toFixed(6)} | ±${number(sketch.root_over_length_tol).toFixed(4)} |`,
         `| Wing leading-edge sweep | ${number(sketch.le_sweep_deg).toFixed(4)} deg | ±${number(sketch.le_sweep_tol_deg).toFixed(4)} deg |`,

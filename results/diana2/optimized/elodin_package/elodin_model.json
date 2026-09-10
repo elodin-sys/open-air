@@ -149,7 +149,7 @@
     "validity_component_required": true
   },
   "concept": "diana2",
-  "created_at": "2026-09-09T19:57:07+00:00",
+  "created_at": "2026-09-10T04:15:28+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -240,7 +240,7 @@
     "geometry_vsp3": {
       "path": "geometry/diana2.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "87c6df35d2ebf14ad0b1e7871f26b52f2885a2de78654fdbc99ebad727f08bb2",
+      "sha256": "a57fde1abcd1aa9dc93c65562a9cc480cc1eee9626c23bf5cdaa71b15d258f56",
       "size_bytes": 277534
     },
     "geometry_whole_stl": {
@@ -264,7 +264,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "aeefee8be491cc7a053eac7558da943597a18a2b9a74cecdc060e01fcf353a0b",
+      "sha256": "8df3ddde1ed606f9ecf428ff070ba6a00ca046f347e341fdb29bba1c96e7621c",
       "size_bytes": 1316
     },
     "render_glb": {
@@ -428,7 +428,7 @@
       "Propulsion map is evaluated from the analytic lapse/TSFC model, not an identified engine deck.",
       "NACA 0012 may be a documented surrogate rather than the physical aircraft section."
     ],
-    "design_sha256": "e262888e26cb296524e5a07f41a8721a409ea6d82f45c6ccffd7538b48d0127e",
+    "design_sha256": "aeba9943df5572c168a08db4f273cca72cb747ae58ee971c96a23c6fa7e5f4e4",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -436,15 +436,15 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "6c3af6d21fb25a724ab412268a7a3de73594bd1cd02e72206ae46ae50e857281",
-    "pipeline_run_id": "6da961ad3be1418b98d0b6ecd058e26e",
-    "source_git_commit": "770fd2c4c4b5d2ac91ea2ab39ec178b8bfe9269a",
+    "model_source_sha256": "72019251bf27f503af00630181ef4e78371671877325e37f0ec3feb511ff5537",
+    "pipeline_run_id": "3c3def385b2e45eab3c2c4c3f7fbdf4c",
+    "source_git_commit": "0aee6b4a57e96f360a0cebe84cb754744f5428b4",
     "upstream_sha256": {
-      "aero.json": "04da4eefcf4f7b627a9510b06ce34ae6a5ab79d843d0914e40f03bbcf7ce838b",
-      "flightdyn.json": "b0ab776c8b06cb5582d3421a52a4c40352351329c5c0b9212bcff1b4fa6d1bb4",
-      "geometry.json": "9928f90c3c64c3884af5c542dd20522d0de23154fb59e9a882bca57166b2dd2d",
-      "structures.json": "05dabd39a0627390ae54b71a78c487eab0a78813504c40ee20d56835081e9181",
-      "validation.json": "08ceaaaed269a6fb5b70988e0564e25c7a934c249ff1c7793025a2d74baf58f4"
+      "aero.json": "ae72822311ad232486312e3d9b8c02971eeb07e6f3c4a0815be917d1c40b3196",
+      "flightdyn.json": "187095faa26b15760e823e7a1758bb037a41f9f44ea792f484e789b8ae9814c6",
+      "geometry.json": "6003523ade5b36b8ab57bffc5efb0b31ba306734d1c26afc324a472aa2777bf6",
+      "structures.json": "4366cf964f23150dd344715cff2356e06fa55936875d4a16626b6068db5860ca",
+      "validation.json": "63dd2851b0d12b0afa031a1c6ec700cb4184562d09eb23d98de44903f2b8b9ba"
     }
   },
   "reference_geometry": {
@@ -491,6 +491,7 @@
       "cant_deg": 0.0,
       "count": 1,
       "le_sweep_deg": 32.0,
+      "root_attachment": "derived",
       "root_chord_m": 0.32,
       "span_m": 0.34,
       "t_over_c": 0.1,
@@ -507,6 +508,7 @@
       "le_sweep_deg": 0.198595,
       "mac_m": 0.20648615605897158,
       "root_chord_m": 0.22333333333333333,
+      "sections": null,
       "span_m": 5.0,
       "t_over_c": 0.12,
       "taper": 0.8447761194029852,

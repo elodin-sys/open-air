@@ -1,8 +1,8 @@
 {
  "schema": "openair.reference/1",
- "generated": "2026-09-05T18:25:26+00:00",
+ "generated": "2026-09-10T04:06:34+00:00",
  "concept": "atomrc-dolphin-v1-1",
- "model_source_sha256": "b02c8540f6419ae54de0bf053ad5c6f20f730a7e8b11eaeb8d32691418125d29",
+ "model_source_sha256": "72019251bf27f503af00630181ef4e78371671877325e37f0ec3feb511ff5537",
  "provenance": {
   "source_path": "/home/elo/dev/open-air/scratch/dolphin/dolphin_scan.stl",
   "source_name": "dolphin_scan.stl",
@@ -147,9 +147,9 @@
  },
  "anchor_check": {
   "span_measured_m": 0.848700137081178,
-  "anchor_span_m": 0.8472000000000001,
-  "source": "sidecar measured_span_mm",
-  "relative_deviation": 0.0017707000486047097,
+  "anchor_span_m": 0.8472,
+  "source": "--expect-span-m",
+  "relative_deviation": 0.0017707000486048411,
   "tolerance": 0.03,
   "ok": true
  },
@@ -160,15 +160,15 @@
  },
  "silhouettes": {
   "top": {
-   "path": "designs/.staging-atomrc-dolphin-v1-1/sketch-top.png",
+   "path": "/home/elo/dev/open-air/designs/atomrc-dolphin-v1-1/sketch-top.png",
    "mm_per_px": 0.5
   },
   "side": {
-   "path": "designs/.staging-atomrc-dolphin-v1-1/sketch-side.png",
+   "path": "/home/elo/dev/open-air/designs/atomrc-dolphin-v1-1/sketch-side.png",
    "mm_per_px": 0.5
   },
   "front": {
-   "path": "designs/.staging-atomrc-dolphin-v1-1/sketch-front.png",
+   "path": "/home/elo/dev/open-air/designs/atomrc-dolphin-v1-1/sketch-front.png",
    "mm_per_px": 0.5
   }
  },
@@ -11199,24 +11199,110 @@
   "wing": {
    "span_m": 0.8496,
    "root_chord_m": 0.2601,
-   "taper": 0.4382,
-   "le_sweep_deg": -6.38,
-   "dihedral_deg": -0.9,
+   "taper": 0.5104,
+   "le_sweep_deg": -12.12,
+   "dihedral_deg": -1.92,
    "twist_root_deg": 3.0,
    "twist_tip_deg": 1.01,
    "t_over_c": 0.1004,
    "airfoil": "1209",
    "x_le_root_m": 0.4071,
-   "z_root_m": 0.0245
+   "z_root_m": 0.0245,
+   "sections": [
+    {
+     "eta": 0.0,
+     "chord_m": 0.2601,
+     "x_le_m": 0.4071,
+     "z_le_m": 0.0245,
+     "t_over_c": 0.1004
+    },
+    {
+     "eta": 0.169494,
+     "chord_m": 0.3818,
+     "x_le_m": 0.3134,
+     "z_le_m": 0.0189,
+     "t_over_c": 0.0612
+    },
+    {
+     "eta": 0.193035,
+     "chord_m": 0.3351,
+     "x_le_m": 0.3527,
+     "z_le_m": 0.0189,
+     "t_over_c": 0.0686
+    },
+    {
+     "eta": 0.216575,
+     "chord_m": 0.288,
+     "x_le_m": 0.3757,
+     "z_le_m": 0.0198,
+     "t_over_c": 0.0785
+    },
+    {
+     "eta": 0.251887,
+     "chord_m": 0.2317,
+     "x_le_m": 0.3832,
+     "z_le_m": 0.0196,
+     "t_over_c": 0.0951
+    },
+    {
+     "eta": 0.287198,
+     "chord_m": 0.2259,
+     "x_le_m": 0.3813,
+     "z_le_m": 0.0192,
+     "t_over_c": 0.0951
+    },
+    {
+     "eta": 0.298968,
+     "chord_m": 0.2162,
+     "x_le_m": 0.3885,
+     "z_le_m": 0.0208,
+     "t_over_c": 0.0985
+    },
+    {
+     "eta": 0.769785,
+     "chord_m": 0.1302,
+     "x_le_m": 0.3771,
+     "z_le_m": 0.0161,
+     "t_over_c": 0.1004
+    },
+    {
+     "eta": 0.887489,
+     "chord_m": 0.1248,
+     "x_le_m": 0.3575,
+     "z_le_m": 0.0134,
+     "t_over_c": 0.0946
+    },
+    {
+     "eta": 0.93457,
+     "chord_m": 0.1012,
+     "x_le_m": 0.3718,
+     "z_le_m": 0.0128,
+     "t_over_c": 0.1004
+    },
+    {
+     "eta": 0.993422,
+     "chord_m": 0.0436,
+     "x_le_m": 0.4217,
+     "z_le_m": 0.0071,
+     "t_over_c": 0.1004
+    },
+    {
+     "eta": 1.0,
+     "chord_m": 0.0368,
+     "x_le_m": 0.4281,
+     "z_le_m": 0.0055,
+     "t_over_c": 0.1004
+    }
+   ]
   },
   "sketch": {
    "span_over_length": 1.1933,
    "span_over_length_tol": 0.01,
    "root_over_length": 0.3653,
    "root_over_length_tol": 0.0149,
-   "le_sweep_deg": -6.38,
+   "le_sweep_deg": -12.12,
    "le_sweep_tol_deg": 2.0,
-   "taper": 0.4382,
+   "taper": 0.5104,
    "taper_tol": 0.0615,
    "x_le_root_over_length": 0.5718,
    "x_le_root_over_length_tol": 0.0139,
@@ -11312,6 +11398,7 @@
   },
   "vtail": {
    "count": 2,
+   "root_attachment": "measured",
    "span_m": 0.1193,
    "root_chord_m": 0.1073,
    "taper": 0.559,
@@ -11335,7 +11422,8 @@
    "note": "Hinge line and span/chord fractions are measured; travel limits (max_up_deg/max_down_deg) are not measurable from a static scan. The as-scanned deflection is the control position at scan time (trailing edge up positive), not a trimmed-flight neutral."
   },
   "notes": [
-   "Wing edges depart from straight lines outboard of |y| = 0.397 m (rounded or raked tips); the equivalent trapezoid preserves area, not the outline.",
+   "Wing edges depart from straight lines outboard of |y| = 0.397 m (rounded or raked tips); wing.sections preserves the measured outline while the scalar taper/sweep remain equivalent descriptors.",
+   "wing.sections t_over_c values are inferred loft controls: the measured mean t/c is scaled where the root/deck outline adds chord so absolute wing thickness is not inflated. Only the six airfoil cuts are direct section-thickness measurements.",
    "The wing leading-edge nose was not captured at 33% of stations (both skins end at the same station); chord and x_le carry a 2%-chord allowance and the chord line uses the mid-line extrapolated to the nose.",
    "Elevons were scanned deflected (+3.0 deg, trailing edge up positive). Twist and airfoil camber were measured on the undeflected chord line; do not read the deflection as a trimmed neutral without the measurement form section 2."
   ]
@@ -11350,7 +11438,81 @@
    "twist_tip_deg": 1.3787255636421196,
    "x_le_root_m": 0.009907069483740646,
    "z_root_m": 0.0016530833578557772,
-   "t_over_c": 0.015661968628104483
+   "t_over_c": 0.015661968628104483,
+   "sections": [
+    {
+     "eta": 0.0,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    },
+    {
+     "eta": 0.169494,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    },
+    {
+     "eta": 0.193035,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    },
+    {
+     "eta": 0.216575,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    },
+    {
+     "eta": 0.251887,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    },
+    {
+     "eta": 0.287198,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    },
+    {
+     "eta": 0.298968,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    },
+    {
+     "eta": 0.769785,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    },
+    {
+     "eta": 0.887489,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    },
+    {
+     "eta": 0.93457,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    },
+    {
+     "eta": 0.993422,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    },
+    {
+     "eta": 1.0,
+     "chord_m": 0.004257586699196014,
+     "x_le_m": 0.004257586699196014,
+     "z_le_m": 0.0016530833578557772
+    }
+   ]
   },
   "fuselage": {
    "length_m": 0.0016530833578557772,
@@ -11415,6 +11577,28 @@
   "control_surface": {
    "hinge_x_over_c": 0.06543564686906396,
    "deflection_deg": 3.8138918280121046
+  }
+ },
+ "disclosures": {
+  "wing_planform": {
+   "mode": "measured multi-section loft",
+   "source_station_count": 71,
+   "section_count": 12,
+   "body_exclusion_half_width_m": 0.07049999999999998,
+   "simplification_tolerance_m": 0.0054907267048889515,
+   "sections_area_m2": 0.16688372844888003,
+   "area_convention": "gross projected area of the measured multi-section outline, including root blends/deck extensions represented by the station curve",
+   "section_t_over_c_basis": "inferred from the measured mean wing t/c by preserving the straight-band absolute thickness where root/deck chord is larger; not a direct section-thickness measurement",
+   "equivalent_trapezoid": {
+    "root_chord_m": 0.2601,
+    "taper": 0.5103901118800462,
+    "le_sweep_deg": -12.117167114274846,
+    "dihedral_deg": -1.923964441805884,
+    "x_le_root_m": 0.4071,
+    "z_root_m": 0.0245,
+    "mac_m": 0.22945318631651823,
+    "x_le_mac_m": 0.37152225891584434
+   }
   }
  }
 }

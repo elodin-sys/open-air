@@ -1,6 +1,6 @@
 # open-air validation envelope
 
-Generated: 2026-09-09T19:58:50+00:00
+Generated: 2026-09-10T04:17:20+00:00
 
 This report scopes evidence by intended use and truth class. Agreement with
 class C/D references is verification or plausibility evidence, not independent

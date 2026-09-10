@@ -233,6 +233,7 @@ def load_sized_spec(case_path: Path, fallback: VehicleSpec) -> VehicleSpec:
 
 
 def run_sizing_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
+    spec.assert_cross_model_invariants()
     result = size_vehicle(spec)
     sized = VehicleSpec.model_validate(result["sized_spec"])
     yaml_path = outdir / "target_sized.yaml"

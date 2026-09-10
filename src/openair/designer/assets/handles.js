@@ -126,6 +126,12 @@
     return [null];
   }
 
+  function scalarWingInstances(design) {
+    return Array.isArray(design.wing.sections) && design.wing.sections.length >= 3
+      ? []
+      : [null];
+  }
+
   function stationInstances(design) {
     return Array.isArray(design.fuselage.stations)
       ? design.fuselage.stations.map((_, index) => index)
@@ -139,7 +145,7 @@
   registerHandle({
     id: "wing-root-le",
     view: "top",
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => [wingGeometry(design).xRoot, 0],
     drag: (design, [x]) => [
       {path: "wing.x_le_root_m", value: round(clamp(x, 0, number(design.fuselage.length_m)))},
@@ -148,7 +154,7 @@
   registerHandle({
     id: "wing-root-te",
     view: "top",
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => {
       const wing = wingGeometry(design);
       return [wing.xRoot + wing.root, 0];
@@ -161,7 +167,7 @@
     id: "wing-tip-le",
     view: "top",
     dragGain: .45,
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => {
       const wing = wingGeometry(design);
       return [wing.xTip, wing.halfSpan];
@@ -181,7 +187,7 @@
     id: "wing-tip-te",
     view: "top",
     dragGain: .45,
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => {
       const wing = wingGeometry(design);
       return [wing.xTip + wing.tip, wing.halfSpan];
@@ -360,7 +366,7 @@
   registerHandle({
     id: "wing-dihedral",
     view: "front",
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => {
       const wing = wingGeometry(design);
       return [
@@ -462,7 +468,7 @@
   registerHandle({
     id: "wing-z-root",
     view: "side",
-    instances: singleton,
+    instances: scalarWingInstances,
     position: design => [number(design.wing.x_le_root_m), number(design.wing.z_root_m)],
     drag: (_design, [, z]) => [{path: "wing.z_root_m", value: round(z)}],
   });

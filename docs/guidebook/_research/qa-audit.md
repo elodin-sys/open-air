@@ -371,6 +371,40 @@ whole-aircraft p95 from 17.7 to 13.4 mm, and front IoU from 0.664 to 0.787
 without moving source geometry or widening a band. The omitted deck/strake
 fairing remains disclosed rather than invented.
 
+## F35 — One equivalent trapezoid erased measured root and tip geometry
+
+The Dolphin scan measured a nonlinear wing-root blend/deck extension, a
+straight outer panel, and a rounded, drooped tip, but `WingSpec` and every
+geometry backend admitted only one trapezoid. The equivalent planform passed
+the old top-IoU threshold while leaving 5–13 mm excess outer-panel chord,
+about 30 mm excess tip chord, no root extension, and tips about 7 mm too high.
+After the fin repair this abstraction still dominated the face-on and top
+overlay (IoU 0.787/0.912). A second trap appeared during implementation:
+OpenVSP read every inserted panel value back correctly but retained its
+pre-insertion `XSec_1.Area`; the written VSP3 then rescaled every chord when
+reopened.
+
+**Fix:** optional `wing.sections` carries 3–12 measured centreline-to-tip
+stations and is restricted to source-locked reproductions until section-aware
+MDO variables exist. The section integral is the area/MAC source of truth;
+legacy root/taper/sweep/dihedral are validated area/MAC-locus-equivalent
+descriptors. The same interpolation drives OpenVSP, OAS, Studio, packing,
+elevon balance, and aeroelastic strips. OpenVSP gets one driver/read-back row
+per panel plus an aggregate-span nudge/restore and reopen test. Reference
+ingest mirror-averages stations, excludes the measured body width, preserves
+straight-band and tip anchors, and simplifies at a resolution-aware bound.
+
+The Dolphin's 12-section loft raised top/front IoU to 0.969/0.897 (side
+0.952) and gave 4.9 mm exposed-wing p95; full wing p95 remains 16.0 mm only
+because the component STL includes invisible carry-through inside the body.
+The changed gross area put generic Vv at 0.0191, so the measured fins were not
+resized: a quality-gated full-aircraft probe established `Cn_beta > 0`,
+`Cn_r < 0`, and `CY_beta < 0`. Its panelized grid also exposed residual
+0.01-degree beta differencing noise. A central ±1-degree escalation retained
+the same 0.02 noise band and reduced the relevant symmetry ratios below
+4.4e-5. Final validation is 15/15 and the twelve-gate verdict is green without
+widening geometry or stability acceptance bands.
+
 ## Measured calibration constants (corrected OAS mesh, 32° swept trapezoid)
 
 - Neutral point: 25% MAC + 0.043 MAC → `np_shift_mac = 0.043`

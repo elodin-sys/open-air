@@ -68,7 +68,13 @@ def _dense_points(mesh, count: int, seed: int) -> np.ndarray:
 
 def _distance_stats(dist: np.ndarray) -> dict[str, float]:
     if dist.size == 0:
-        return {"mean_m": float("nan"), "p50_m": float("nan"), "p95_m": float("nan"), "max_m": float("nan"), "count": 0}
+        return {
+            "mean_m": float("nan"),
+            "p50_m": float("nan"),
+            "p95_m": float("nan"),
+            "max_m": float("nan"),
+            "count": 0,
+        }
     return {
         "mean_m": float(np.mean(dist)),
         "p50_m": float(np.percentile(dist, 50)),
@@ -78,7 +84,11 @@ def _distance_stats(dist: np.ndarray) -> dict[str, float]:
     }
 
 
-def _station_deltas(model_field: M.PointField, spec: VehicleSpec, reference_stations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _station_deltas(
+    model_field: M.PointField,
+    spec: VehicleSpec,
+    reference_stations: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     out = []
     for station in reference_stations:
         f = float(station["x_over_length"])
@@ -99,8 +109,16 @@ def _station_deltas(model_field: M.PointField, spec: VehicleSpec, reference_stat
             {
                 "x_over_length": f,
                 "ok": True,
-                "reference": {"width_m": station["width_m"], "height_m": station["height_m"], "z_offset_m": station["z_offset_m"]},
-                "model": {"width_m": width, "height_m": z_top - z_bot, "z_offset_m": 0.5 * (z_top + z_bot)},
+                "reference": {
+                    "width_m": station["width_m"],
+                    "height_m": station["height_m"],
+                    "z_offset_m": station["z_offset_m"],
+                },
+                "model": {
+                    "width_m": width,
+                    "height_m": z_top - z_bot,
+                    "z_offset_m": 0.5 * (z_top + z_bot),
+                },
                 "delta": {
                     "width_m": width - station["width_m"],
                     "height_m": (z_top - z_bot) - station["height_m"],
@@ -111,7 +129,9 @@ def _station_deltas(model_field: M.PointField, spec: VehicleSpec, reference_stat
     return out
 
 
-def _planform_deltas(model_field: M.PointField, reference_wing: dict[str, Any]) -> dict[str, Any]:
+def _planform_deltas(
+    model_field: M.PointField, reference_wing: dict[str, Any]
+) -> dict[str, Any]:
     stations = reference_wing.get("stations") or []
     if not stations:
         return {"ok": False, "reason": "reference has no wing stations"}
@@ -144,7 +164,9 @@ def _planform_deltas(model_field: M.PointField, reference_wing: dict[str, Any]) 
     }
 
 
-def _silhouette_overlap(ref_points: np.ndarray, model_points: np.ndarray, mm_per_px: float = 1.0) -> dict[str, Any]:
+def _silhouette_overlap(
+    ref_points: np.ndarray, model_points: np.ndarray, mm_per_px: float = 1.0
+) -> dict[str, Any]:
     out: dict[str, Any] = {}
     for view, (i, j) in VIEWS.items():
         both = np.vstack([ref_points[:, [i, j]], model_points[:, [i, j]]])
@@ -157,8 +179,12 @@ def _silhouette_overlap(ref_points: np.ndarray, model_points: np.ndarray, mm_per
         union = np.logical_or(ref_mask, model_mask).sum()
         out[view] = {
             "iou": float(inter / union) if union else float("nan"),
-            "reference_only_m2": float(np.logical_and(ref_mask, ~model_mask).sum() * px_area),
-            "model_only_m2": float(np.logical_and(model_mask, ~ref_mask).sum() * px_area),
+            "reference_only_m2": float(
+                np.logical_and(ref_mask, ~model_mask).sum() * px_area
+            ),
+            "model_only_m2": float(
+                np.logical_and(model_mask, ~ref_mask).sum() * px_area
+            ),
             "reference_area_m2": float(ref_mask.sum() * px_area),
             "model_area_m2": float(model_mask.sum() * px_area),
             "mm_per_px": mm_per_px,
@@ -196,11 +222,18 @@ def _overlay_figure(
             vmax=1.6,
             interpolation="nearest",
         )
-        ax.add_collection(LineCollection(edges[:, :, [i, j]], colors="#1d2a33", linewidths=0.25, alpha=0.7))
+        ax.add_collection(
+            LineCollection(
+                edges[:, :, [i, j]], colors="#1d2a33", linewidths=0.25, alpha=0.7
+            )
+        )
         ax.set_xlim(lo[0], hi[0])
         ax.set_ylim(lo[1], hi[1])
         ax.set_aspect("equal")
-        ax.set_title(f"{view}: IoU {views[view]['iou']:.3f}  (blue = reference scan, lines = exported mesh)", fontsize=9)
+        ax.set_title(
+            f"{view}: IoU {views[view]['iou']:.3f}  (blue = reference scan, lines = exported mesh)",
+            fontsize=9,
+        )
         ax.grid(True, alpha=0.2)
     fig.suptitle(title)
     fig.tight_layout()
@@ -220,11 +253,22 @@ def compare_reference(
 ) -> dict[str, Any]:
     """Compare one exported OpenVSP artifact with the concept's reference model."""
     outdir = Path(outdir)
-    ref_dir = Path(reference_dir) if reference_dir is not None else reference_dir_for_outdir(outdir)
+    ref_dir = (
+        Path(reference_dir)
+        if reference_dir is not None
+        else reference_dir_for_outdir(outdir)
+    )
     if ref_dir is None:
-        return {"ok": None, "available": False, "reason": "no reference model for this concept"}
+        return {
+            "ok": None,
+            "available": False,
+            "reason": "no reference model for this concept",
+        }
     ref_mesh, meta = load_reference(ref_dir)
-    acceptance = {**{"p95_m": 0.015, "iou_top": 0.90, "iou_side": 0.85}, **(meta.get("acceptance") or {})}
+    acceptance = {
+        **{"p95_m": 0.015, "iou_top": 0.90, "iou_side": 0.85},
+        **(meta.get("acceptance") or {}),
+    }
     model = _load_mesh(stl_path)
     model_points = _dense_points(model, 400_000, seed=3)
     ref_points = _dense_points(ref_mesh, 600_000, seed=5)
@@ -234,11 +278,29 @@ def compare_reference(
     model_spacing = math.sqrt(model.area / max(model_points.shape[0], 1))
 
     rng = np.random.default_rng(1)
-    sub_model = model_points[rng.choice(model_points.shape[0], size=min(60_000, model_points.shape[0]), replace=False)]
-    sub_ref = ref_points[rng.choice(ref_points.shape[0], size=min(60_000, ref_points.shape[0]), replace=False)]
+    sub_model = model_points[
+        rng.choice(
+            model_points.shape[0],
+            size=min(60_000, model_points.shape[0]),
+            replace=False,
+        )
+    ]
+    sub_ref = ref_points[
+        rng.choice(
+            ref_points.shape[0], size=min(60_000, ref_points.shape[0]), replace=False
+        )
+    ]
     d_model_to_ref, _ = ref_tree.query(sub_model, k=1, workers=-1)
     d_ref_to_model, _ = model_tree.query(sub_ref, k=1, workers=-1)
 
+    measurements = meta.get("measurements") or {}
+    reference_wing = measurements.get("wing") or {}
+    wing_exclusion_half_width = float(
+        ((meta.get("disclosures") or {}).get("wing_planform") or {}).get(
+            "body_exclusion_half_width_m",
+            reference_wing.get("body_half_width_m", 0.0),
+        )
+    )
     components: dict[str, Any] = {}
     for name, path in (component_stls or {}).items():
         try:
@@ -249,18 +311,38 @@ def compare_reference(
         pts = _dense_points(comp, 60_000, seed=9)
         d, _ = ref_tree.query(pts, k=1, workers=-1)
         components[name] = _distance_stats(d)
+        if name == "wing" and wing_exclusion_half_width > 0.0:
+            exposed = np.abs(pts[:, 1]) >= wing_exclusion_half_width
+            if np.any(exposed):
+                components[name]["exposed"] = {
+                    **_distance_stats(d[exposed]),
+                    "root_exclusion_half_width_m": wing_exclusion_half_width,
+                    "basis": (
+                        "component points outside the scan-derived body/root "
+                        "carry-through exclusion"
+                    ),
+                }
 
     views = _silhouette_overlap(ref_points, model_points, mm_per_px=1.0)
     model_field = M.PointField(model_points, max(model_spacing, 0.0005))
     fuselage_field = None
     wing_field = None
     if component_stls and component_stls.get("fuselage"):
-        fuselage_field = M.PointField(_dense_points(_load_mesh(component_stls["fuselage"]), 250_000, seed=13), max(model_spacing, 0.0005))
+        fuselage_field = M.PointField(
+            _dense_points(_load_mesh(component_stls["fuselage"]), 250_000, seed=13),
+            max(model_spacing, 0.0005),
+        )
     if component_stls and component_stls.get("wing"):
-        wing_field = M.PointField(_dense_points(_load_mesh(component_stls["wing"]), 250_000, seed=17), max(model_spacing, 0.0005))
-    measurements = meta.get("measurements") or {}
-    stations = _station_deltas(fuselage_field or model_field, spec, measurements.get("stations") or [])
-    planform = _planform_deltas(wing_field or model_field, measurements.get("wing") or {})
+        wing_field = M.PointField(
+            _dense_points(_load_mesh(component_stls["wing"]), 250_000, seed=17),
+            max(model_spacing, 0.0005),
+        )
+    stations = _station_deltas(
+        fuselage_field or model_field, spec, measurements.get("stations") or []
+    )
+    planform = _planform_deltas(
+        wing_field or model_field, measurements.get("wing") or {}
+    )
 
     m2r = _distance_stats(d_model_to_ref)
     r2m = _distance_stats(d_ref_to_model)
@@ -272,9 +354,15 @@ def compare_reference(
     # selected, a derived fin attachment); it is disclosed, not gating.
     # Whole-aircraft p95 is disclosed as well. Silhouette IoU gates the
     # planform and profile.
-    body_stats = components.get("fuselage") if "p95_m" in (components.get("fuselage") or {}) else None
+    body_stats = (
+        components.get("fuselage")
+        if "p95_m" in (components.get("fuselage") or {})
+        else None
+    )
     p95_gate_value = body_stats["p95_m"] if body_stats else m2r["p95_m"]
-    p95_gate_basis = "fuselage component" if body_stats else "whole aircraft (no component STLs)"
+    p95_gate_basis = (
+        "fuselage component" if body_stats else "whole aircraft (no component STLs)"
+    )
     checks = {
         "p95_body": {
             "got": p95_gate_value,
@@ -282,21 +370,43 @@ def compare_reference(
             "ok": bool(p95_gate_value <= acceptance["p95_m"]),
             "basis": p95_gate_basis,
         },
-        "iou_top": {"got": views["top"]["iou"], "limit": acceptance["iou_top"], "ok": bool(views["top"]["iou"] >= acceptance["iou_top"])},
-        "iou_side": {"got": views["side"]["iou"], "limit": acceptance["iou_side"], "ok": bool(views["side"]["iou"] >= acceptance["iou_side"])},
+        "iou_top": {
+            "got": views["top"]["iou"],
+            "limit": acceptance["iou_top"],
+            "ok": bool(views["top"]["iou"] >= acceptance["iou_top"]),
+        },
+        "iou_side": {
+            "got": views["side"]["iou"],
+            "limit": acceptance["iou_side"],
+            "ok": bool(views["side"]["iou"] >= acceptance["iou_side"]),
+        },
     }
     fin_attachment_note = (
         "the measured fin root junction is honoured exactly"
         if spec.vtail.root_attachment == "measured"
         else "the fin attachment is derived from the local body"
     )
+    wing_planform_note = (
+        f"the measured {len(spec.wing.sections)}-section wing outline is honoured"
+        if spec.wing.sections is not None
+        else "the wing uses an area-equivalent trapezoid with a straight-cut tip"
+    )
     disclosed = {
         "p95_whole_aircraft_m": m2r["p95_m"],
-        "p95_components_m": {name: stats.get("p95_m") for name, stats in components.items() if "p95_m" in stats},
+        "p95_components_m": {
+            name: stats.get("p95_m")
+            for name, stats in components.items()
+            if "p95_m" in stats
+        },
+        "p95_exposed_components_m": {
+            name: stats["exposed"]["p95_m"]
+            for name, stats in components.items()
+            if isinstance(stats.get("exposed"), dict) and "p95_m" in stats["exposed"]
+        },
         "note": (
             "wing and fin deviations are gated by the measured sketch priors; "
-            "their p95 reflects declared abstractions (equivalent-trapezoid "
-            f"tips; {fin_attachment_note}) and is disclosed"
+            "their p95 reflects the declared geometry representation "
+            f"({wing_planform_note}; {fin_attachment_note}) and is disclosed"
         ),
     }
     result: dict[str, Any] = {
@@ -318,7 +428,10 @@ def compare_reference(
         "distance_model_to_reference": m2r,
         "distance_reference_to_model": r2m,
         "components": components,
-        "silhouettes": {k: {kk: vv for kk, vv in v.items() if not kk.startswith("_")} for k, v in views.items()},
+        "silhouettes": {
+            k: {kk: vv for kk, vv in v.items() if not kk.startswith("_")}
+            for k, v in views.items()
+        },
         "stations": stations,
         "planform": planform,
         "evidence_class": "artifact-vs-reference geometry check; reference is design input, not validation truth",

@@ -53,6 +53,16 @@ wing:
   airfoil: "0012"
   x_le_root_m: 0.80
   z_root_m: 0.00
+  # Measured reproductions may add 3–12 centreline-to-tip sections. When
+  # present, these drive OpenVSP/OAS/Studio geometry; root_chord_m, taper,
+  # le_sweep_deg, dihedral_deg, x_le_root_m, and z_root_m above must equal
+  # the section-derived area/MAC-locus equivalent descriptors. The reference
+  # ingest writes both consistently. Section-local t/c is loft-only; OAS and
+  # the wingbox retain the uniform wing.t_over_c above.
+  # sections:
+  #   - {eta: 0.0, chord_m: 1.15, x_le_m: 0.80, z_le_m: 0.00, t_over_c: 0.12}
+  #   - {eta: 0.6, chord_m: 0.6808, x_le_m: 1.5124, z_le_m: 0.0398, t_over_c: 0.11}
+  #   - {eta: 1.0, chord_m: 0.368, x_le_m: 1.9873, z_le_m: 0.0663, t_over_c: 0.10}
 
 fuselage:
   length_m: 2.45

@@ -133,7 +133,7 @@
     "validity_component_required": true
   },
   "concept": "ntnu-x8",
-  "created_at": "2026-09-09T19:53:55+00:00",
+  "created_at": "2026-09-10T04:12:03+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -224,7 +224,7 @@
     "geometry_vsp3": {
       "path": "geometry/ntnu-x8.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "8141dc941f63e7055288ce82dc05a3f3d1eb23cbe9ff04411bd357dcf5a61a0b",
+      "sha256": "de45891cce93cb8cb66d80e3fc954a2ff8e603befe4d093a369745ba5684c614",
       "size_bytes": 254282
     },
     "geometry_whole_stl": {
@@ -248,7 +248,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "488f3acfa16eebdddb2950d53acc660c77a8b172550b6c1b3ded38577f2fc775",
+      "sha256": "bbdd0980f0de31561d96de3af25e21767d2201ee95675bc44cb4da9c38e05814",
       "size_bytes": 1220
     },
     "render_glb": {
@@ -468,7 +468,7 @@
       "steady linear derivatives do not model gusts, actuator delay, or stall",
       "NACA 0012 may be a documented surrogate rather than the physical aircraft section."
     ],
-    "design_sha256": "384cc8db2c188aeb8600bbdf86427b18c5602ebd9c7281cb02e1cc8722d0c9c3",
+    "design_sha256": "73f75ea0c2f154b29a065b8708fd793e56bd11c4b8efb224b9ed6afb23c62e58",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -476,15 +476,15 @@
       "propulsion": "C",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "6c3af6d21fb25a724ab412268a7a3de73594bd1cd02e72206ae46ae50e857281",
-    "pipeline_run_id": "206affdd4c0946f595389b31bc9c6ae5",
-    "source_git_commit": "770fd2c4c4b5d2ac91ea2ab39ec178b8bfe9269a",
+    "model_source_sha256": "72019251bf27f503af00630181ef4e78371671877325e37f0ec3feb511ff5537",
+    "pipeline_run_id": "fc130a155e7d4f7398a82f75b9ab7fcb",
+    "source_git_commit": "0aee6b4a57e96f360a0cebe84cb754744f5428b4",
     "upstream_sha256": {
-      "aero.json": "34087ec1b4729fb84aed040e602e6258e3823a2544ee2cee69f8f0acbeaaa9e2",
-      "flightdyn.json": "02bd9418ef86e582941cf23862121f8fa3b2358c2550aa9cf3931b8cd10bd271",
-      "geometry.json": "b8cd37b1f025c84374092144560b8166b3a3e7d18c9352194d025aecf04598c8",
-      "structures.json": "291b3687f4376b42b0292eb8943429cd5e3387e6c1595b40a209b32dd39be7e2",
-      "validation.json": "ece9bf33dcf14316f32b4d0576b8f90a58da0e1999682e284a07823ee5fb2b2a"
+      "aero.json": "5e9f2f4ba62a92dbb6c4554dbf3b62208f52bd8e8fc3cbd3909459679cfde54d",
+      "flightdyn.json": "69f0033df94e60ff766f8fc52b8c8857abedf351ce7754d4c0bfcdd8053e6c7c",
+      "geometry.json": "4cabec54d979414ae437b9cb012ae5aeb7b58f6657e5a83c4b27b9c48ee782b6",
+      "structures.json": "a54cbf6fd1e032600a69f56b161f2b1945f1ace75fdda3f720dbdb7e19d8f6c9",
+      "validation.json": "f0acc20ff1d13ac08045cfd5c83e8c1ce1cacc0b9c176a258b6b88caaefd4468"
     }
   },
   "reference_geometry": {
@@ -531,6 +531,7 @@
       "cant_deg": 12.0,
       "count": 2,
       "le_sweep_deg": 35.0,
+      "root_attachment": "derived",
       "root_chord_m": 0.3,
       "span_m": 0.22,
       "t_over_c": 0.1,
@@ -547,6 +548,7 @@
       "le_sweep_deg": 25.0,
       "mac_m": 0.36,
       "root_chord_m": 0.4124711906601062,
+      "sections": null,
       "span_m": 2.1,
       "t_over_c": 0.12,
       "taper": 0.7317226765403747,

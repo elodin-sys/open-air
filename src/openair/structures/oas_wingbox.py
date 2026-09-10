@@ -344,6 +344,7 @@ def _run_load_closed_aerostruct(
 
 
 def run_structures_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
+    spec.assert_cross_model_invariants()
     masses = closed_mass_breakdown(spec, spec.mass.fuel_mass_kg)
     mtow = masses.mtow_kg
     fuel = spec.mass.fuel_mass_kg

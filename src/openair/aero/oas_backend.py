@@ -475,6 +475,7 @@ def run_aero_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
     from openair.mission.balance import balance_report, thin_airfoil_props
     from openair.mission.sizing import aero_point, cruise_tas, max_dash_speed
 
+    spec.assert_cross_model_invariants()
     masses = closed_mass_breakdown(spec, spec.mass.fuel_mass_kg)
     mtow = masses.mtow_kg
     bal = balance_report(spec, mtow, spec.mass.fuel_mass_kg)
@@ -673,8 +674,7 @@ def run_aero_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
             "elevon_trim_deg": cruise.get("elevon_trim_deg"),
             "elevon_spec_deg": (
                 float(pitch_surface.trim_deflection_deg)
-                if pitch_surface is not None
-                and cruise.get("trim_control") == "elevon"
+                if pitch_surface is not None and cruise.get("trim_control") == "elevon"
                 else None
             ),
             "elevon_neutral_measured_deg": cruise.get("elevon_neutral_measured_deg"),
@@ -682,8 +682,12 @@ def run_aero_stage(spec: VehicleSpec, outdir: Path) -> dict[str, Any]:
             "elevon_within_travel": cruise.get("elevon_within_travel"),
             "elevon_sign_convention": cruise.get("elevon_sign_convention"),
             "dcm_ddelta_per_deg": cruise.get("dcm_ddelta_per_deg"),
-            "dcm_ddelta_fixed_alpha_per_deg": cruise.get("dcm_ddelta_fixed_alpha_per_deg"),
-            "dcl_ddelta_fixed_alpha_per_deg": cruise.get("dcl_ddelta_fixed_alpha_per_deg"),
+            "dcm_ddelta_fixed_alpha_per_deg": cruise.get(
+                "dcm_ddelta_fixed_alpha_per_deg"
+            ),
+            "dcl_ddelta_fixed_alpha_per_deg": cruise.get(
+                "dcl_ddelta_fixed_alpha_per_deg"
+            ),
             "twist_frozen": bool(cruise.get("twist_frozen", False)),
             "control_gap_deg": trim_gap,
             "cm_residual": cruise.get("cm_residual"),

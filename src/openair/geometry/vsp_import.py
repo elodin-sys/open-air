@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -82,12 +83,44 @@ def _require_two_section_wing(vsp, geom_id: str, label: str) -> list[str]:
     return reasons
 
 
-def _naca_code(vsp, geom_id: str, label: str) -> tuple[str | None, list[str]]:
-    reasons = _require_two_section_wing(vsp, geom_id, label)
-    if reasons:
-        return None, reasons
+def _require_wing_sections(
+    vsp,
+    geom_id: str,
+    label: str,
+    *,
+    minimum: int = 2,
+    maximum: int = 12,
+) -> tuple[int, list[str]]:
+    xsurf = vsp.GetXSecSurf(geom_id, 0)
+    count = int(vsp.GetNumXSec(xsurf))
+    reasons = []
+    if not minimum <= count <= maximum:
+        reasons.append(
+            f"{label}: expected {minimum}–{maximum} wing sections, found {count}"
+        )
+        return count, reasons
+    for index in range(count):
+        shape = int(vsp.GetXSecShape(vsp.GetXSec(xsurf, index)))
+        if shape != int(vsp.XS_FOUR_SERIES):
+            reasons.append(
+                f"{label}: section {index} must use a NACA four-series airfoil"
+            )
+    return count, reasons
+
+
+def _naca_code(
+    vsp,
+    geom_id: str,
+    label: str,
+    *,
+    count: int = 2,
+    thickness_digits: str | None = None,
+    allow_variable_thickness: bool = False,
+) -> tuple[str | None, list[str]]:
+    reasons: list[str] = []
     sections: list[tuple[float, float, float]] = []
-    for group in ("XSecCurve_0", "XSecCurve_1"):
+    for index in range(count):
+        group = f"XSecCurve_{index}"
         sections.append(
             (
                 _parm(vsp, geom_id, "Camber", group),
@@ -95,21 +128,37 @@ def _naca_code(vsp, geom_id: str, label: str) -> tuple[str | None, list[str]]:
                 _parm(vsp, geom_id, "ThickChord", group),
             )
         )
-    if any(abs(left - right) > 1e-4 for left, right in zip(sections[0], sections[1])):
+    if any(
+        abs(section[0] - sections[0][0]) > 1e-4
+        or abs(section[1] - sections[0][1]) > 1e-4
+        for section in sections[1:]
+    ):
         reasons.append(
-            f"{label}: root and tip airfoils differ; mixed airfoils are not "
+            f"{label}: root and tip airfoils differ; mixed camber lines are not "
             "representable yet"
+        )
+        return None, reasons
+    if not allow_variable_thickness and any(
+        abs(section[2] - sections[0][2]) > 1e-4 for section in sections[1:]
+    ):
+        reasons.append(
+            f"{label}: root and tip airfoils differ; variable thickness is not "
+            "representable for a two-section wing"
         )
         return None, reasons
     camber, camber_loc, thickness = sections[0]
     first = round(camber * 100.0)
     second = 0 if first == 0 else round(camber_loc * 10.0)
-    last = round(thickness * 100.0)
-    reconstructed = (first / 100.0, second / 10.0, last / 100.0)
+    last = (
+        int(thickness_digits)
+        if thickness_digits is not None
+        else round(thickness * 100.0)
+    )
+    reconstructed = (first / 100.0, second / 10.0)
     if (
         abs(camber - reconstructed[0]) > 5e-4
         or (first != 0 and abs(camber_loc - reconstructed[1]) > 5e-4)
-        or abs(thickness - reconstructed[2]) > 5e-4
+        or (thickness_digits is None and abs(thickness - last / 100.0) > 5e-4)
         or not 0 <= first <= 9
         or not 0 <= second <= 9
         or not 0 <= last <= 99
@@ -121,35 +170,153 @@ def _naca_code(vsp, geom_id: str, label: str) -> tuple[str | None, list[str]]:
     return f"{first:d}{second:d}{last:02d}", reasons
 
 
-def _import_wing(vsp, geom_id: str) -> tuple[dict[str, Any], list[str]]:
+def _import_wing(
+    vsp,
+    geom_id: str,
+    seed_spec: VehicleSpec,
+) -> tuple[dict[str, Any], list[str]]:
     reasons = _reject_nonzero_transform(
         vsp,
         geom_id,
         "wing",
         allow_location={"X_Rel_Location", "Z_Rel_Location"},
     )
-    sweep_location = _parm(vsp, geom_id, "Sweep_Location", "XSec_1")
-    if abs(sweep_location) > VALUE_TOL:
+    count, section_reasons = _require_wing_sections(vsp, geom_id, "wing")
+    reasons.extend(section_reasons)
+    for index in range(1, count):
+        sweep_location = _parm(vsp, geom_id, "Sweep_Location", f"XSec_{index}")
+        if abs(sweep_location) > VALUE_TOL:
+            reasons.append(
+                f"wing: XSec_{index}.Sweep_Location must remain 0 so section "
+                "sweep means LE sweep"
+            )
+    sectioned = count >= 3
+    if seed_spec.wing.sections is not None and not sectioned:
+        reasons.append("wing: a sectioned source must retain at least 3 sections")
+    if sectioned and not (
+        seed_spec.sketch is not None and seed_spec.sketch.treatment == "reproduction"
+    ):
         reasons.append(
-            "wing: Sweep_Location must remain 0 so le_sweep_deg means LE sweep"
+            "wing: multi-section geometry requires sketch.treatment='reproduction'"
         )
-    airfoil, airfoil_reasons = _naca_code(vsp, geom_id, "wing")
+    airfoil, airfoil_reasons = _naca_code(
+        vsp,
+        geom_id,
+        "wing",
+        count=count,
+        thickness_digits=seed_spec.wing.airfoil[2:],
+        allow_variable_thickness=sectioned,
+    )
     reasons.extend(airfoil_reasons)
     root = _parm(vsp, geom_id, "Root_Chord", "XSec_1")
-    tip = _parm(vsp, geom_id, "Tip_Chord", "XSec_1")
     thickness = _parm(vsp, geom_id, "ThickChord", "XSecCurve_0")
+    if not sectioned:
+        tip = _parm(vsp, geom_id, "Tip_Chord", "XSec_1")
+        return {
+            "span_m": _parm(vsp, geom_id, "TotalSpan", "WingGeom"),
+            "root_chord_m": root,
+            "taper": tip / root if root > 0.0 else 0.0,
+            "le_sweep_deg": _parm(vsp, geom_id, "Sweep", "XSec_1"),
+            "dihedral_deg": _parm(vsp, geom_id, "Dihedral", "XSec_1"),
+            "twist_root_deg": _parm(vsp, geom_id, "Twist", "XSec_0"),
+            "twist_tip_deg": _parm(vsp, geom_id, "Twist", "XSec_1"),
+            "t_over_c": thickness,
+            "airfoil": airfoil or "0000",
+            "x_le_root_m": _parm(vsp, geom_id, "X_Rel_Location", "XForm"),
+            "z_root_m": _parm(vsp, geom_id, "Z_Rel_Location", "XForm"),
+            "sections": None,
+        }, reasons
+
+    span = _parm(vsp, geom_id, "TotalProjectedSpan", "WingGeom")
+    semispan = 0.5 * span
+    x_le = _parm(vsp, geom_id, "X_Rel_Location", "XForm")
+    z_le = _parm(vsp, geom_id, "Z_Rel_Location", "XForm")
+    y = 0.0
+    root_twist = _parm(vsp, geom_id, "Twist", "XSec_0")
+    section_values: list[dict[str, Any]] = [
+        {
+            "eta": 0.0,
+            "chord_m": root,
+            "x_le_m": x_le,
+            "z_le_m": z_le,
+            "t_over_c": (
+                None
+                if seed_spec.wing.sections
+                and seed_spec.wing.sections[0].t_over_c is None
+                and abs(thickness - seed_spec.wing.t_over_c) <= 1e-4
+                else thickness
+            ),
+        }
+    ]
+    twists = [root_twist]
+    for index in range(1, count):
+        group = f"XSec_{index}"
+        projected_span = _parm(vsp, geom_id, "ProjectedSpan", group)
+        panel_span = _parm(vsp, geom_id, "Span", group)
+        sweep = _parm(vsp, geom_id, "Sweep", group)
+        dihedral = _parm(vsp, geom_id, "Dihedral", group)
+        y += projected_span
+        x_le += projected_span * math.tan(math.radians(sweep))
+        z_le += panel_span * math.sin(math.radians(dihedral))
+        t_over_c = _parm(vsp, geom_id, "ThickChord", f"XSecCurve_{index}")
+        seed_section = (
+            seed_spec.wing.sections[index]
+            if seed_spec.wing.sections is not None
+            and index < len(seed_spec.wing.sections)
+            else None
+        )
+        section_values.append(
+            {
+                "eta": y / max(semispan, 1e-12),
+                "chord_m": _parm(vsp, geom_id, "Tip_Chord", group),
+                "x_le_m": x_le,
+                "z_le_m": z_le,
+                "t_over_c": (
+                    None
+                    if seed_section is not None
+                    and seed_section.t_over_c is None
+                    and abs(t_over_c - seed_spec.wing.t_over_c) <= 1e-4
+                    else t_over_c
+                ),
+            }
+        )
+        twists.append(_parm(vsp, geom_id, "Twist", group))
+    tip_twist = twists[-1]
+    for index, (section, twist) in enumerate(
+        zip(section_values[1:-1], twists[1:-1], strict=True),
+        start=1,
+    ):
+        expected = root_twist + section["eta"] * (tip_twist - root_twist)
+        if abs(twist - expected) > 1e-4:
+            reasons.append(
+                f"wing: XSec_{index}.Twist={twist:.6g} is not on the "
+                f"representable root-to-tip linear law ({expected:.6g})"
+            )
+    try:
+        equivalent = seed_spec.wing.equivalent_trapezoid(section_values, span)
+    except ValueError as exc:
+        reasons.append(f"wing: cannot derive section equivalents: {exc}")
+        equivalent = {
+            "root_chord_m": root,
+            "taper": seed_spec.wing.taper,
+            "le_sweep_deg": seed_spec.wing.le_sweep_deg,
+            "dihedral_deg": seed_spec.wing.dihedral_deg,
+            "x_le_root_m": section_values[0]["x_le_m"],
+            "z_root_m": section_values[0]["z_le_m"],
+        }
     return {
-        "span_m": _parm(vsp, geom_id, "TotalSpan", "WingGeom"),
-        "root_chord_m": root,
-        "taper": tip / root if root > 0.0 else 0.0,
-        "le_sweep_deg": _parm(vsp, geom_id, "Sweep", "XSec_1"),
-        "dihedral_deg": _parm(vsp, geom_id, "Dihedral", "XSec_1"),
-        "twist_root_deg": _parm(vsp, geom_id, "Twist", "XSec_0"),
-        "twist_tip_deg": _parm(vsp, geom_id, "Twist", "XSec_1"),
-        "t_over_c": thickness,
-        "airfoil": airfoil or "0000",
-        "x_le_root_m": _parm(vsp, geom_id, "X_Rel_Location", "XForm"),
-        "z_root_m": _parm(vsp, geom_id, "Z_Rel_Location", "XForm"),
+        "span_m": span,
+        "root_chord_m": equivalent["root_chord_m"],
+        "taper": equivalent["taper"],
+        "le_sweep_deg": equivalent["le_sweep_deg"],
+        "dihedral_deg": equivalent["dihedral_deg"],
+        "twist_root_deg": root_twist,
+        "twist_tip_deg": tip_twist,
+        "t_over_c": seed_spec.wing.t_over_c,
+        "airfoil": airfoil or seed_spec.wing.airfoil,
+        "x_le_root_m": equivalent["x_le_root_m"],
+        "z_root_m": equivalent["z_root_m"],
+        "sections": section_values,
     }, reasons
 
 
@@ -509,9 +676,7 @@ def import_vsp3(
         vsp.ReadVSPFile(str(source))
         vsp.Update()
         by_name, reasons = _model_geoms(vsp)
-        fin_names = (
-            {"vtailc"} if seed_spec.vtail.count == 1 else {"vtailr", "vtaill"}
-        )
+        fin_names = {"vtailc"} if seed_spec.vtail.count == 1 else {"vtailr", "vtaill"}
         expected = {"fuselage", "wing", *fin_names}
         if seed_spec.htail.span_m > 0.05:
             expected.add("htail")
@@ -546,7 +711,7 @@ def import_vsp3(
         fuselage, fuselage_reasons = _import_fuselage(
             vsp, by_name["fuselage"], seed_spec
         )
-        wing, wing_reasons = _import_wing(vsp, by_name["wing"])
+        wing, wing_reasons = _import_wing(vsp, by_name["wing"], seed_spec)
         reasons.extend(fuselage_reasons)
         reasons.extend(wing_reasons)
 
@@ -621,9 +786,17 @@ def geometry_changes(
                 isinstance(old_item, dict) and isinstance(new_item, dict)
                 for old_item, new_item in zip(old, new)
             ):
+
+                def item_value_changed(old_value: Any, new_value: Any) -> bool:
+                    if isinstance(old_value, (int, float)) and isinstance(
+                        new_value, (int, float)
+                    ):
+                        return abs(float(old_value) - float(new_value)) > 1e-5
+                    return old_value != new_value
+
                 changed = any(
                     any(
-                        abs(float(old_item.get(key, 0.0)) - float(value)) > 1e-5
+                        item_value_changed(old_item.get(key), value)
                         for key, value in new_item.items()
                     )
                     for old_item, new_item in zip(old, new)

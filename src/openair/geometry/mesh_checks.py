@@ -78,24 +78,41 @@ def _check_max(name: str, got: float, limit: float, note: str = "") -> dict[str,
 def check_wing_mesh(verts: np.ndarray, spec: VehicleSpec) -> list[dict[str, Any]]:
     ext = _extent(verts)
     w = spec.wing
-    dihedral_rise = 0.5 * w.span_m * math.tan(math.radians(abs(w.dihedral_deg)))
+    if w.sections is None:
+        vertical_path_range = (
+            0.5 * w.span_m * math.tan(math.radians(abs(w.dihedral_deg)))
+        )
+        section_geometry = (
+            (w.root_chord_m, w.twist_root_deg, w.t_over_c),
+            (w.tip_chord_m, w.twist_tip_deg, w.t_over_c),
+        )
+    else:
+        z_values = [section.z_le_m for section in w.sections]
+        vertical_path_range = max(z_values) - min(z_values)
+        section_geometry = tuple(
+            (
+                section.chord_m,
+                w.twist_root_deg + section.eta * (w.twist_tip_deg - w.twist_root_deg),
+                w.t_over_c if section.t_over_c is None else section.t_over_c,
+            )
+            for section in w.sections
+        )
     # A strongly twisted but horizontal wing has a real streamwise-chord
     # contribution to its Z extent. Estimate the range about OpenVSP's
     # quarter-chord twist axis; omitting this term falsely rejected the
     # control authority used by the autonomous tailless branch.
     twist_offsets = []
     thickness_allowances = []
-    for chord, twist_deg in (
-        (w.root_chord_m, w.twist_root_deg),
-        (w.tip_chord_m, w.twist_tip_deg),
-    ):
+    for chord, twist_deg, t_over_c in section_geometry:
         projected_chord = chord * math.sin(math.radians(twist_deg))
         twist_offsets.extend((-0.25 * projected_chord, 0.75 * projected_chord))
         thickness_allowances.append(
-            w.t_over_c * chord * abs(math.cos(math.radians(twist_deg)))
+            t_over_c * chord * abs(math.cos(math.radians(twist_deg)))
         )
     twist_range = max(twist_offsets) - min(twist_offsets)
-    z_allow = 1.2 * (dihedral_rise + twist_range + max(thickness_allowances)) + 0.03
+    z_allow = (
+        1.2 * (vertical_path_range + twist_range + max(thickness_allowances)) + 0.03
+    )
     return [
         _check("wing_span_y_extent", ext[1], w.span_m, 0.03 * w.span_m),
         _check_max(

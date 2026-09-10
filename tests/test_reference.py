@@ -27,6 +27,7 @@ from openair.reference.ingest import (
     load_reference_mesh,
     parse_axes,
     refusal_message,
+    suggest_wing_sections,
 )
 from openair.schemas import VehicleSpec
 
@@ -66,7 +67,11 @@ def _wing_mesh() -> trimesh.Trimesh:
         chord = ROOT_CHORD * (1.0 - (1.0 - TAPER) * eta)
         x_le = X_LE_ROOT + abs(y) * math.tan(math.radians(SWEEP_DEG))
         outline = _airfoil_outline(chord)
-        sections.append(np.column_stack([outline[:, 0] + x_le, np.full(outline.shape[0], y), outline[:, 1]]))
+        sections.append(
+            np.column_stack(
+                [outline[:, 0] + x_le, np.full(outline.shape[0], y), outline[:, 1]]
+            )
+        )
     n = sections[0].shape[0]
     vertices = np.vstack(sections)
     faces = []
@@ -83,7 +88,9 @@ def _wing_mesh() -> trimesh.Trimesh:
         vertices = np.vstack([vertices, sections[0 if base == 0 else -1].mean(axis=0)])
         for i in range(n):
             j = (i + 1) % n
-            faces.append([centre, base + j, base + i] if flip else [centre, base + i, base + j])
+            faces.append(
+                [centre, base + j, base + i] if flip else [centre, base + i, base + j]
+            )
     return trimesh.Trimesh(vertices, np.array(faces), process=False)
 
 
@@ -92,7 +99,11 @@ def _fin_mesh(side: float) -> trimesh.Trimesh:
     span_dir = np.array([0.0, side * math.sin(cant), math.cos(cant)])
     root_le = np.array([FIN_X_LE, side * FIN_Y_ROOT, FIN_Z_ROOT])
     root_te = root_le + np.array([FIN_ROOT_CHORD, 0.0, 0.0])
-    tip_le = root_le + FIN_SPAN * span_dir + np.array([FIN_SPAN * math.tan(math.radians(20.0)), 0.0, 0.0])
+    tip_le = (
+        root_le
+        + FIN_SPAN * span_dir
+        + np.array([FIN_SPAN * math.tan(math.radians(20.0)), 0.0, 0.0])
+    )
     tip_te = tip_le + np.array([0.6 * FIN_ROOT_CHORD, 0.0, 0.0])
     normal = np.cross(np.array([1.0, 0.0, 0.0]), span_dir)
     normal /= np.linalg.norm(normal)
@@ -113,11 +124,19 @@ def synthetic_aircraft() -> trimesh.Trimesh:
     return trimesh.util.concatenate(parts)
 
 
-def scramble_to_source_frame(mesh: trimesh.Trimesh, *, pitch_deg: float = 2.0) -> trimesh.Trimesh:
+def scramble_to_source_frame(
+    mesh: trimesh.Trimesh, *, pitch_deg: float = 2.0
+) -> trimesh.Trimesh:
     """Pitch the aircraft, then express it Y-up with the nose at +Z in centimetres."""
     out = mesh.copy()
     pitch = math.radians(pitch_deg)
-    rot_y = np.array([[math.cos(pitch), 0, math.sin(pitch)], [0, 1, 0], [-math.sin(pitch), 0, math.cos(pitch)]])
+    rot_y = np.array(
+        [
+            [math.cos(pitch), 0, math.sin(pitch)],
+            [0, 1, 0],
+            [-math.sin(pitch), 0, math.cos(pitch)],
+        ]
+    )
     out.apply_transform(trimesh.transformations.rotation_matrix(0.0, [1, 0, 0]))
     vertices = np.asarray(out.vertices) @ rot_y.T
     # source X = -y, source Y = +z, source Z = -x  (so open-air x = -Z, y = -X, z = +Y)
@@ -132,7 +151,14 @@ def scan_dir(tmp_path_factory) -> Path:
     mesh = scramble_to_source_frame(synthetic_aircraft())
     mesh.export(str(directory / "synthetic.stl"))
     (directory / "synthetic.reference.json").write_text(
-        json.dumps({"units": "cm", "measured_span_mm": SPAN * 1000.0, "export_tool": "synthetic fixture", "mirrored_half": False}),
+        json.dumps(
+            {
+                "units": "cm",
+                "measured_span_mm": SPAN * 1000.0,
+                "export_tool": "synthetic fixture",
+                "mirrored_half": False,
+            }
+        ),
         encoding="utf-8",
     )
     return directory
@@ -158,7 +184,9 @@ def test_native_cad_files_are_refused_generically(tmp_path):
     fake.write_bytes(b"PK\x03\x04 not a mesh")
     assert classify_input(fake) == "native"
     assert "triangle mesh" in refusal_message(fake)
-    with pytest.raises(ReferenceInputError, match="native CAD/scan project files are not accepted"):
+    with pytest.raises(
+        ReferenceInputError, match="native CAD/scan project files are not accepted"
+    ):
         load_reference_mesh(fake, units="mm")
     for suffix in (".step", ".sldprt", ".blend", ".e57"):
         assert classify_input(tmp_path / f"x{suffix}") == "native"
@@ -211,6 +239,16 @@ def test_ingest_recovers_known_geometry(ingested):
     assert abs(wing["dihedral_deg"]) <= 1.0
     assert abs(wing["t_over_c"] - 0.12) <= 0.02
     assert wing["airfoil"].startswith("00")
+    assert 3 <= len(wing["sections"]) <= 12
+    assert wing["sections"][0]["eta"] == 0.0
+    assert wing["sections"][-1]["eta"] == 1.0
+    assert all(
+        right["eta"] > left["eta"]
+        for left, right in zip(wing["sections"], wing["sections"][1:])
+    )
+    assert summary["disclosures"]["wing_planform"]["section_count"] == len(
+        wing["sections"]
+    )
 
     fuselage = summary["suggested"]["fuselage"]
     assert abs(fuselage["length_m"] - LENGTH) <= 0.004
@@ -219,13 +257,23 @@ def test_ingest_recovers_known_geometry(ingested):
     stations = fuselage["stations"]
     assert 4 <= len(stations) <= 8
     assert stations[0]["x_over_length"] == 0.0 and stations[-1]["x_over_length"] == 1.0
-    assert all(b["x_over_length"] > a["x_over_length"] for a, b in zip(stations, stations[1:]))
+    assert all(
+        b["x_over_length"] > a["x_over_length"] for a, b in zip(stations, stations[1:])
+    )
     VehicleSpec.model_validate(
         {
             "name": "synthetic-ref",
-            "sketch": {**summary["suggested"]["sketch"], "treatment": "reproduction", "hard_scale": 1.0},
+            "sketch": {
+                **summary["suggested"]["sketch"],
+                "treatment": "reproduction",
+                "hard_scale": 1.0,
+            },
             "wing": {k: v for k, v in wing.items() if v is not None},
-            "fuselage": {**fuselage, "max_width_m": max(fuselage["max_width_m"], 0.06), "max_height_m": max(fuselage["max_height_m"], 0.06)},
+            "fuselage": {
+                **fuselage,
+                "max_width_m": max(fuselage["max_width_m"], 0.06),
+                "max_height_m": max(fuselage["max_height_m"], 0.06),
+            },
             "vtail": summary["suggested"]["vtail"],
         }
     )
@@ -241,13 +289,70 @@ def test_ingest_recovers_known_geometry(ingested):
     assert summary["evidence_class"].startswith("measured design input")
 
 
+def test_section_suggestion_excludes_body_and_keeps_rounded_tip():
+    station_y = [0.05, 0.11, 0.30, 0.70, 0.90, 0.97]
+    x_le = [0.15, 0.26, 0.29, 0.31, 0.34, 0.42]
+    x_te = [0.55, 0.52, 0.50, 0.46, 0.44, 0.445]
+    wing_stations = []
+    for side in (-1.0, 1.0):
+        for y, leading, trailing in zip(station_y, x_le, x_te, strict=True):
+            wing_stations.append(
+                {
+                    "y_m": side * y,
+                    "x_le_m": leading,
+                    "x_te_m": trailing,
+                    "x_te_undeflected_m": trailing,
+                    "z_chord_mid_m": 0.02 - 0.01 * y,
+                    "incidence_deg": 0.0,
+                }
+            )
+    record = {
+        "overall": {"length_m": 1.2},
+        "stations": [
+            {"x_over_length": 0.0, "width_m": 0.0},
+            {"x_over_length": 0.35, "width_m": 0.20},
+            {"x_over_length": 0.55, "width_m": 0.18},
+            {"x_over_length": 1.0, "width_m": 0.0},
+        ],
+        "body_half_width_at_wing_m": 0.10,
+        "airfoil_summary": {"t_over_c_mean": 0.10},
+        "wing": {
+            "ok": True,
+            "stations": wing_stations,
+            "span_m": 2.0,
+            "semispan_m": 1.0,
+            "body_half_width_m": 0.06,
+            "x_le_root_m": 0.28,
+            "x_te_root_m": 0.53,
+            "root_chord_m": 0.25,
+            "z_root_le_m": 0.02,
+            "le_sweep_deg": 3.0,
+            "te_sweep_deg": -5.0,
+            "straight_range_abs_y_m": [0.3, 0.9],
+        },
+    }
+
+    result = suggest_wing_sections(record, resolution_m=0.0005)
+    assert result is not None
+    sections, disclosure = result
+    assert sections[0]["eta"] == 0.0
+    assert sections[-1]["eta"] == 1.0
+    assert all(section["eta"] != pytest.approx(0.05) for section in sections)
+    assert any(section["eta"] == pytest.approx(0.11) for section in sections)
+    assert sections[-1]["chord_m"] < sections[-2]["chord_m"]
+    assert disclosure["body_exclusion_half_width_m"] == pytest.approx(0.10)
+    assert disclosure["section_count"] <= 12
+
+
 def test_ingest_writes_reference_bundle_and_silhouettes(ingested):
     out, summary = ingested
     reference = out / "reference"
     assert (reference / "reference.json").is_file()
     assert (reference / "reference.ply").is_file()
     assert (reference / "reference-sections.png").is_file()
-    decimated = trimesh.load(str(reference / "reference.ply"), force="mesh", process=False)
+    decimated = trimesh.load(
+        str(reference / "reference.ply"), force="mesh", process=False
+    )
     assert len(decimated.faces) <= 22000
     assert abs(decimated.extents[1] - SPAN) < 0.01  # span preserved by decimation
     for view in ("top", "side", "front"):
@@ -262,7 +367,9 @@ def test_ingest_writes_reference_bundle_and_silhouettes(ingested):
             assert "by construction" in image.text["openair:rectified"]
     written = json.loads((reference / "reference.json").read_text(encoding="utf-8"))
     assert written["provenance"]["declared_units"] == "cm"
-    assert written["provenance"]["source_sha256"] == summary["provenance"]["source_sha256"]
+    assert (
+        written["provenance"]["source_sha256"] == summary["provenance"]["source_sha256"]
+    )
     assert written["acceptance"]["p95_m"] == pytest.approx(0.015)
 
 
@@ -281,12 +388,16 @@ def test_existing_silhouettes_need_force(ingested, scan_dir: Path):
 
 def test_compare_scores_the_same_shape_as_a_match(ingested, tmp_path):
     out, _ = ingested
-    aligned = trimesh.load(str(out / "reference" / "reference.ply"), force="mesh", process=False)
+    aligned = trimesh.load(
+        str(out / "reference" / "reference.ply"), force="mesh", process=False
+    )
     model_path = tmp_path / "model.stl"
     aligned.export(str(model_path))
     spec = VehicleSpec(name="synthetic-ref")
     spec.fuselage.length_m = LENGTH
-    result = compare_reference(spec, tmp_path, stl_path=model_path, reference_dir=out / "reference")
+    result = compare_reference(
+        spec, tmp_path, stl_path=model_path, reference_dir=out / "reference"
+    )
     assert result["available"] is True
     assert result["ok"] is True
     assert result["distance_model_to_reference"]["p95_m"] < 0.003
@@ -297,20 +408,30 @@ def test_compare_scores_the_same_shape_as_a_match(ingested, tmp_path):
 
 def test_compare_flags_a_different_shape(ingested, tmp_path):
     out, _ = ingested
-    aligned = trimesh.load(str(out / "reference" / "reference.ply"), force="mesh", process=False)
+    aligned = trimesh.load(
+        str(out / "reference" / "reference.ply"), force="mesh", process=False
+    )
     stretched = aligned.copy()
     stretched.apply_scale([1.0, 1.25, 1.0])  # 25% more span than the reference
     model_path = tmp_path / "stretched.stl"
     stretched.export(str(model_path))
     spec = VehicleSpec(name="synthetic-ref")
-    result = compare_reference(spec, tmp_path, stl_path=model_path, reference_dir=out / "reference", write=False)
+    result = compare_reference(
+        spec,
+        tmp_path,
+        stl_path=model_path,
+        reference_dir=out / "reference",
+        write=False,
+    )
     assert result["ok"] is False
     assert result["checks"]["iou_top"]["ok"] is False
 
 
 def test_compare_without_reference_is_unavailable(tmp_path):
     spec = VehicleSpec(name="none")
-    result = compare_reference(spec, tmp_path, stl_path=tmp_path / "missing.stl", reference_dir=None)
+    result = compare_reference(
+        spec, tmp_path, stl_path=tmp_path / "missing.stl", reference_dir=None
+    )
     assert result["available"] is False
 
 
@@ -318,15 +439,26 @@ def test_section_powers_recover_an_ellipse():
     y = np.linspace(-0.05, 0.05, 81)
     top = 0.03 * np.sqrt(np.clip(1.0 - (y / 0.05) ** 2, 0.0, 1.0)) + 0.01
     bot = -0.03 * np.sqrt(np.clip(1.0 - (y / 0.05) ** 2, 0.0, 1.0)) + 0.01
-    fit = M.fit_section_powers(y, top, bot, half_width=0.05, height=0.06, z_center=0.01, scale=0.0005)
+    fit = M.fit_section_powers(
+        y, top, bot, half_width=0.05, height=0.06, z_center=0.01, scale=0.0005
+    )
     assert abs(fit["side_power"] - 2.0) < 0.15
     assert abs(fit["top_power"] - 2.0) < 0.15
     assert abs(fit["bottom_power"] - 2.0) < 0.15
 
 
 def test_choose_station_fractions_is_monotone_and_bounded():
-    profile = [{"x_m": x, "width_m": 0.1 * math.sin(math.pi * x / 0.7), "height_m": 0.08 * math.sin(math.pi * x / 0.7)} for x in np.linspace(0.005, 0.695, 139)]
-    fractions = M.choose_station_fractions(profile, 0.7, anchors_m=[0.3, 0.5, 0.55, 0.65, 0.6])
+    profile = [
+        {
+            "x_m": x,
+            "width_m": 0.1 * math.sin(math.pi * x / 0.7),
+            "height_m": 0.08 * math.sin(math.pi * x / 0.7),
+        }
+        for x in np.linspace(0.005, 0.695, 139)
+    ]
+    fractions = M.choose_station_fractions(
+        profile, 0.7, anchors_m=[0.3, 0.5, 0.55, 0.65, 0.6]
+    )
     assert fractions[0] == 0.0 and fractions[-1] == 1.0
     assert len(fractions) <= 8
     assert all(b > a for a, b in zip(fractions, fractions[1:]))

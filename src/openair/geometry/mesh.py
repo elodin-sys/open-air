@@ -64,16 +64,19 @@ def naca4_coords(
 def generate_oas_rect_mesh(
     spec: VehicleSpec, chord_fractions: list[float] | None = None
 ) -> np.ndarray:
-    """Baseline rectangular mesh; Geometry group applies taper/sweep.
+    """Baseline OAS mesh, optionally baked to a measured section planform.
 
     ``chord_fractions`` optionally replaces the uniform chordwise node
     distribution (leading edge 0 to trailing edge 1) so a control-surface
     hinge line falls exactly on a mesh row. The seed is planar, so rows are
     re-spaced by linear interpolation between the leading- and trailing-edge
-    rows without changing the planform.
+    rows without changing the planform. For a scalar wing the OAS Geometry
+    group later applies taper/sweep/dihedral. A sectioned wing writes its
+    actual leading edge, chord, and height into this seed instead.
     """
     from openaerostruct.meshing.mesh_generator import generate_mesh
 
+    spec.assert_cross_model_invariants()
     ny = spec.structures.n_spanwise
     if ny % 2 == 0:
         ny += 1
@@ -100,6 +103,20 @@ def generate_oas_rect_mesh(
         le = mesh[0]
         te = mesh[-1]
         mesh = np.array([le + f * (te - le) for f in fractions])
+    if spec.wing.sections is not None:
+        rectangular_le = np.array(mesh[0], copy=True)
+        rectangular_te = np.array(mesh[-1], copy=True)
+        rectangular_chord = rectangular_te[:, 0] - rectangular_le[:, 0]
+        node_fractions = (mesh[:, :, 0] - rectangular_le[None, :, 0]) / np.where(
+            np.abs(rectangular_chord) > 1e-12, rectangular_chord, 1.0
+        )[None, :]
+        semispan = 0.5 * spec.wing.span_m
+        eta = np.abs(mesh[0, :, 1]) / max(semispan, 1e-12)
+        for index, eta_value in enumerate(eta):
+            x_le = spec.wing.x_le_at(float(eta_value))
+            chord = spec.wing.chord_at(float(eta_value))
+            mesh[:, index, 0] = x_le + node_fractions[:, index] * chord
+            mesh[:, index, 2] = spec.wing.z_le_at(float(eta_value))
     return mesh
 
 
@@ -173,7 +190,8 @@ def deflect_trailing_edge(
     edges_hi[order] = np.concatenate((mid, [1.0]))
     width = np.maximum(edges_hi - edges_lo, 1e-12)
     overlap = np.clip(
-        np.minimum(edges_hi, span_end_fraction) - np.maximum(edges_lo, span_start_fraction),
+        np.minimum(edges_hi, span_end_fraction)
+        - np.maximum(edges_lo, span_start_fraction),
         0.0,
         None,
     )
@@ -227,6 +245,41 @@ def trapezoid_planform_points(spec: VehicleSpec) -> dict[str, list[list[float]]]
         [xle_t, -b2],
     ]
     return {"planform_xy": pts, "le_root": [xle_r, 0.0], "te_root": [xle_r + cr, 0.0]}
+
+
+def wing_planform_points(spec: VehicleSpec) -> dict[str, object]:
+    """Full-span true planform polygon and its declared representation mode."""
+    if spec.wing.sections is None:
+        return {
+            **trapezoid_planform_points(spec),
+            "planform_mode": "trapezoid",
+            "sections": None,
+        }
+
+    semispan = 0.5 * spec.wing.span_m
+    right_le = [
+        [section.x_le_m, section.eta * semispan] for section in spec.wing.sections
+    ]
+    right_te = [
+        [section.x_le_m + section.chord_m, section.eta * semispan]
+        for section in spec.wing.sections
+    ]
+    left_le = [[x, -y] for x, y in right_le]
+    left_te = [[x, -y] for x, y in right_te]
+    pts = [
+        *right_le,
+        *reversed(right_te),
+        *left_te[1:],
+        *list(reversed(left_le))[:-1],
+    ]
+    root = spec.wing.sections[0]
+    return {
+        "planform_xy": pts,
+        "le_root": [root.x_le_m, 0.0],
+        "te_root": [root.x_le_m + root.chord_m, 0.0],
+        "planform_mode": "sections",
+        "sections": [section.model_dump(mode="json") for section in spec.wing.sections],
+    }
 
 
 def save_mesh(outdir: Path, mesh: np.ndarray) -> Path:

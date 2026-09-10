@@ -9,17 +9,21 @@ name: atomrc-dolphin-v1-1
 notes: >-
   Reproduction of the stock 845 mm AtomRC Dolphin V1.1 measured from a 3D scan
   of the airframe (reference/reference.json, sha256 701272c3...; 1.70 M faces,
-  0.83 mm effective resolution) plus the installed-component brief. Forward-
-  swept trapezoid wing closes the tip chord on the measured planform area
-  (0.1589 m^2 including the part inside the body); airfoil is the NACA
-  four-digit fit of six scanned sections (t/c 0.100, camber 1%); twist and
-  dihedral are measured on the root-chord datum after rotating the scanned
-  +3.0 deg trailing-edge-up elevon position back to neutral. Body stations are
-  measured core sections except the two shoulder stations noted in brief.md,
-  where the plan-view width of the canopy-plus-shoulder blend is used because
-  the single-loft schema cannot represent a T-shaped section. Fins are twin
-  outward-canted plates measured at 39.0 deg cant, rooted at the measured
-  deck/strake junction y +/-0.062 m and z +0.0496 m. Propulsion (2307 motor +
+  0.83 mm effective resolution) plus the installed-component brief. The
+  measured 12-section wing loft preserves the forward-swept outer panel,
+  root blend/deck extension, rounded tip, and tip droop; its gross projected
+  area is 0.1669 m^2 and the scalar taper/sweep/dihedral are exact
+  area/MAC-locus-equivalent descriptors. Airfoil camber is the NACA
+  four-digit fit of six scanned sections; section-local loft t/c is inferred
+  from their measured mean to preserve absolute thickness through root/deck
+  chord extensions. Twist is measured on the root-chord datum after rotating the
+  scanned +3.0 deg trailing-edge-up elevon position back to neutral. Body
+  stations are measured core sections except the two shoulder stations noted
+  in brief.md, where the plan-view width of the canopy-plus-shoulder blend is
+  used because the single body loft cannot represent a T-shaped section. Fins
+  are twin outward-canted plates measured at 39.0 deg cant, rooted at the
+  measured deck/strake junction y +/-0.062 m and z +0.0496 m. Propulsion
+  (2307 motor +
   ESC) is an internal aft package; the pusher disk is not lofted. Mass
   0.889 kg and CG 0.419 m are the owner's bench measurements (2026-09-09,
   flight configuration, single readings); they replace the 1.30 kg / 0.40 m
@@ -35,13 +39,13 @@ sketch:
   treatment: reproduction
   hard_scale: 1.0
   fidelity_weight: 1.0
-  span_over_length: 1.1924
+  span_over_length: 1.1933
   span_over_length_tol: 0.010
   root_over_length: 0.3653
   root_over_length_tol: 0.0149
-  le_sweep_deg: -6.38
+  le_sweep_deg: -12.12
   le_sweep_tol_deg: 2.0
-  taper: 0.438
+  taper: 0.5104
   taper_tol: 0.0615
   x_le_root_over_length: 0.5718
   x_le_root_over_length_tol: 0.0139
@@ -84,17 +88,85 @@ engine:
   nacelle_frontal_cd: 0.08
 
 wing:
-  span_m: 0.849
+  span_m: 0.8496
   root_chord_m: 0.2601
-  taper: 0.438
-  le_sweep_deg: -6.38
-  dihedral_deg: -0.9
+  # Exact area/MAC-locus-equivalent descriptors for the measured sections.
+  taper: 0.5104
+  le_sweep_deg: -12.12
+  dihedral_deg: -1.92
   twist_root_deg: 1.6
   twist_tip_deg: 0.5
-  t_over_c: 0.100
-  airfoil: "1210"
+  # Uniform measured-mean OAS/wingbox thickness; OpenVSP/Studio use inferred
+  # absolute-thickness-preserving section overrides below.
+  t_over_c: 0.1004
+  airfoil: "1209"
   x_le_root_m: 0.4071
   z_root_m: 0.0245
+  # Measured planform after excluding |y| < 0.0705 m body-contaminated slabs.
+  # The centreline is the robust straight-band carry-through; intermediate
+  # stations retain the root blend/deck extension and rounded/drooped tip.
+  # Their t/c values are inferred loft controls, not additional airfoil cuts.
+  sections:
+    - eta: 0.0
+      chord_m: 0.2601
+      x_le_m: 0.4071
+      z_le_m: 0.0245
+      t_over_c: 0.1004
+    - eta: 0.169494
+      chord_m: 0.3818
+      x_le_m: 0.3134
+      z_le_m: 0.0189
+      t_over_c: 0.0612
+    - eta: 0.193035
+      chord_m: 0.3351
+      x_le_m: 0.3527
+      z_le_m: 0.0189
+      t_over_c: 0.0686
+    - eta: 0.216575
+      chord_m: 0.2880
+      x_le_m: 0.3757
+      z_le_m: 0.0198
+      t_over_c: 0.0785
+    - eta: 0.251887
+      chord_m: 0.2317
+      x_le_m: 0.3832
+      z_le_m: 0.0196
+      t_over_c: 0.0951
+    - eta: 0.287198
+      chord_m: 0.2259
+      x_le_m: 0.3813
+      z_le_m: 0.0192
+      t_over_c: 0.0951
+    - eta: 0.298968
+      chord_m: 0.2162
+      x_le_m: 0.3885
+      z_le_m: 0.0208
+      t_over_c: 0.0985
+    - eta: 0.769785
+      chord_m: 0.1302
+      x_le_m: 0.3771
+      z_le_m: 0.0161
+      t_over_c: 0.1004
+    - eta: 0.887489
+      chord_m: 0.1248
+      x_le_m: 0.3575
+      z_le_m: 0.0134
+      t_over_c: 0.0946
+    - eta: 0.934570
+      chord_m: 0.1012
+      x_le_m: 0.3718
+      z_le_m: 0.0128
+      t_over_c: 0.1004
+    - eta: 0.993422
+      chord_m: 0.0436
+      x_le_m: 0.4217
+      z_le_m: 0.0071
+      t_over_c: 0.1004
+    - eta: 1.0
+      chord_m: 0.0368
+      x_le_m: 0.4281
+      z_le_m: 0.0055
+      t_over_c: 0.1004
 
 fuselage:
   length_m: 0.712
@@ -202,8 +274,8 @@ mission:
   cruise_altitude_m: 100.0
   dash_altitude_m: 100.0
   cruise_mach: 0.0530
-  # CL = 8.7181 N / (196.55 Pa x 0.1588 m^2) at the inferred 18 m/s reference speed.
-  cruise_cl: 0.2793
+  # CL = 8.7181 N / (196.55 Pa x 0.1669 m^2) at the inferred 18 m/s reference speed.
+  cruise_cl: 0.2658
   dash_mach_cap: 0.11
   limit_positive_g: 4.0
   limit_negative_g: -2.0

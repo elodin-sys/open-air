@@ -229,7 +229,7 @@ def elevon_pitch_derivative(
 ) -> dict[str, float]:
     """Closed-form dCm_cg/ddelta of a wing trailing-edge surface (TE down +).
 
-    Strip integration of the thin-airfoil flap increments over the trapezoid
+    Strip integration of the thin-airfoil flap increments over the wing
     planform between the surface's span fractions:
 
         dCL/ddelta   = CL_alpha_wing tau (S_e / S) cos(Lambda_hinge)
@@ -246,36 +246,35 @@ def elevon_pitch_derivative(
     flap = plain_flap_theory(surface.chord_fraction)
     semispan = 0.5 * w.span_m
     eta_s, eta_e = surface.span_start_fraction, surface.span_end_fraction
-    c_r, c_t = w.root_chord_m, w.tip_chord_m
-
-    def chord(eta: float) -> float:
-        return c_r + (c_t - c_r) * eta
-
-    # Exact trapezoid integrals over [eta_s, eta_e], both wing halves.
     n = 400
     etas = np.linspace(eta_s, eta_e, n)
-    chords = np.array([chord(e) for e in etas])
-    strip_area = 2.0 * semispan * float(np.trapezoid(chords, etas))
+    chords = np.array([w.chord_at(e) for e in etas])
+    x_le = np.array([w.x_le_at(e) for e in etas])
+    chord_integral = float(np.trapezoid(chords, etas))
+    strip_area = 2.0 * semispan * chord_integral
     chord_sq_integral = 2.0 * semispan * float(np.trapezoid(chords**2, etas))
-    eta_c = float(np.trapezoid(chords * etas, etas) / max(np.trapezoid(chords, etas), 1e-12))
-    x_qc_c = w.x_le_root_m + eta_c * semispan * math.tan(math.radians(w.le_sweep_deg))
-    x_qc_c += 0.25 * chord(eta_c)
-    hinge_x_root = w.x_le_root_m + (1.0 - surface.chord_fraction) * c_r
-    hinge_x_tip = (
-        w.x_le_root_m
-        + semispan * math.tan(math.radians(w.le_sweep_deg))
-        + (1.0 - surface.chord_fraction) * c_t
+    eta_c = float(np.trapezoid(chords * etas, etas) / max(chord_integral, 1e-12))
+    x_qc = x_le + 0.25 * chords
+    x_qc_c = float(np.trapezoid(chords * x_qc, etas) / max(chord_integral, 1e-12))
+    hinge_fraction = 1.0 - surface.chord_fraction
+    hinge_x_start = w.x_le_at(eta_s) + hinge_fraction * w.chord_at(eta_s)
+    hinge_x_end = w.x_le_at(eta_e) + hinge_fraction * w.chord_at(eta_e)
+    hinge_sweep = math.atan2(
+        hinge_x_end - hinge_x_start,
+        max((eta_e - eta_s) * semispan, 1e-12),
     )
-    hinge_sweep = math.atan2(hinge_x_tip - hinge_x_root, semispan)
     wing_slope = (
         spec.solver.wing_body_cl_alpha_per_deg * 180.0 / math.pi
         if spec.solver.wing_body_cl_alpha_per_deg is not None
         else _lift_curve_slope_per_rad(w.aspect_ratio)
     )
-    dcl_ddelta = wing_slope * flap["tau"] * (strip_area / w.area_m2) * math.cos(hinge_sweep)
-    dcm_ddelta = flap["dcm_ac_ddelta_per_rad"] * chord_sq_integral / (
-        w.area_m2 * w.mac_m
-    ) - dcl_ddelta * (x_qc_c - x_cg_m) / w.mac_m
+    dcl_ddelta = (
+        wing_slope * flap["tau"] * (strip_area / w.area_m2) * math.cos(hinge_sweep)
+    )
+    dcm_ddelta = (
+        flap["dcm_ac_ddelta_per_rad"] * chord_sq_integral / (w.area_m2 * w.mac_m)
+        - dcl_ddelta * (x_qc_c - x_cg_m) / w.mac_m
+    )
     factor = float(spec.solver.elevon_effectiveness_factor)
     return {
         "surface_id": surface.id,
@@ -294,7 +293,11 @@ def elevon_pitch_derivative(
 
 
 def elevon_required_deg(
-    spec: VehicleSpec, surface: ControlSurfaceSpec, x_cg_m: float, sm: float, cl_cruise: float
+    spec: VehicleSpec,
+    surface: ControlSurfaceSpec,
+    x_cg_m: float,
+    sm: float,
+    cl_cruise: float,
 ) -> dict[str, float]:
     """Elevon deflection (TE up positive) that zeroes Cm_cg with twist frozen.
 
@@ -507,7 +510,9 @@ def balance_report(spec: VehicleSpec, mtow_kg: float, fuel_kg: float) -> Balance
     if control == "elevon":
         surface = pitch_control_surface(spec)
         if surface is None:
-            raise ValueError("elevon pitch trim requires a collective-pitch wing surface")
+            raise ValueError(
+                "elevon pitch trim requires a collective-pitch wing surface"
+            )
         elevon_model = elevon_required_deg(
             spec, surface, xf, sm_f, spec.mission.cruise_cl
         )

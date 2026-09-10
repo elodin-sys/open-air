@@ -1,6 +1,6 @@
 from conftest import BASELINE_DESIGN, FORWARD_SWEPT_DESIGN
 from openair.cli import load_spec
-from openair.schemas import VehicleSpec
+from openair.schemas import VehicleSpec, WingSpec
 from openair.units import G0
 from openair.validation.analytical import (
     breguet_round_trip,
@@ -44,6 +44,111 @@ def test_default_spec_computed_fields():
     assert s.mass.fuel_mass_mode == "sized"
     assert s.solver.vspaero_wake_iters == 8
     assert s.solver.vspaero_convergence_factor == 0.01
+
+
+def test_sectioned_wing_reproduces_equivalent_trapezoid_and_interpolates():
+    import math
+
+    import pytest
+
+    span = 4.0
+    root = 1.2
+    taper = 0.4
+    sweep = 18.0
+    dihedral = -3.0
+    sections = []
+    for eta in (0.0, 0.35, 1.0):
+        y = 0.5 * span * eta
+        sections.append(
+            {
+                "eta": eta,
+                "chord_m": root * (1.0 - eta * (1.0 - taper)),
+                "x_le_m": 0.7 + y * math.tan(math.radians(sweep)),
+                "z_le_m": 0.05 + y * math.tan(math.radians(dihedral)),
+            }
+        )
+
+    sectioned = WingSpec.model_validate({"span_m": span, "sections": sections})
+    trapezoid = WingSpec(
+        span_m=span,
+        root_chord_m=root,
+        taper=taper,
+        le_sweep_deg=sweep,
+        dihedral_deg=dihedral,
+        x_le_root_m=0.7,
+        z_root_m=0.05,
+    )
+
+    assert sectioned.root_chord_m == pytest.approx(root)
+    assert sectioned.taper == pytest.approx(taper)
+    assert sectioned.le_sweep_deg == pytest.approx(sweep)
+    assert sectioned.dihedral_deg == pytest.approx(dihedral)
+    assert sectioned.area_m2 == pytest.approx(trapezoid.area_m2)
+    assert sectioned.mac_m == pytest.approx(trapezoid.mac_m)
+    assert sectioned.y_mac_m == pytest.approx(trapezoid.y_mac_m)
+    assert sectioned.x_le_mac_m == pytest.approx(trapezoid.x_le_mac_m)
+    assert sectioned.chord_at(0.6) == pytest.approx(root * (1.0 - 0.6 * (1.0 - taper)))
+    assert sectioned.t_over_c_at(0.6) == pytest.approx(sectioned.t_over_c)
+
+
+def test_sectioned_wing_validation_and_reproduction_opt_in():
+    import pytest
+    from pydantic import ValidationError
+
+    sections = [
+        {"eta": 0.0, "chord_m": 1.0, "x_le_m": 0.4, "z_le_m": 0.1},
+        {
+            "eta": 0.5,
+            "chord_m": 0.75,
+            "x_le_m": 0.5,
+            "z_le_m": 0.08,
+            "t_over_c": 0.09,
+        },
+        {"eta": 1.0, "chord_m": 0.5, "x_le_m": 0.65, "z_le_m": 0.05},
+    ]
+    with pytest.raises(ValidationError, match="section-derived equivalent"):
+        WingSpec.model_validate(
+            {"span_m": 4.0, "root_chord_m": 1.1, "sections": sections}
+        )
+    with pytest.raises(ValidationError, match="start at eta=0"):
+        WingSpec.model_validate(
+            {
+                "span_m": 4.0,
+                "sections": [
+                    {**sections[0], "eta": 0.1},
+                    sections[1],
+                    sections[2],
+                ],
+            }
+        )
+    with pytest.raises(ValidationError, match="strictly increasing"):
+        WingSpec.model_validate(
+            {"span_m": 4.0, "sections": [sections[0], sections[2], sections[1]]}
+        )
+    with pytest.raises(ValidationError, match="sketch.treatment='reproduction'"):
+        VehicleSpec.model_validate({"wing": {"span_m": 4.0, "sections": sections}})
+
+    equivalent = WingSpec.equivalent_trapezoid(sections, 4.0)
+    spec = VehicleSpec.model_validate(
+        {
+            "sketch": {
+                "treatment": "reproduction",
+                "span_over_length": 1.0,
+                "root_over_length": 0.4,
+                "le_sweep_deg": equivalent["le_sweep_deg"],
+                "taper": equivalent["taper"],
+            },
+            "wing": {"span_m": 4.0, "sections": sections},
+        }
+    )
+    restored = VehicleSpec.model_validate(
+        spec.model_dump(mode="python", exclude_computed_fields=True)
+    )
+    assert restored.wing.sections == spec.wing.sections
+    assert restored.wing.t_over_c_at(0.5) == pytest.approx(0.09)
+    restored.sketch.treatment = "requirement"
+    with pytest.raises(ValueError, match="sketch.treatment='reproduction'"):
+        restored.assert_cross_model_invariants()
 
 
 def test_measured_fin_root_attachment_matches_tail_topology():
@@ -112,9 +217,7 @@ def test_physical_bounds_reject_nonsense():
     with pytest.raises(ValidationError):
         VehicleSpec.model_validate({"vtail": {"count": 3}})
     with pytest.raises(ValidationError):
-        VehicleSpec.model_validate(
-            {"solver": {"vspaero_convergence_factor": 2.0}}
-        )
+        VehicleSpec.model_validate({"solver": {"vspaero_convergence_factor": 2.0}})
     with pytest.raises(ValidationError, match="must be supplied together"):
         VehicleSpec.model_validate({"mass": {"operating_empty_mass_kg": 20.0}})
     with pytest.raises(ValidationError, match="listed mass min/max/state"):

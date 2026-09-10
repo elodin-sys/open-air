@@ -157,6 +157,49 @@ def _measured_fin_spec() -> VehicleSpec:
     return spec
 
 
+def _sectioned_wing_spec() -> VehicleSpec:
+    source = _station_spec()
+    data = source.model_dump(mode="json", exclude_computed_fields=True)
+    data["name"] = "preview-sectioned-wing"
+    sections = [
+        {"eta": 0.0, "chord_m": 1.15, "x_le_m": 0.85, "z_le_m": 0.0},
+        {
+            "eta": 0.3,
+            "chord_m": 1.05,
+            "x_le_m": 0.72,
+            "z_le_m": -0.02,
+            "t_over_c": 0.11,
+        },
+        {"eta": 0.78, "chord_m": 0.62, "x_le_m": 1.0, "z_le_m": -0.08},
+        {
+            "eta": 1.0,
+            "chord_m": 0.22,
+            "x_le_m": 1.18,
+            "z_le_m": -0.12,
+            "t_over_c": 0.08,
+        },
+    ]
+    equivalent = source.wing.equivalent_trapezoid(sections, source.wing.span_m)
+    data["sketch"] = {
+        "treatment": "reproduction",
+        "span_over_length": source.wing.span_m / source.fuselage.length_m,
+        "root_over_length": sections[0]["chord_m"] / source.fuselage.length_m,
+        "le_sweep_deg": equivalent["le_sweep_deg"],
+        "taper": equivalent["taper"],
+    }
+    for field in (
+        "root_chord_m",
+        "taper",
+        "le_sweep_deg",
+        "dihedral_deg",
+        "x_le_root_m",
+        "z_root_m",
+    ):
+        data["wing"].pop(field)
+    data["wing"]["sections"] = sections
+    return VehicleSpec.model_validate(data)
+
+
 @pytest.mark.parametrize(
     ("case", "spec_factory"),
     [
@@ -166,6 +209,7 @@ def _measured_fin_spec() -> VehicleSpec:
         ("blade-bubble", _blade_bubble_spec),
         ("single-fin", _single_fin_spec),
         ("measured-fin", _measured_fin_spec),
+        ("sectioned-wing", _sectioned_wing_spec),
     ],
 )
 def test_preview_mesh_matches_openvsp_readback_and_stl_bbox(

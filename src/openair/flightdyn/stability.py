@@ -234,9 +234,7 @@ def derivative_quality(
     finite while still depending on a stagnated wake.
     """
     coefficients = parsed["coefficients"]
-    state = {
-        name: values["derivatives"] for name, values in coefficients.items()
-    }
+    state = {name: values["derivatives"] for name, values in coefficients.items()}
     cl_alpha = float(state["CL"]["alpha"])
     cm_alpha = float(state["Cm"]["alpha"])
     noise_metrics = {
@@ -293,7 +291,7 @@ def derivative_quality(
     }
 
 
-def _control_groups(vsp) -> list[dict[str, Any]]:
+def _control_groups(vsp, *, required: bool = True) -> list[dict[str, Any]]:
     groups = []
     for index in range(int(vsp.GetNumControlSurfaceGroups())):
         name = str(vsp.GetVSPAEROControlGroupName(index)).strip()
@@ -310,7 +308,7 @@ def _control_groups(vsp) -> list[dict[str, Any]]:
             }
         )
     names = [group["name"] for group in groups]
-    if not groups:
+    if required and not groups:
         raise ValueError("flight-dynamics geometry has no VSPAERO control groups")
     if len(names) != len(set(names)):
         raise ValueError(f"duplicate VSPAERO control group names: {names}")
@@ -326,8 +324,9 @@ def _run_large_step_cl(
     altitude_m: float,
     lifting_names: set[str],
     fixed_wake: bool,
+    beta_deg: float = 0.0,
 ) -> dict[str, Any]:
-    """Run one plain VSPAERO point for the derivative-quality slope."""
+    """Run one plain VSPAERO point for large-step derivative checks."""
     configure_runtime()
     try:
         import openvsp as vsp
@@ -391,7 +390,7 @@ def _run_large_step_cl(
             for name, value in (
                 ("MachStart", mach),
                 ("AlphaStart", alpha_deg),
-                ("BetaStart", 0.0),
+                ("BetaStart", beta_deg),
                 ("Sref", spec.wing.area_m2),
                 ("cref", spec.wing.mac_m),
                 ("bref", spec.wing.span_m),
@@ -415,15 +414,23 @@ def _run_large_step_cl(
             vsp.Update()
             vsp.ExecAnalysis(sweep)
 
-            cl: float | None = None
+            result_names = {
+                "CL": "CLtot",
+                "CY": "CStot",
+                "Cl": "CMxtot",
+                "Cm": "CMytot",
+                "Cn": "CMztot",
+            }
+            coefficients: dict[str, float] = {}
             try:
                 result_id = vsp.FindLatestResultsID("VSPAERO_Polar")
-                values = vsp.GetDoubleResults(result_id, "CLtot")
-                if values:
-                    cl = float(values[-1])
+                for name, result_name in result_names.items():
+                    values = vsp.GetDoubleResults(result_id, result_name)
+                    if values:
+                        coefficients[name] = float(values[-1])
             except Exception:
                 pass
-            if cl is None:
+            if "CL" not in coefficients:
                 polar_path = vsp3_path.with_suffix(".polar")
                 if polar_path.is_file():
                     header: list[str] | None = None
@@ -439,7 +446,11 @@ def _run_large_step_cl(
                                 values = [float(value) for value in parts]
                             except ValueError:
                                 continue
-                            cl = values[header.index("CLtot")]
+                            for name, result_name in result_names.items():
+                                if result_name in header:
+                                    coefficients[name] = values[
+                                        header.index(result_name)
+                                    ]
             expected_iterations = 1 if fixed_wake else wake_iterations
             convergence = parse_stability_history(
                 vsp3_path.with_suffix(".history"),
@@ -450,9 +461,10 @@ def _run_large_step_cl(
                 convergence["residual_convergence_applicable"] = False
                 convergence["converged"] = bool(convergence.get("available"))
             return {
-                "ok": bool(cl is not None and convergence.get("converged")),
-                "CL": cl,
+                "ok": bool("CL" in coefficients and convergence.get("converged")),
+                **coefficients,
                 "alpha_deg": alpha_deg,
+                "beta_deg": beta_deg,
                 "lifting_components": sorted(included),
                 "wake_convergence": convergence,
                 "solver_settings": solver_settings,
@@ -472,6 +484,7 @@ def _run_stability(
     artifact_tag: str = "stability",
     lifting_names: set[str] | None = None,
     fixed_wake: bool = False,
+    require_control_groups: bool = True,
 ) -> dict[str, Any]:
     configure_runtime()
     try:
@@ -483,7 +496,7 @@ def _run_stability(
         with VSP_LOCK:
             vsp.ClearVSPModel()
             vsp.ReadVSPFile(str(vsp3_path))
-            control_groups = _control_groups(vsp)
+            control_groups = _control_groups(vsp, required=require_control_groups)
 
             thin_set = getattr(vsp, "SET_FIRST_USER", 3)
             if lifting_names is None:
@@ -598,8 +611,7 @@ def _run_stability(
                 convergence["converged"] = bool(convergence["case_count_matches"])
             else:
                 convergence["converged"] = bool(
-                    convergence["converged"]
-                    and convergence["case_count_matches"]
+                    convergence["converged"] and convergence["case_count_matches"]
                 )
             control_count_ok = parsed["control_group_count"] == len(control_groups)
             finite = all(
@@ -613,9 +625,7 @@ def _run_stability(
             return {
                 "ok": bool(control_count_ok and finite and convergence["converged"]),
                 "control_groups": control_groups,
-                "control_group_names": [
-                    group["name"] for group in control_groups
-                ],
+                "control_group_names": [group["name"] for group in control_groups],
                 "lifting_components": sorted(included),
                 "stab": parsed,
                 "wake_convergence": convergence,
@@ -678,8 +688,7 @@ def _assess_stability_derivatives(
     )
     base_cl = parsed["coefficients"]["CL"]["base"]
     large_step_slope = (
-        (float(large_step["CL"]) - float(reference_point["CL"]))
-        / math.radians(1.0)
+        (float(large_step["CL"]) - float(reference_point["CL"])) / math.radians(1.0)
         if large_step.get("ok")
         and reference_point.get("ok")
         and isinstance(large_step.get("CL"), (int, float))
@@ -691,10 +700,84 @@ def _assess_stability_derivatives(
         large_step_slope,
         wake_convergence=assessed.get("wake_convergence") or {},
         fixed_wake=fixed_wake,
-        large_step_converged=bool(
-            reference_point.get("ok") and large_step.get("ok")
-        ),
+        large_step_converged=bool(reference_point.get("ok") and large_step.get("ok")),
     )
+    central_beta: dict[str, Any] | None = None
+    if not quality["noise_ok"]:
+        beta_minus = _run_large_step_cl(
+            spec,
+            vsp3_path,
+            alpha_deg=alpha_deg,
+            beta_deg=-1.0,
+            airspeed_mps=airspeed_mps,
+            altitude_m=altitude_m,
+            lifting_names=lifting_names,
+            fixed_wake=fixed_wake,
+        )
+        beta_plus = _run_large_step_cl(
+            spec,
+            vsp3_path,
+            alpha_deg=alpha_deg,
+            beta_deg=1.0,
+            airspeed_mps=airspeed_mps,
+            altitude_m=altitude_m,
+            lifting_names=lifting_names,
+            fixed_wake=fixed_wake,
+        )
+        central_ok = bool(beta_minus.get("ok") and beta_plus.get("ok"))
+        central_derivatives: dict[str, float] = {}
+        if central_ok:
+            for coefficient in ("CL", "Cm"):
+                if isinstance(beta_minus.get(coefficient), (int, float)) and isinstance(
+                    beta_plus.get(coefficient), (int, float)
+                ):
+                    central_derivatives[coefficient] = (
+                        float(beta_plus[coefficient]) - float(beta_minus[coefficient])
+                    ) / math.radians(2.0)
+                else:
+                    central_ok = False
+        small_step_noise = dict(quality["noise_metrics"])
+        central_noise = dict(small_step_noise)
+        if central_ok:
+            state = {
+                name: values["derivatives"]
+                for name, values in parsed["coefficients"].items()
+            }
+            central_noise["CL_beta_over_CL_alpha"] = abs(
+                central_derivatives["CL"]
+            ) / max(abs(float(state["CL"]["alpha"])), 1e-12)
+            central_noise["Cm_beta_over_Cm_alpha"] = abs(
+                central_derivatives["Cm"]
+            ) / max(abs(float(state["Cm"]["alpha"])), 0.1)
+        central_noise_ok = bool(
+            central_ok
+            and all(
+                value <= float(quality["noise_limit"])
+                for value in central_noise.values()
+            )
+        )
+        quality["small_step_noise_metrics"] = small_step_noise
+        quality["noise_metrics"] = central_noise
+        quality["noise_ok"] = central_noise_ok
+        quality["noise_estimate"] = (
+            "central +/-1 deg beta escalation"
+            if central_noise_ok
+            else "built-in 0.01 deg perturbations; central escalation failed"
+        )
+        quality["ok"] = bool(
+            quality["noise_ok"] and quality["CL_alpha_ok"] and quality["wake_ok"]
+        )
+        central_beta = {
+            "performed": True,
+            "ok": central_noise_ok,
+            "delta_beta_deg": 2.0,
+            "minus_point": beta_minus,
+            "plus_point": beta_plus,
+            "derivatives_per_rad": central_derivatives,
+        }
+    else:
+        quality["noise_estimate"] = "built-in 0.01 deg perturbations"
+        central_beta = {"performed": False}
     assessed["large_step_lift"] = {
         "ok": bool(reference_point.get("ok") and large_step.get("ok")),
         "reference_alpha_deg": alpha_deg,
@@ -706,6 +789,7 @@ def _assess_stability_derivatives(
         "CL_alpha_per_rad": large_step_slope,
     }
     assessed["derivative_quality"] = quality
+    assessed["central_beta_noise_check"] = central_beta
     assessed["ok"] = bool(assessed.get("ok") and quality["ok"])
     return assessed
 
@@ -799,6 +883,71 @@ def run_vspaero_stability(
     }
 
 
+def run_vspaero_state_derivatives(
+    spec: VehicleSpec,
+    vsp3_path: Path,
+    outdir: Path,
+    *,
+    alpha_deg: float,
+    airspeed_mps: float,
+    altitude_m: float,
+    lifting_names: set[str] | None = None,
+    artifact_tag: str = "state-derivatives",
+) -> dict[str, Any]:
+    """Fixed-wake state-derivative probe with no inertia/control requirement."""
+    if not vsp3_path.is_file():
+        return {"ok": False, "reason": f"missing serialized VSP3: {vsp3_path}"}
+    before = sha256_file(vsp3_path)
+    selected_lifting_names = lifting_names or {
+        "wing",
+        "vtailc",
+        "vtaill",
+        "vtailr",
+        "htail",
+    }
+    analysis = _run_stability(
+        spec,
+        vsp3_path,
+        outdir,
+        alpha_deg=alpha_deg,
+        airspeed_mps=airspeed_mps,
+        altitude_m=altitude_m,
+        artifact_tag=artifact_tag,
+        lifting_names=selected_lifting_names,
+        fixed_wake=True,
+        require_control_groups=False,
+    )
+    analysis = _assess_stability_derivatives(
+        spec,
+        vsp3_path,
+        analysis,
+        alpha_deg=alpha_deg,
+        airspeed_mps=airspeed_mps,
+        altitude_m=altitude_m,
+        lifting_names=selected_lifting_names,
+        fixed_wake=True,
+    )
+    analysis["escalation"] = {
+        "performed": False,
+        "reason": "state-derivative probes use fixed wake by contract",
+    }
+    after = sha256_file(vsp3_path)
+    if before != after:
+        return {
+            "ok": False,
+            "reason": "VSPAERO state-derivative probe mutated the serialized VSP3",
+            "vsp3_sha256_before": before,
+            "vsp3_sha256_after": after,
+        }
+    return {
+        "ok": bool(analysis.get("ok")),
+        "method": "VSPAERO steady finite-difference state derivatives",
+        "vsp3": str(vsp3_path),
+        "vsp3_sha256": before,
+        "analysis": analysis,
+    }
+
+
 def run_vspaero_control_derivatives(
     spec: VehicleSpec,
     vsp3_path: Path,
@@ -808,6 +957,7 @@ def run_vspaero_control_derivatives(
     airspeed_mps: float,
     altitude_m: float,
     lifting_names: set[str] | None = None,
+    artifact_tag: str = "control-derivatives",
 ) -> dict[str, Any]:
     """Control-derivative probe for cross-checks; does not need flight dynamics.
 
@@ -831,7 +981,7 @@ def run_vspaero_control_derivatives(
         alpha_deg=alpha_deg,
         airspeed_mps=airspeed_mps,
         altitude_m=altitude_m,
-        artifact_tag="control-derivatives",
+        artifact_tag=artifact_tag,
         lifting_names=selected_lifting_names,
         fixed_wake=True,
     )

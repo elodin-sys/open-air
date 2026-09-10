@@ -95,7 +95,10 @@ def elevon_wing_mesh(
         span_start_fraction=surface.span_start_fraction,
         span_end_fraction=surface.span_end_fraction,
         deflection_te_down_deg=te_down_deg(te_up),
-        taper=spec.wing.taper,
+        # Sectioned meshes already carry their local chord. Scalar wings are
+        # still tapered later by the OAS Geometry group and need the historical
+        # pre-scaling.
+        taper=1.0 if spec.wing.sections is not None else spec.wing.taper,
     )
     return mesh, {
         "surface_id": surface.id,
@@ -130,14 +133,6 @@ def wing_surface_dict(
         "symmetry": True,
         "S_ref_type": "projected",
         "mesh": mesh,
-        "taper": spec.wing.taper,
-        "sweep": oas_shear_for_le_sweep_deg(
-            spec.wing.root_chord_m,
-            spec.wing.taper,
-            spec.wing.span_m,
-            spec.wing.le_sweep_deg,
-        ),
-        "dihedral": spec.wing.dihedral_deg,
         "twist_cp": twist,
         "t_over_c_cp": np.array(
             [spec.wing.t_over_c, spec.wing.t_over_c, spec.wing.t_over_c]
@@ -149,6 +144,19 @@ def wing_surface_dict(
         "with_viscous": spec.solver.oas_with_viscous,
         "with_wave": spec.solver.oas_with_wave,
     }
+    if spec.wing.sections is None:
+        surf.update(
+            {
+                "taper": spec.wing.taper,
+                "sweep": oas_shear_for_le_sweep_deg(
+                    spec.wing.root_chord_m,
+                    spec.wing.taper,
+                    spec.wing.span_m,
+                    spec.wing.le_sweep_deg,
+                ),
+                "dihedral": spec.wing.dihedral_deg,
+            }
+        )
     if aero_only:
         return surf
 

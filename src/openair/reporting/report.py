@@ -89,6 +89,7 @@ def run_report_stage(
     *,
     requirements_path: Path | None = None,
 ) -> dict[str, Any]:
+    spec.assert_cross_model_invariants()
     concept = None
     design_yaml = None
     results_root = None
@@ -219,7 +220,9 @@ def run_report_stage(
     trim_got = trim_values["solved_deg"]
     trim_spec = trim_values["spec_deg"] if trim_values["spec_deg"] is not None else 0.0
     trim_control_name = (
-        "wing washout" if trim_values["control"] == "wing_twist" else trim_values["label"]
+        "wing washout"
+        if trim_values["control"] == "wing_twist"
+        else trim_values["label"]
     )
     movable_control = trim_values["control"] in {"tail_incidence", "elevon"}
     inspiration = bool(
@@ -357,6 +360,19 @@ def run_report_stage(
         f"z {spec.vtail.z_root_m:.3f} m"
         if spec.vtail.root_attachment == "measured"
         else "root derived from the local aft-body section"
+    )
+    wing_planform_text = (
+        f"{len(spec.wing.sections)}-section measured loft, gross projected area "
+        f"{spec.wing.area_m2:.3f} m², MAC {spec.wing.mac_m:.3f} m; scalar root "
+        f"{spec.wing.root_chord_m:.3f} m, taper {spec.wing.taper:.3f}, LE sweep "
+        f"{spec.wing.le_sweep_deg:.1f}°, and dihedral {spec.wing.dihedral_deg:.1f}° "
+        "are area/MAC-locus-equivalent descriptors"
+        if spec.wing.sections is not None
+        else (
+            f"single trapezoid with root {spec.wing.root_chord_m:.2f} m, "
+            f"taper {spec.wing.taper:.2f}, "
+            f"LE sweep {spec.wing.le_sweep_deg:.1f}°"
+        )
     )
     reproduction = bool(
         spec.sketch is not None and spec.sketch.treatment == "reproduction"
@@ -503,7 +519,8 @@ def run_report_stage(
         "## Configuration",
         "",
         f"- Fuselage length × width × height: {spec.fuselage.length_m:.2f} × {spec.fuselage.max_width_m:.2f} × {spec.fuselage.max_height_m:.2f} m",
-        f"- Wing: span {spec.wing.span_m:.2f} m, root {spec.wing.root_chord_m:.2f} m, taper {spec.wing.taper:.2f}, LE sweep {spec.wing.le_sweep_deg:.1f}°, t/c {spec.wing.t_over_c:.3f}, NACA {spec.wing.airfoil}",
+        f"- Wing: {wing_planform_text}; span {spec.wing.span_m:.2f} m, "
+        f"t/c {spec.wing.t_over_c:.3f}, NACA {spec.wing.airfoil}",
         f"- Washout {spec.wing.twist_root_deg - spec.wing.twist_tip_deg:.1f}° (root {spec.wing.twist_root_deg:+.1f}°, tip {spec.wing.twist_tip_deg:+.1f}°) — {wing_trim_note}",
         f"- {fin_topology.title()}: span {spec.vtail.span_m:.2f} m, cant {spec.vtail.cant_deg:.1f}°, {fin_root_text} (see `geometry.json .openvsp.fin_attach`); {tail_config}",
         f"- Payload bay front face x={spec.fuselage.payload_bay_x_m:.2f} m; fuselage tank x={spec.fuselage.fuel_tank_x_m:.2f} m (balance-driven)",

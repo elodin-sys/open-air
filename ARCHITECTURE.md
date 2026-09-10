@@ -140,7 +140,7 @@ section is sampled into the Front view rather than approximated by an ellipse.
 Shaded/wireframe layers share CG, reserve-CG, neutral-point, payload-bay, and
 fuel-tank overlays with the 2D views. Its span, area, and three-axis bounding
 box are tested against OpenVSP read-back and exported STL geometry for the
-default, forward-swept, station-loft, and blade/bubble designs; the browser
+default, forward-swept, station-loft, blade/bubble, and sectioned-wing designs; the browser
 and Python section-area factors are also compared directly. If WebGL is
 unavailable, the 2D editor and pure-JavaScript mesh checks continue to work.
 
@@ -148,9 +148,10 @@ The served Studio retains **Advanced: OpenVSP** as an escape hatch. The
 server builds a read-back-verified `.vsp3` plus a `.des` whitelist in a
 temporary session directory, launches the installed OpenVSP GUI, and watches
 the model for saves. A restricted importer accepts only geometry that
-`VehicleSpec` can represent (one trapezoidal NACA four-series wing, 4–8
-point/ellipse/split-super-ellipse fuselage stations, one centerline fin or a
-symmetric fin pair, and the optional single-section horizontal tail).
+`VehicleSpec` can represent (one scalar trapezoid or 3–12-section measured
+NACA four-series wing, 4–8 point/ellipse/split-super-ellipse fuselage stations,
+one centerline fin or a symmetric fin pair, and the optional single-section
+horizontal tail).
 Asymmetric upper/lower lateral
 powers, nonzero super-ellipse width bias, rounded/general sections,
 unsupported components, extra wing sections, mixed airfoils, or
@@ -247,8 +248,9 @@ three-view comparison before MDO) and the full AERO QA review afterwards.
 
 ### Schema — `src/openair/schemas.py`
 
-`VehicleSpec` composes `EngineSpec`, `WingSpec`, `FuselageSpec` (with an
-optional 4–8 section `FuselageStation` loft), `VerticalTailSpec` (one
+`VehicleSpec` composes `EngineSpec`, `WingSpec` (scalar trapezoid plus optional
+3–12-station `WingSectionSpec` measured-reproduction loft),
+`FuselageSpec` (with an optional 4–8 section `FuselageStation` loft), `VerticalTailSpec` (one
 centerline fin or a symmetric pair), optional `HorizontalTailSpec`,
 `MissionSpec`, `StructureSpec`/`MaterialSpec`,
 `SketchEnvelopeSpec`, `MassGuessSpec`, and `SolverSpec`. Field bounds and
@@ -284,7 +286,7 @@ Deep dive: [guidebook 09](docs/guidebook/09-sizing-aero-buildup.md).
 
 ### Geometry — `src/openair/geometry/`
 
-`openvsp_model.py` builds the OpenVSP model (wing, station-loft or legacy
+`openvsp_model.py` builds the OpenVSP model (scalar or measured-section wing, station-loft or legacy
 fuselage, and one or two fins attached to the local body section), verifies every
 parameter by API read-back, and exports `.vsp3` plus whole-model and
 per-component STLs. Whenever control surfaces are declared it also creates
@@ -624,10 +626,11 @@ raise fidelity, trust, or speed.
   sketch layers, snapping, and EXIF-based scale hints are small additions
   with outsized authoring-speed payoff.
 - **Richer bounded geometry.** Split super-ellipse fuselage stations now
-  cover blade edges, bubble crowns, and flat bellies. Multi-panel wings,
-  separate canopy/inlet components, or further section controls should be
-  added only by extending `VehicleSpec`, the handle registry, preview builder,
-  physics consumers, OpenVSP importer, and parity fixtures together.
+  cover blade edges, bubble crowns, and flat bellies. Measured multi-section
+  wings now follow that same end-to-end admission rule. Separate canopy/inlet
+  components, section-aware MDO variables, or further section controls should
+  be added only by extending `VehicleSpec`, the handle registry, preview
+  builder, physics consumers, OpenVSP importer, and parity fixtures together.
 
 ### Infrastructure and process
 

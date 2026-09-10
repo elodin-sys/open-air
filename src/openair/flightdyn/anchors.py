@@ -5,6 +5,8 @@ from __future__ import annotations
 import math
 from typing import Any
 
+import numpy as np
+
 from openair.schemas import VehicleSpec
 
 
@@ -16,8 +18,15 @@ def strip_theory_roll_damping(spec: VehicleSpec) -> float:
     """
     aspect_ratio = spec.wing.aspect_ratio
     lift_slope = 2.0 * math.pi * aspect_ratio / (aspect_ratio + 2.0)
-    taper = spec.wing.taper
-    return -lift_slope * (1.0 + 3.0 * taper) / (12.0 * (1.0 + taper))
+    if spec.wing.sections is None:
+        taper = spec.wing.taper
+        return -lift_slope * (1.0 + 3.0 * taper) / (12.0 * (1.0 + taper))
+    eta = np.linspace(0.0, 1.0, 1001)
+    chord = np.asarray([spec.wing.chord_at(value) for value in eta])
+    chord_integral = float(np.trapezoid(chord, eta))
+    eta_sq_chord_integral = float(np.trapezoid(eta**2 * chord, eta))
+    planform_factor = 0.5 * eta_sq_chord_integral / max(chord_integral, 1e-12)
+    return -lift_slope * planform_factor
 
 
 def evaluate_derivative_anchors(
@@ -46,12 +55,8 @@ def evaluate_derivative_anchors(
             },
             {
                 "name": "CL_alpha_vspaero_small_vs_large_step",
-                "got": derivative_quality.get(
-                    "CL_alpha_ratio_small_over_large"
-                ),
-                "want": derivative_quality.get(
-                    "CL_alpha_ratio_band", [0.90, 1.10]
-                ),
+                "got": derivative_quality.get("CL_alpha_ratio_small_over_large"),
+                "want": derivative_quality.get("CL_alpha_ratio_band", [0.90, 1.10]),
                 "ok": bool(derivative_quality.get("CL_alpha_ok")),
             },
         ]

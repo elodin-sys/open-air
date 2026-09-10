@@ -58,11 +58,17 @@ guidebook — read it, do not improvise:
   For a `reproduction` the fidelity check is part of the Geometry-truth gate;
   open `reference_overlay.png` and trace every departure to a documented
   unrepresentable feature.
+- For `wing.sections`, verify section-integrated area/MAC, per-panel OpenVSP
+  read-back, the baked OAS mesh, and Studio parity. Use exposed-wing p95
+  outside the scan-derived body exclusion for visible shape; retain full
+  component p95 as buried carry-through disclosure.
 - VSPAERO derivative evidence must carry
   `analysis.derivative_quality.ok` (tight 0.01 convergence factors,
   symmetry-noise floor, 0.01°/1° CLα agreement, and wake-quality evidence).
   Reject a numerically finite derivative table when that block is absent or
-  false.
+  false. A source-locked Vv miss may pass authority only with same-run
+  quality-green `Cn_beta > 0`, `Cn_r < 0`, `CY_beta < 0`; a central ±1° beta
+  escalation may repair only documented small-step symmetry noise.
 
 ## Commands
 

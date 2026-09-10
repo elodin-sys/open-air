@@ -63,10 +63,18 @@ publishing. A staged concept bundle passes `--out <staging>/reference` and
    wing stations; exact plane cuts (resampled at 1 mm) for airfoils:
    - *Wing*: leading/trailing-edge curves per side, robust straight-band fit
      (root blends and tip rounding excluded), root chord by centreline
-     extrapolation, LE sweep, area-preserving equivalent-trapezoid taper,
-     dihedral, incidence per station, linear twist law. Chord lines use the
-     mid-line extrapolated to the nose so a missing leading-edge skin cannot
-     fake incidence. A trailing-edge hinge is detected as a thickness groove
+     extrapolation, dihedral, incidence per station, and linear twist law.
+     For a reproduction, mirror-averaged stations outside the maximum body
+     half-width are simplified to 3–12 `wing.sections` breakpoints at a
+     resolution-aware tolerance. The centreline uses the straight-band
+     carry-through; mandatory breakpoints retain the blend-band ends and
+     rounded tip; scalar taper/sweep/dihedral are exact
+     area/MAC-locus-equivalent descriptors. Chord lines use the mid-line
+     extrapolated to the nose so a missing leading-edge skin cannot fake
+     incidence. Section-local t/c is an inferred loft control: the measured
+     airfoil-cut mean is scaled down where root/deck outline chord would
+     otherwise inflate absolute thickness, and its inference is disclosed.
+     A trailing-edge hinge is detected as a thickness groove
      or surface step; when the control deflection is consistent along the
      span it is rotated back to neutral before twist and camber are read, and
      the as-scanned deflection is reported.
@@ -102,8 +110,9 @@ publishing. A staged concept bundle passes `--out <staging>/reference` and
 
 `reference-sections.png` is the human checkpoint. Confirm: the body half-width
 profile is smooth and excludes the wing; the LE/TE station points lie on the
-fitted lines over the straight band; the equivalent trapezoid covers the wing
-area; each station envelope (black) is followed by its fitted super-ellipse
+fitted lines over the straight band; the solid section loft follows the blend
+and rounded tip while the dashed equivalent trapezoid preserves its integrated
+area/MAC locus; each station envelope (black) is followed by its fitted super-ellipse
 (red) with a small RMS; airfoil sections show the expected thickness and
 camber sign; the fin outline sits on the deck. Every station also records
 `fill_method`, `width_clamped`, `top_overridden`/`bottom_overridden`, and
@@ -123,17 +132,22 @@ The gate (`checks`) is: **body p95 ≤ band** (the fuselage component; the
 whole aircraft when component STLs are absent) and **IoU top ≥ 0.90 / side ≥
 0.85**. Defaults: 15 mm, 0.90, 0.85 (`--fidelity-p95-mm`, `--fidelity-iou`
 at ingest). The wing and fins are already gated by the measured sketch priors
-(span, chords, sweep, taper, station, `fin_*`), and their residual p95 is
-dominated by declared abstractions — the equivalent-trapezoid tip and, when
-selected, a body-derived fin attachment — so their p95 and the whole-aircraft
-p95 are **disclosed** (`disclosed`) rather than gating. A measured fin root
+(span, chords, sweep, taper, station, `fin_*`), so their p95 and the
+whole-aircraft p95 are **disclosed** (`disclosed`) rather than gating. For a
+sectioned wing the disclosure separately reports exposed-wing p95 outside the
+measured body/root exclusion; the full component still contains the invisible
+centreline carry-through inside the fuselage. A measured fin root
 removes that attachment abstraction but does not make the scan validation
 truth. The Dolphin made the case: a
 render trace and a scan-grounded concept both scored 17.7 mm whole-aircraft
 p95 while their silhouette IoUs differed by 0.05–0.16. Honouring its measured
 fin junction later reduced fin p95 from 20–21 mm to 3–4 mm, whole-aircraft
 p95 to 13.4 mm, and raised front IoU from 0.664 to 0.787 without changing an
-acceptance band. For
+acceptance band. Replacing its remaining single trapezoid with the measured
+12-section loft then raised top/front IoU to 0.969/0.897 (side 0.952),
+delivered 4.9 mm exposed-wing p95, and moved whole-aircraft p95 to 13.2 mm.
+The full wing-component p95 remains 16.0 mm because it includes buried
+carry-through surface. For
 `sketch.treatment: reproduction` the check is part of the geometry stage `ok`
 and of the **Geometry truth** gate (chapter 00); otherwise it is recorded and
 disclosed, not gating.
@@ -152,6 +166,11 @@ disclosed, not gating.
 5. `measurements.wing.straight_range_abs_y_m`, `nose_open_fraction`,
    `le_incomplete_fraction`, and `control_surface` tell you where the scan is
    weak; their allowances must show up in the tolerances you publish.
+5b. For a sectioned reproduction, inspect
+    `disclosures.wing_planform`: the body-exclusion width, source/selected
+    station counts, simplification tolerance, gross area, and equivalent
+    descriptors must agree with `suggested.wing` and the solid outline in
+    `reference-sections.png`.
 6. Open `reference-sections.png`; then after `python -m openair.geometry run`
    open `reference_overlay.png` and read `reference_fidelity.checks`.
 7. `reference.json .provenance.source_sha256` must match the file you were

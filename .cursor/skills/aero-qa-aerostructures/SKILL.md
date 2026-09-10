@@ -30,11 +30,20 @@ Non-negotiables for this repo:
   positive and smaller than `dcm_ddelta_fixed_alpha_per_deg`; the wingbox
   keeps the undeflected mesh. Any spec copy turned into a synthetic test
   wing must reset `pitch_trim_control` and drop the control surfaces.
+- A measured `wing.sections` seed already carries local LE/chord/z: its OAS
+  surface dict must omit `taper`, `sweep`, and `dihedral`, and elevon
+  deflection uses taper factor 1. Scalar wings retain the historical OAS
+  transforms. OAS/wingbox t/c remains uniform even when OpenVSP/Studio carry
+  section-local loft t/c.
 - VSPAERO's built-in stability perturbation is only 0.01°. Require
   `stability.analysis.derivative_quality.ok`: convergence factors 0.01,
   symmetry-noise metrics ≤ 0.02, small/large-step CLα ratio 0.90–1.10, and
   strict relaxed-wake residuals or a recorded fixed-wake escalation. A finite
-  `.stab` table alone is not evidence.
+  `.stab` table alone is not evidence. If beta symmetry noise alone fails, a
+  recorded central ±1° beta escalation may replace only the beta cross-noise
+  estimates; keep the small-step values disclosed and apply the same 0.02
+  limit. A source-locked fin below the generic Vv screen needs quality-green
+  same-run `Cn_beta > 0`, `Cn_r < 0`, `CY_beta < 0`—never a resized fin.
 - All plain-flap effectiveness comes from `openair.aero.thin_airfoil`
   (Glauert: τ≈0.55 at 20% chord). Never reintroduce the complementary hinge
   angle `acos(2*x_h-1)`; Diana 2's V1 force scale absorbed that bug and is

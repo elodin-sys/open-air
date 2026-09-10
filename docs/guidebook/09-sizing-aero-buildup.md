@@ -58,8 +58,9 @@ know their assumptions to catch them lying.
     aeroelastic response; `θ_h = acos(1 − 2 x_h/c)`,
     `dCl/dδ = 2(π − θ_h + sin θ_h)`, `dCm_c/4/dδ = −½ sin θ_h (1 − cos θ_h)`
     (τ ≈ 0.55 for a 20 % flap, 0.82 for 50 %); `elevon_pitch_derivative`
-    strip-integrates it over the trapezoid between the surface's span
-    fractions with the finite-wing lift slope, hinge-sweep cosine, and the
+    strip-integrates it over the local `wing.chord_at/x_le_at` planform
+    between the surface's span fractions with the finite-wing lift slope,
+    hinge-sweep cosine, and the
     `c²`-weighted section moment, and takes the lift increment about the
     strip's quarter-chord centroid; `elevon_required_deg` zeroes
     `Cm_cg0 = k_w·washout + cm_ac − SM·CL` with twist frozen. Trailing edge
@@ -142,9 +143,10 @@ each branch:
 7. Dash is a capability point — the 2 h budget assumes cruise only; say so
    whenever quoting both.
 8. Directional authority and geometry: sized concepts require Vv in
-   [0.02, 0.09], source-locked reproductions require Vv ≥ 0.02, and the
-   aft-most fin trailing edge must remain within the reported geometric
-   attachment tolerance.
+   [0.02, 0.09]. Source-locked reproductions require Vv ≥ 0.02 or a same-run,
+   derivative-quality-green full-aircraft probe with `Cn_beta > 0`,
+   `Cn_r < 0`, and `CY_beta < 0`; the aft-most fin trailing edge must remain
+   within the reported geometric attachment tolerance.
 9. Mass trace: MDO, optimized aero, optimized structures, report JSON, and the
    presentation must reproduce the same closed MTOW within 0.1%; a one-pass
    breakdown must fail this check rather than become a competing headline.

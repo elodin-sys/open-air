@@ -75,7 +75,19 @@ require every perturbation case to reach L2 ≤ 1e-2; a failed quality check is
 rerun once with a fixed wake and recorded as an escalation. The standalone
 elevon validation probe uses tight convergence and a fixed wake by contract;
 fixed-wake history residuals are not treated as an outer wake convergence
-test.
+test. If its 0.01° beta column remains symmetry-noise dominated, the checker
+runs independent points at beta ±1° and replaces only the two beta
+cross-axis noise estimates with their central derivative; the original
+small-step metrics remain disclosed. This is an escalation, not a relaxed
+band: the same ≤0.02 criterion still applies to an estimate with 200 times
+the coefficient separation.
+
+A source-locked reproduction whose measured fin falls just below the generic
+`Vv >= 0.02` screen may run the same fixed-wake derivative probe on the full
+wing+fin set without enabling six-DOF flight dynamics or inventing inertia.
+It passes directional authority only when derivative quality is green and
+`Cn_beta > 0`, `Cn_r < 0`, and `CY_beta < 0` in same-run, artifact-bound
+evidence.
 
 ## Check your work
 
@@ -98,9 +110,12 @@ test.
    small/large-step and stability/sweep CL-alpha ratios in 0.90–1.10. Read the
    disclosed `dcl_ratio_oas_over_vspaero` too — a lift-increment ratio near
    0.5 with a moment ratio near 1 means the two lattices place the flap load
-   differently, which is worth a note but not a gate failure. After the
-   convergence repair the Dolphin reports CL-alpha ratios 0.995/0.987,
-   OAS/VSPAERO dCm/dδ 0.953, and dCL/dδ 0.686.
+   differently, which is worth a note but not a gate failure. The first
+   convergence repair gave the trapezoid Dolphin CL-alpha ratios 0.995/0.987,
+   OAS/VSPAERO dCm/dδ 0.953, and dCL/dδ 0.686. With the sectioned wing the
+   ratios are 0.991 and 1.036. After a central-beta escalation, inspect both
+   `small_step_noise_metrics` and the final `noise_metrics`; do not describe
+   the former as a physical beta derivative.
 
 ## Known lies
 

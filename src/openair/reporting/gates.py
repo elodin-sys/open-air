@@ -224,7 +224,9 @@ def evaluate_gates(
     readback = openvsp.get("readback") or {}
     bbox = openvsp.get("stl_bbox") or {}
     reference = geometry.get("reference_fidelity") or {}
-    reference_gates = bool(reference.get("available") and reference.get("gates_stage_ok"))
+    reference_gates = bool(
+        reference.get("available") and reference.get("gates_stage_ok")
+    )
     packing = geometry.get("packing") or {}
     stability = aero.get("stability") or {}
     balance = aero.get("balance") or {}
@@ -356,11 +358,7 @@ def evaluate_gates(
     trim_control = trim_values["label"]
     elevon_trim = trim_values["control"] == "elevon"
     elevon_travel = trim.get("elevon_travel_deg") or []
-    elevon_travel_ok = (
-        bool(trim.get("elevon_within_travel"))
-        if elevon_trim
-        else True
-    )
+    elevon_travel_ok = bool(trim.get("elevon_within_travel")) if elevon_trim else True
     trim_ok = (
         bool(trim.get("converged"))
         and cm_residual is not None
@@ -575,7 +573,11 @@ def evaluate_gates(
                 else f"cant-corrected fin volume Vv {_fmt(vv, 4)} in "
                 f"{balance.get('vv_band') or [0.02, 0.09]}"
             ),
-            "optimized/aero.json",
+            (
+                "optimized/validation.json"
+                if (directional.get("directional_derivative_evidence") or {}).get("ok")
+                else "optimized/aero.json"
+            ),
             meaning=(
                 "Source-locked geometry clears either the minimum conceptual "
                 "fin-volume screen or same-run restoring/damping derivative "

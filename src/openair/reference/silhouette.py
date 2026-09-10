@@ -17,6 +17,8 @@ from PIL import Image, ImageDraw, ImageFont
 from PIL.PngImagePlugin import PngInfo
 from scipy import ndimage
 
+from openair.schemas import WingSpec
+
 VIEWS: dict[str, tuple[int, int]] = {"top": (0, 1), "side": (0, 2), "front": (1, 2)}
 GRID_MM = 10.0
 MARGIN_MM = 20.0
@@ -51,7 +53,9 @@ def rasterize(
     rows = np.clip(np.floor((hi[1] - uv[:, 1]) / px).astype(int), 0, height - 1)
     grid = np.zeros((height, width), dtype=bool)
     grid[rows, cols] = True
-    grid = ndimage.binary_closing(grid, structure=np.ones((3, 3), dtype=bool), iterations=2)
+    grid = ndimage.binary_closing(
+        grid, structure=np.ones((3, 3), dtype=bool), iterations=2
+    )
     grid = ndimage.binary_fill_holes(grid)
     return grid
 
@@ -90,15 +94,23 @@ def render_view(
     while u <= hi[0]:
         col = int(round((u - lo[0]) / px))
         major = abs((u / step) % 5.0) < 1e-6 or abs((u / step) % 5.0 - 5.0) < 1e-6
-        color = AXIS_RGB if abs(u) < 1e-9 else (GRID_MAJOR_RGB if major else GRID_MINOR_RGB)
-        draw.line([(col, 0), (col, height - 1)], fill=color, width=2 if abs(u) < 1e-9 else 1)
+        color = (
+            AXIS_RGB if abs(u) < 1e-9 else (GRID_MAJOR_RGB if major else GRID_MINOR_RGB)
+        )
+        draw.line(
+            [(col, 0), (col, height - 1)], fill=color, width=2 if abs(u) < 1e-9 else 1
+        )
         u += step
     v = math.floor(lo[1] / step) * step
     while v <= hi[1]:
         row = int(round((hi[1] - v) / px))
         major = abs((v / step) % 5.0) < 1e-6 or abs((v / step) % 5.0 - 5.0) < 1e-6
-        color = AXIS_RGB if abs(v) < 1e-9 else (GRID_MAJOR_RGB if major else GRID_MINOR_RGB)
-        draw.line([(0, row), (width - 1, row)], fill=color, width=2 if abs(v) < 1e-9 else 1)
+        color = (
+            AXIS_RGB if abs(v) < 1e-9 else (GRID_MAJOR_RGB if major else GRID_MINOR_RGB)
+        )
+        draw.line(
+            [(0, row), (width - 1, row)], fill=color, width=2 if abs(v) < 1e-9 else 1
+        )
         v += step
     # Silhouette fill.
     rgb = np.array(image)
@@ -110,8 +122,14 @@ def render_view(
     x0, y0 = 12, height - 18
     draw.line([(x0, y0), (x0 + bar_px, y0)], fill=(20, 20, 20), width=3)
     draw.line([(x0, y0 - 6), (x0, y0 + 6)], fill=(20, 20, 20), width=2)
-    draw.line([(x0 + bar_px, y0 - 6), (x0 + bar_px, y0 + 6)], fill=(20, 20, 20), width=2)
-    axes = {"top": "x right, +y up", "side": "x right, +z up", "front": "+y right, +z up"}[view]
+    draw.line(
+        [(x0 + bar_px, y0 - 6), (x0 + bar_px, y0 + 6)], fill=(20, 20, 20), width=2
+    )
+    axes = {
+        "top": "x right, +y up",
+        "side": "x right, +z up",
+        "front": "+y right, +z up",
+    }[view]
     caption = (
         f"100 mm  ·  {mm_per_px:g} mm/px  ·  grid {grid_mm:g} mm (dark every {5 * grid_mm:g} mm)"
         f"  ·  {view} view: {axes}  ·  reference-mesh orthographic silhouette"
@@ -161,7 +179,9 @@ def render_silhouettes(
     return written
 
 
-def silhouette_mask(points: np.ndarray, view: str, lo: np.ndarray, hi: np.ndarray, mm_per_px: float) -> np.ndarray:
+def silhouette_mask(
+    points: np.ndarray, view: str, lo: np.ndarray, hi: np.ndarray, mm_per_px: float
+) -> np.ndarray:
     i, j = VIEWS[view]
     return rasterize(points[:, [i, j]], lo, hi, mm_per_px)
 
@@ -171,7 +191,13 @@ def silhouette_mask(points: np.ndarray, view: str, lo: np.ndarray, hi: np.ndarra
 # --------------------------------------------------------------------------
 
 
-def render_sections_figure(record: dict[str, Any], mesh, out_path: Path) -> Path:
+def render_sections_figure(
+    record: dict[str, Any],
+    mesh,
+    out_path: Path,
+    *,
+    wing_sections: list[dict[str, float]] | None = None,
+) -> Path:
     """Planform, side profile, stations, and airfoil fits for human review."""
     import matplotlib
 
@@ -189,6 +215,14 @@ def render_sections_figure(record: dict[str, Any], mesh, out_path: Path) -> Path
     airfoils = record.get("airfoil_sections") or []
     length = overall["length_m"]
     semispan = overall["semispan_m"]
+    section_equivalent = (
+        WingSpec.equivalent_trapezoid(
+            wing_sections,
+            float(wing["span_m"]),
+        )
+        if wing.get("ok") and wing_sections
+        else None
+    )
 
     fig = plt.figure(figsize=(17, 15))
     gs = GridSpec(3, 4, figure=fig, height_ratios=[1.25, 1.0, 0.9])
@@ -198,26 +232,101 @@ def render_sections_figure(record: dict[str, Any], mesh, out_path: Path) -> Path
     if profile:
         xs = [r["x_m"] for r in profile]
         half = [0.5 * r["width_m"] for r in profile]
-        ax.plot(xs, half, color="#34798e", lw=1.2, label="body half-width (thickness edge)")
+        ax.plot(
+            xs, half, color="#34798e", lw=1.2, label="body half-width (thickness edge)"
+        )
         ax.plot(xs, [-h for h in half], color="#34798e", lw=1.2)
     if wing.get("ok"):
         for side, color in (("right", "#e9673f"), ("left", "#926fc0")):
             recs = [s for s in wing["stations"] if s["side"] == side]
-            ax.scatter([s["x_le_m"] for s in recs], [s["y_m"] for s in recs], s=6, color=color, label=f"{side} LE/TE stations")
-            ax.scatter([s["x_te_m"] for s in recs], [s["y_m"] for s in recs], s=6, color=color)
-        b2 = semispan
-        x_le_r = wing["x_le_root_m"]
-        c_r = wing["root_chord_m"]
-        x_le_t = x_le_r + b2 * math.tan(math.radians(wing["le_sweep_deg"]))
-        c_t = wing["tip_chord_area_equivalent_m"]
-        poly = [(x_le_r, 0), (x_le_t, b2), (x_le_t + c_t, b2), (x_le_r + c_r, 0), (x_le_t + c_t, -b2), (x_le_t, -b2), (x_le_r, 0)]
-        ax.plot([p[0] for p in poly], [p[1] for p in poly], "k--", lw=1.0, label="equivalent trapezoid")
+            ax.scatter(
+                [s["x_le_m"] for s in recs],
+                [s["y_m"] for s in recs],
+                s=6,
+                color=color,
+                label=f"{side} LE/TE stations",
+            )
+            ax.scatter(
+                [s["x_te_m"] for s in recs], [s["y_m"] for s in recs], s=6, color=color
+            )
+        b2 = 0.5 * float(wing["span_m"]) if section_equivalent else semispan
+        x_le_r = (
+            section_equivalent["x_le_root_m"]
+            if section_equivalent
+            else wing["x_le_root_m"]
+        )
+        c_r = (
+            section_equivalent["root_chord_m"]
+            if section_equivalent
+            else wing["root_chord_m"]
+        )
+        sweep = (
+            section_equivalent["le_sweep_deg"]
+            if section_equivalent
+            else wing["le_sweep_deg"]
+        )
+        x_le_t = x_le_r + b2 * math.tan(math.radians(sweep))
+        c_t = (
+            c_r * section_equivalent["taper"]
+            if section_equivalent
+            else wing["tip_chord_area_equivalent_m"]
+        )
+        poly = [
+            (x_le_r, 0),
+            (x_le_t, b2),
+            (x_le_t + c_t, b2),
+            (x_le_r + c_r, 0),
+            (x_le_t + c_t, -b2),
+            (x_le_t, -b2),
+            (x_le_r, 0),
+        ]
+        ax.plot(
+            [p[0] for p in poly],
+            [p[1] for p in poly],
+            "k--",
+            lw=1.0,
+            label=(
+                "section-equivalent trapezoid"
+                if section_equivalent
+                else "equivalent trapezoid"
+            ),
+        )
+        if wing_sections:
+            right_le = [
+                (section["x_le_m"], section["eta"] * b2) for section in wing_sections
+            ]
+            right_te = [
+                (section["x_le_m"] + section["chord_m"], section["eta"] * b2)
+                for section in wing_sections
+            ]
+            left_le = [(x, -y) for x, y in right_le]
+            left_te = [(x, -y) for x, y in right_te]
+            section_poly = [
+                *right_le,
+                *reversed(right_te),
+                *left_te[1:],
+                *list(reversed(left_le))[:-1],
+                right_le[0],
+            ]
+            ax.plot(
+                [point[0] for point in section_poly],
+                [point[1] for point in section_poly],
+                "k-",
+                lw=1.3,
+                label=f"{len(wing_sections)}-section measured loft",
+            )
     for fin in fins.get("fins") or []:
-        ax.plot([fin["x_le_m"], fin["x_le_m"] + fin["root_chord_m"]], [fin["y_root_m"]] * 2, color="#34765a", lw=3, label="fin root chord" if fin is (fins.get("fins") or [None])[0] else None)
+        ax.plot(
+            [fin["x_le_m"], fin["x_le_m"] + fin["root_chord_m"]],
+            [fin["y_root_m"]] * 2,
+            color="#34765a",
+            lw=3,
+            label="fin root chord" if fin is (fins.get("fins") or [None])[0] else None,
+        )
     ax.set_aspect("equal")
     ax.set_xlabel("x [m] (nose at 0)")
     ax.set_ylabel("y [m]")
-    ax.set_title("Planform: measured edges, body edge, equivalent trapezoid")
+    ax.set_title("Planform: measured edges, body edge, section loft + equivalent")
     ax.grid(True, alpha=0.25)
     ax.legend(fontsize=8, loc="upper right")
 
@@ -225,22 +334,54 @@ def render_sections_figure(record: dict[str, Any], mesh, out_path: Path) -> Path
     ax = fig.add_subplot(gs[0, 2:])
     if profile:
         xs = [r["x_m"] for r in profile]
-        ax.plot(xs, [r["z_top_m"] for r in profile], color="#34798e", lw=1.2, label="body top (centreline)")
+        ax.plot(
+            xs,
+            [r["z_top_m"] for r in profile],
+            color="#34798e",
+            lw=1.2,
+            label="body top (centreline)",
+        )
         ax.plot(xs, [r["z_bottom_m"] for r in profile], color="#34798e", lw=1.2)
         ax.plot(xs, [r["z_offset_m"] for r in profile], color="#34798e", lw=0.8, ls=":")
     if wing.get("ok"):
         recs = wing["stations"]
-        ax.scatter([s["x_le_m"] for s in recs], [s["z_le_m"] for s in recs], s=5, color="#e9673f", label="wing LE/TE z")
-        ax.scatter([s["x_te_m"] for s in recs], [s["z_te_m"] for s in recs], s=5, color="#e9673f")
+        ax.scatter(
+            [s["x_le_m"] for s in recs],
+            [s["z_le_m"] for s in recs],
+            s=5,
+            color="#e9673f",
+            label="wing LE/TE z",
+        )
+        ax.scatter(
+            [s["x_te_m"] for s in recs],
+            [s["z_te_m"] for s in recs],
+            s=5,
+            color="#e9673f",
+        )
     for fin in fins.get("fins") or []:
         z0 = fin["z_root_m"]
         dz = fin["span_m"] * math.cos(math.radians(fin["cant_deg"]))
-        x_tip_le = fin["x_le_m"] + fin["span_m"] * math.tan(math.radians(fin["le_sweep_deg"]))
-        ax.plot([fin["x_le_m"], x_tip_le, x_tip_le + fin["tip_chord_m"], fin["x_le_m"] + fin["root_chord_m"], fin["x_le_m"]], [z0, z0 + dz, z0 + dz, z0, z0], color="#34765a", lw=1.2)
+        x_tip_le = fin["x_le_m"] + fin["span_m"] * math.tan(
+            math.radians(fin["le_sweep_deg"])
+        )
+        ax.plot(
+            [
+                fin["x_le_m"],
+                x_tip_le,
+                x_tip_le + fin["tip_chord_m"],
+                fin["x_le_m"] + fin["root_chord_m"],
+                fin["x_le_m"],
+            ],
+            [z0, z0 + dz, z0 + dz, z0, z0],
+            color="#34765a",
+            lw=1.2,
+        )
     ax.set_aspect("equal")
     ax.set_xlabel("x [m]")
     ax.set_ylabel("z [m]")
-    ax.set_title("Side: body top/bottom, wing chord ends, fin outline (root-chord datum)")
+    ax.set_title(
+        "Side: body top/bottom, wing chord ends, fin outline (root-chord datum)"
+    )
     ax.grid(True, alpha=0.25)
     ax.legend(fontsize=8, loc="upper left")
 
@@ -255,14 +396,20 @@ def render_sections_figure(record: dict[str, Any], mesh, out_path: Path) -> Path
         th = np.array(dist.get("thickness_over_c", []))
         cb = np.array(dist.get("camber_over_c", []))
         if xc.size:
-            ax.plot(xc, cb + 0.5 * th, color="#2f3b45", lw=1.4, label="measured upper/lower")
+            ax.plot(
+                xc, cb + 0.5 * th, color="#2f3b45", lw=1.4, label="measured upper/lower"
+            )
             ax.plot(xc, cb - 0.5 * th, color="#2f3b45", lw=1.4)
-            ax.plot(xc, cb, color="#e9673f", lw=1.0, ls="--", label="measured camber line")
+            ax.plot(
+                xc, cb, color="#e9673f", lw=1.0, ls="--", label="measured camber line"
+            )
             fit = rec["naca4_fit"]
             xx = np.linspace(0.0, 1.0, 120)
             yc, _ = naca4_camber(xx, fit["m"], fit["p"])
             yt = naca4_thickness(xx, fit["t"])
-            ax.plot(xx, yc + yt, color="#34798e", lw=1.0, label=f"NACA {fit['code']} fit")
+            ax.plot(
+                xx, yc + yt, color="#34798e", lw=1.0, label=f"NACA {fit['code']} fit"
+            )
             ax.plot(xx, yc - yt, color="#34798e", lw=1.0)
         ax.set_aspect("equal")
         ax.set_title(
@@ -282,15 +429,23 @@ def render_sections_figure(record: dict[str, Any], mesh, out_path: Path) -> Path
     if wing.get("ok"):
         lines += [
             f"root chord {wing['root_chord_m']:.4f} m (centreline)",
-            f"LE sweep {wing['le_sweep_deg']:.2f}° · TE sweep {wing['te_sweep_deg']:.2f}°",
-            f"taper straight {wing['taper_straight']:.3f} · area-equiv {wing['taper_area_equivalent']:.3f}",
-            f"area {wing['area_total_m2']:.4f} m² · x_le_root {wing['x_le_root_m']:.4f} m",
+            f"outer LE sweep {wing['le_sweep_deg']:.2f}° · TE sweep {wing['te_sweep_deg']:.2f}°",
+            f"straight taper {wing['taper_straight']:.3f} · legacy area-equiv {wing['taper_area_equivalent']:.3f}",
+            f"raw station area {wing['area_total_m2']:.4f} m² · x_le_root {wing['x_le_root_m']:.4f} m",
             f"dihedral {wing['dihedral_deg']:.2f}° · twist root/tip {wing['twist_root_deg']:.2f}/{wing['twist_tip_deg']:.2f}°",
             f"L/R LE delta {wing['left_right_delta_m'].get('le', float('nan')):.4f} m",
         ]
+        if section_equivalent:
+            lines += [
+                f"section loft ×{len(wing_sections)}: area {section_equivalent['area_m2']:.4f} m²",
+                f"equiv taper/sweep {section_equivalent['taper']:.3f}/{section_equivalent['le_sweep_deg']:.2f}°",
+            ]
     summary = record.get("airfoil_summary") or {}
     if summary:
-        lines.append(f"airfoil NACA {summary['naca4_code']} fit · t/c {summary['t_over_c_mean']:.3f}" + (" · reflex" if summary.get("reflex") else ""))
+        lines.append(
+            f"airfoil NACA {summary['naca4_code']} fit · t/c {summary['t_over_c_mean']:.3f}"
+            + (" · reflex" if summary.get("reflex") else "")
+        )
     mean = fins.get("mirrored_mean")
     if mean:
         lines += [
@@ -304,11 +459,15 @@ def render_sections_figure(record: dict[str, Any], mesh, out_path: Path) -> Path
         if control.get("resolved")
         else f"hinge: not resolved ({control.get('detections', 0)} detections)"
     )
-    ax.text(0.0, 1.0, "\n".join(lines), va="top", ha="left", fontsize=9, family="monospace")
+    ax.text(
+        0.0, 1.0, "\n".join(lines), va="top", ha="left", fontsize=9, family="monospace"
+    )
     ax.set_title("Measurement summary", fontsize=10)
 
     # --- stations -------------------------------------------------------
-    interior = [s for s in stations if 0.0 < s["x_over_length"] < 1.0 or s.get("width_m", 0) > 0]
+    interior = [
+        s for s in stations if 0.0 < s["x_over_length"] < 1.0 or s.get("width_m", 0) > 0
+    ]
     if interior:
         inner = gs[2, :].subgridspec(1, max(len(interior), 1))
         for k, st in enumerate(interior):
@@ -326,17 +485,28 @@ def render_sections_figure(record: dict[str, Any], mesh, out_path: Path) -> Path
                 top_power=st["top_power"],
                 bottom_power=st["bottom_power"],
             )
-            ax.plot([p[0] for p in poly] + [poly[0][0]], [p[1] for p in poly] + [poly[0][1]], color="#e9673f", lw=1.2)
+            ax.plot(
+                [p[0] for p in poly] + [poly[0][0]],
+                [p[1] for p in poly] + [poly[0][1]],
+                color="#e9673f",
+                lw=1.2,
+            )
             ax.set_aspect("equal")
             ax.set_title(
                 f"x/L {st['x_over_length']:.2f}: w {st['width_m'] * 1000:.0f} h {st['height_m'] * 1000:.0f} mm\n"
                 f"m/n {st['side_power']:.1f}/{st['top_power']:.1f}/{st['bottom_power']:.1f}"
-                + (f" rms {1000 * st['powers_fit_rms_m']:.1f}" if st.get("powers_fit_rms_m") else ""),
+                + (
+                    f" rms {1000 * st['powers_fit_rms_m']:.1f}"
+                    if st.get("powers_fit_rms_m")
+                    else ""
+                ),
                 fontsize=8,
             )
             ax.tick_params(labelsize=6)
             ax.grid(True, alpha=0.2)
-    fig.suptitle("Reference-model measurement review (open-air frame, metres)", fontsize=13)
+    fig.suptitle(
+        "Reference-model measurement review (open-air frame, metres)", fontsize=13
+    )
     fig.tight_layout()
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=110)

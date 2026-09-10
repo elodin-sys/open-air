@@ -98,13 +98,23 @@ is tool-agnostic on purpose.
    `--sketch-dir <staging>` so the silhouettes land beside `design.yaml`.
 4. Treat everything under `reference.json .suggested` as **measured
    (reference model)** with the tolerances in `.tolerances`: planform (span,
-   root chord by centreline extrapolation, LE sweep, area-equivalent taper,
-   wing station, dihedral, linear twist), body stations with section powers,
+   root chord by centreline extrapolation, measured `wing.sections`, and their
+   area/MAC-locus-equivalent sweep/taper/dihedral descriptors), body stations
+   with section powers,
    fin geometry, `t_over_c` plus the NACA four-digit fit, and, when resolved,
    the hinge line and as-scanned control deflection. Read the `notes`, the
    per-station `fill_method`/`width_clamped`/`top_overridden` flags, and the
    `width_core_m` versus `width_blended_m` choice; decide deliberately and
    write the reason in the brief.
+4a. For a reproduction with measured wing stations, copy the complete
+    `suggested.wing.sections` list and its scalar equivalents together; never
+    hand-pick one without re-deriving the other. Inspect
+    `disclosures.wing_planform` and the solid section outline in
+    `reference-sections.png`: confirm the body-exclusion width, mandatory
+    root/straight-band/tip breakpoints, gross area, and simplification
+    tolerance. Section-local t/c is an inferred absolute-thickness loft
+    control, not another airfoil cut; keep the measured global
+    `wing.t_over_c` for OAS/wingbox physics.
 4b. When the fin measurement resolves a root junction, write its mirrored
    absolute y and shared z into `vtail.y_root_m/z_root_m` and set
    `vtail.root_attachment: measured`. The default `derived` mode intentionally
@@ -198,8 +208,10 @@ slab / box:       side 4–8, top 4–8, bottom 4–8
 ```
 
 Powers control section curvature, not top/side silhouette dimensions. Do not
-invent unsupported canopy, inlet, multi-panel-wing, or section fields. Record
-visible but unrepresentable features as limitations in the brief.
+invent unsupported canopy or inlet fields. A multi-section wing is permitted
+only for a source-locked reproduction and only from measured/reference station
+evidence; use the ingest-generated list rather than tracing arbitrary panels.
+Record visible but still unrepresentable features as limitations in the brief.
 
 ### Tolerance discipline
 

@@ -7,42 +7,42 @@
     "derivative_source": null,
     "derivatives": null,
     "drag_polar_fit": {
-      "CD0": 0.035816793321371915,
+      "CD0": 0.03495082846142485,
       "CL_domain": [
-        -0.2721102865606946,
-        0.4266498868903347
+        -0.23257067024243283,
+        0.4450428065505839
       ],
       "equation": "CD = CD0 + k * CL^2",
-      "k": 0.07111558881169824,
-      "rms_residual": 0.00032555911821273366
+      "k": 0.07729934356189337,
+      "rms_residual": 0.00044839054690818677
     },
     "linearization": {
-      "CL0": -0.14155680957214956,
-      "CL_alpha_per_rad": 4.0978548743682595,
-      "Cm0": 0.03467431438716835,
-      "Cm_alpha_per_rad": -0.3304591136533459,
-      "cm_residual": 0.0007455380896329265,
+      "CL0": -0.10892661093301859,
+      "CL_alpha_per_rad": 4.017053493355297,
+      "Cm0": 0.015148346021573741,
+      "Cm_alpha_per_rad": -0.16189667478690684,
+      "cm_residual": 4.8759595664762956e-05,
       "coefficient_reference": {
         "angles": "radians",
-        "area": "main-wing planform (0.1587731031 m^2)",
-        "chord": "main-wing MAC (0.196533344645 m)",
+        "area": "main-wing planform (0.166883728449 m^2)",
+        "chord": "main-wing MAC (0.229453186317 m)",
         "moments": "about the declared CG",
-        "span": "main-wing span (0.849 m)"
+        "span": "main-wing span (0.8496 m)"
       },
       "evidence_class": "C",
-      "reference_airspeed_mps": 18.002021013540983,
-      "reference_alpha_deg": 5.882651152818647,
+      "reference_airspeed_mps": 17.999511275594035,
+      "reference_alpha_deg": 5.343794588346781,
       "reference_altitude_m": 100.0,
       "reference_beta_deg": 0.0,
       "reference_cg_x_m": 0.41900000000000004,
       "trim_control": "elevon",
-      "trim_control_value_deg": 16.511632874088185
+      "trim_control_value_deg": 9.576111263126293
     },
     "polar_asset": "aero_tables.npz",
     "validity_component_required": true
   },
   "concept": "atomrc-dolphin-v1-1",
-  "created_at": "2026-09-09T21:29:03+00:00",
+  "created_at": "2026-09-10T04:10:02+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -103,7 +103,7 @@
     "aero_tables": {
       "path": "aero_tables.npz",
       "role": "aerodynamic_lookup_tables",
-      "sha256": "26947c60ceb0861014abd3c1e7bb56ca28944e2568ea509d6ec4aaf9bb24294b",
+      "sha256": "8024d154450bb097e0801c2a59782668cc62e7fda02fc89a45df01b2861d0e5a",
       "size_bytes": 2155
     },
     "geometry_component_fin_l": {
@@ -127,26 +127,26 @@
     "geometry_component_wing": {
       "path": "geometry/component_wing.stl",
       "role": "verified_geometry_component_wing",
-      "sha256": "9fd010c226b59bbce8451ff1805493a177509c290b22bc21c4279ccd186f6592",
-      "size_bytes": 257823
+      "sha256": "14f8f72a7393173d7f14771598680ec79726a112b3cd3cecb0e4e8f8539f978e",
+      "size_bytes": 2132421
     },
     "geometry_vsp3": {
       "path": "geometry/atomrc-dolphin-v1-1.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "542b3c7c9ecdabc70cf7f8262066d89332f8eb2610b92f4819285b64b2cf8229",
-      "size_bytes": 306894
+      "sha256": "e04053f78f5bba289a801031497ec483d5ce411bdeec58acbff2c238c3fca8b4",
+      "size_bytes": 427416
     },
     "geometry_whole_stl": {
       "path": "geometry/atomrc-dolphin-v1-1.stl",
       "role": "verified_geometry_whole_stl",
-      "sha256": "e85140f832dba9b4ec1a509e5023c36386f68713e30338a1d172ccee2f9b9faa",
-      "size_bytes": 910222
+      "sha256": "4eec354ecca7769279a00a92fd835054e65bc8b70332635200e71188edf16af4",
+      "size_bytes": 2784820
     },
     "integration_guide": {
       "path": "integration_guide.md",
       "role": "integration_guide",
-      "sha256": "98812a5c432fdc8bec0f8c06bc36eb7a906b99f93ba0163c9a38fd94d76bd6c5",
-      "size_bytes": 4931
+      "sha256": "10b4988f8b4eae698c5ea00e9292d3ca8c7a0af73c7c037c4d7f567eac49cf0d",
+      "size_bytes": 4933
     },
     "propulsion_map": {
       "path": "propulsion_map.csv",
@@ -157,20 +157,20 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "7f15a7abc2fbf9713f644aa42cd7fad79f9752101eef873b8c33b2efd46805e2",
+      "sha256": "eefedc3831f1dcc67f3a510355942225ca22d5612ed663b1994abc808f0d7769",
       "size_bytes": 1002
     },
     "render_glb": {
       "path": "atomrc-dolphin-v1-1.glb",
       "role": "render_mesh_body_frame",
-      "sha256": "a3b7ed86810a063d03d75026093172e7a4ce1f91d40bcbffe2341630e9fa60f8",
-      "size_bytes": 52076
+      "sha256": "8ea89909d9cf0bbbd5f87001dbe80f66c3a5a59f0609cc8df391c17e01adfa82",
+      "size_bytes": 167280
     },
     "trim_map": {
       "path": "trim_map.csv",
       "role": "trim_initialization_map",
-      "sha256": "c7c9bd97eb23c8772291802c2aa41fae0409459f27e55865e6765c00c5c46950",
-      "size_bytes": 296
+      "sha256": "f0cdf79c0d286aeedb984249873bac79762d1e1b341613f77322c10318a70f52",
+      "size_bytes": 297
     }
   },
   "mass_properties": {
@@ -202,47 +202,47 @@
   "model_id": "atomrc-dolphin-v1-1-baseline",
   "performance_anchors": {
     "cruise": {
-      "CD": 0.04164390012226562,
-      "CL": 0.27917663546775573,
-      "alpha_deg": 5.882651152818647,
+      "CD": 0.040816948145742916,
+      "CL": 0.26573115446120515,
+      "alpha_deg": 5.343794588346781,
       "altitude_m": 100.0,
-      "mach": 0.05296114615347814,
-      "tas_mps": 18.002021013540983,
+      "mach": 0.05295376261592337,
+      "tas_mps": 17.999511275594035,
       "throttle": 0.3
     },
     "dash": {
-      "CD": 0.0344836378599169,
-      "CL": 0.06473252011004862,
-      "alpha_deg": 2.81028982938959,
+      "CD": 0.03378460951917544,
+      "CL": 0.06160534188936206,
+      "alpha_deg": 2.3276719658065224,
       "altitude_m": 100.0,
       "mach": 0.1100000000286036,
       "tas_mps": 37.390095491246896,
-      "throttle": 0.46882336751975096
+      "throttle": 0.4827831893306666
     },
     "negative_g": {
-      "CL": -0.5586145424798793,
+      "CL": -0.5315974691069363,
       "aerodynamic_domain_ok": true,
-      "alpha_deg": -9.125400063260141,
-      "failure": -0.9635486805405971,
+      "alpha_deg": -9.027818343453141,
+      "failure": -0.9642132856109097,
       "load_factor": -2.0,
       "ok": true,
-      "tas_mps": 18.002021013540983
+      "tas_mps": 17.999511275594035
     },
     "positive_g": {
-      "CL": 0.7920350511225124,
+      "CL": 0.7920842776669824,
       "aerodynamic_domain_ok": true,
-      "alpha_deg": 10.279865776669627,
-      "failure": -0.9610279324334771,
+      "alpha_deg": 10.765923849341103,
+      "failure": -0.9624197564107422,
       "load_factor": 4.0,
       "ok": true,
-      "tas_mps": 21.380004687333408
+      "tas_mps": 20.85399501966635
     },
     "stall": {
       "cl_max": 1.0,
       "cl_max_basis": "aircraft_effective",
       "input_cl_max": 1.0,
       "input_cl_max_basis": "aircraft",
-      "speed_mps": 9.46824975602358
+      "speed_mps": 9.235303553233207
     },
     "validation": {
       "ok": true,
@@ -297,7 +297,7 @@
       "Propulsion map is evaluated from the analytic lapse/TSFC model, not an identified engine deck.",
       "No measured inertia tensor is available; consumers must not invent one from this package."
     ],
-    "design_sha256": "d19c623538f663694fdd6125309ebb9ba72eeddcc227b0272d0c1f9d7deb8ec6",
+    "design_sha256": "cf8626f84ffaa8c45a448094fe000904b3e28920ab3b2daed833429c935900a3",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -305,21 +305,21 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "3b4c86753d6827a8926c2480057057ff4852c6d97982c3e1e5b756626e6b2e7f",
-    "pipeline_run_id": "284d26d5ffe9418891a0f9a1ebeb92f1",
-    "source_git_commit": "dae80c7883bf7787168d80aaa7b24d2f0adb684f",
+    "model_source_sha256": "72019251bf27f503af00630181ef4e78371671877325e37f0ec3feb511ff5537",
+    "pipeline_run_id": "5e176971c9ce4e7593639b3b68d71c79",
+    "source_git_commit": "0aee6b4a57e96f360a0cebe84cb754744f5428b4",
     "upstream_sha256": {
-      "aero.json": "5c3a5de51a26819abba05bdb94a806a86b79584b3fd922fa1bc8c4848fb62071",
-      "geometry.json": "a5215266f634a8ec01f201f20578b2a266646a396d5954f1ae11bac82a7fb706",
+      "aero.json": "861309b6b7582286dcff228ef69d78e348bd62799d8d08ba92e6954506f79076",
+      "geometry.json": "b6facc905e33b119441f39575c0eb9ed06f4540c3a0096b87eb0a03bf28d1a08",
       "mass_breakdown.json": "3437560e11b8070585b538ce77156a1f801faf99884535091d8725aead34e56a",
-      "sizing.json": "df238d756c36ad7758c98b86daffd6aaac478ef8d21b89632c1c83867b71ec46",
-      "structures.json": "4daf849591b17b37aeb20c22906a275a79bcdfe0b213b71aa8676a0bc39697c6",
-      "validation.json": "9f522d50ac815fcf2b9d7c11017337e1b3bfdca9163e6bbf76196b7f728376d6"
+      "sizing.json": "b6d0bee2846a603dd40bb59e899fc337d190a608d1e5f51a4c3c4759cdfaf579",
+      "structures.json": "97eb77d0e9b932f974b6ce8995a3bf553f3caa317ca7937270a278814d398c02",
+      "validation.json": "82e6af8a087c5befd15c6ec662b47e69cd24745d6bf768388061993e65f9d004"
     }
   },
   "reference_geometry": {
-    "area_m2": 0.1587731031,
-    "aspect_ratio": 4.539818054359107,
+    "area_m2": 0.16688372844888003,
+    "aspect_ratio": 4.325287831887748,
     "evidence_class": "C",
     "fuselage": {
       "fuel_tank_x_m": 0.3,
@@ -427,8 +427,8 @@
       "x_le_m": 0.6,
       "z_m": 0.02
     },
-    "mac_m": 0.19653334464534075,
-    "span_m": 0.849,
+    "mac_m": 0.22945318631651823,
+    "span_m": 0.8496,
     "vertical_tail": {
       "area_m2": 0.0099253735,
       "cant_deg": 39.0,
@@ -444,27 +444,113 @@
       "z_root_m": 0.0496
     },
     "wing": {
-      "airfoil": "1210",
-      "area_m2": 0.1587731031,
-      "aspect_ratio": 4.539818054359107,
-      "dihedral_deg": -0.9,
-      "le_sweep_deg": -6.38,
-      "mac_m": 0.19653334464534075,
+      "airfoil": "1209",
+      "area_m2": 0.16688372844888003,
+      "aspect_ratio": 4.325287831887748,
+      "dihedral_deg": -1.92,
+      "le_sweep_deg": -12.12,
+      "mac_m": 0.22945318631651823,
       "root_chord_m": 0.2601,
-      "span_m": 0.849,
-      "t_over_c": 0.1,
-      "taper": 0.438,
-      "tip_chord_m": 0.1139238,
+      "sections": [
+        {
+          "chord_m": 0.2601,
+          "eta": 0.0,
+          "t_over_c": 0.1004,
+          "x_le_m": 0.4071,
+          "z_le_m": 0.0245
+        },
+        {
+          "chord_m": 0.3818,
+          "eta": 0.169494,
+          "t_over_c": 0.0612,
+          "x_le_m": 0.3134,
+          "z_le_m": 0.0189
+        },
+        {
+          "chord_m": 0.3351,
+          "eta": 0.193035,
+          "t_over_c": 0.0686,
+          "x_le_m": 0.3527,
+          "z_le_m": 0.0189
+        },
+        {
+          "chord_m": 0.288,
+          "eta": 0.216575,
+          "t_over_c": 0.0785,
+          "x_le_m": 0.3757,
+          "z_le_m": 0.0198
+        },
+        {
+          "chord_m": 0.2317,
+          "eta": 0.251887,
+          "t_over_c": 0.0951,
+          "x_le_m": 0.3832,
+          "z_le_m": 0.0196
+        },
+        {
+          "chord_m": 0.2259,
+          "eta": 0.287198,
+          "t_over_c": 0.0951,
+          "x_le_m": 0.3813,
+          "z_le_m": 0.0192
+        },
+        {
+          "chord_m": 0.2162,
+          "eta": 0.298968,
+          "t_over_c": 0.0985,
+          "x_le_m": 0.3885,
+          "z_le_m": 0.0208
+        },
+        {
+          "chord_m": 0.1302,
+          "eta": 0.769785,
+          "t_over_c": 0.1004,
+          "x_le_m": 0.3771,
+          "z_le_m": 0.0161
+        },
+        {
+          "chord_m": 0.1248,
+          "eta": 0.887489,
+          "t_over_c": 0.0946,
+          "x_le_m": 0.3575,
+          "z_le_m": 0.0134
+        },
+        {
+          "chord_m": 0.1012,
+          "eta": 0.93457,
+          "t_over_c": 0.1004,
+          "x_le_m": 0.3718,
+          "z_le_m": 0.0128
+        },
+        {
+          "chord_m": 0.0436,
+          "eta": 0.993422,
+          "t_over_c": 0.1004,
+          "x_le_m": 0.4217,
+          "z_le_m": 0.0071
+        },
+        {
+          "chord_m": 0.0368,
+          "eta": 1.0,
+          "t_over_c": 0.1004,
+          "x_le_m": 0.4281,
+          "z_le_m": 0.0055
+        }
+      ],
+      "span_m": 0.8496,
+      "t_over_c": 0.1004,
+      "taper": 0.5104,
+      "tip_chord_m": 0.13275504,
       "twist_root_deg": 1.6,
       "twist_tip_deg": 0.5,
-      "x_ac_m": 0.43559243645673706,
-      "x_le_mac_m": 0.38645910029540187,
+      "x_ac_m": 0.42888555549497387,
+      "x_le_mac_m": 0.37152225891584434,
       "x_le_root_m": 0.4071,
-      "y_mac_m": 0.18459944367176634,
+      "y_mac_m": 0.1657130720641931,
       "z_root_m": 0.0245
     },
-    "x_ac_m_geometry": 0.43559243645673706,
-    "x_le_mac_m_geometry": 0.38645910029540187
+    "x_ac_m_geometry": 0.42888555549497387,
+    "x_le_mac_m_geometry": 0.37152225891584434
   },
   "schema_version": "1.0",
   "trim_map_asset": "trim_map.csv",
@@ -488,8 +574,8 @@
       8.0
     ],
     "reynolds_per_m": [
-      1222764.836316442,
-      1222764.836316442
+      1222594.3654949944,
+      1222594.3654949944
     ]
   }
 }

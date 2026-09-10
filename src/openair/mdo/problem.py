@@ -1679,6 +1679,7 @@ def run_mdo_stage(
     case_path: Path | None = None,
 ) -> dict[str, Any]:
     """Evaluate discrete repair branches and publish the best verified design."""
+    spec.assert_cross_model_invariants()
     outdir.mkdir(parents=True, exist_ok=True)
     inspiration = bool(
         spec.sketch is not None and spec.sketch.treatment == "inspiration"

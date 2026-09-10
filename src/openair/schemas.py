@@ -7,7 +7,9 @@ optimizer/trim code that mutates a `model_copy` cannot smuggle in nonsense
 
 from __future__ import annotations
 
-from typing import Literal, Self
+import math
+from collections.abc import Mapping, Sequence
+from typing import Any, Literal, Self
 
 from pydantic import (
     BaseModel,
@@ -140,6 +142,21 @@ class EngineSpec(PhysicalModel):
         return self
 
 
+class WingSectionSpec(PhysicalModel):
+    """One symmetric semi-span wing planform station.
+
+    ``eta`` runs from the centreline (0) to the tip (1).  The section carries
+    the actual loft geometry; the scalar fields on :class:`WingSpec` remain
+    an area/MAC-equivalent trapezoid for low-order models and design intent.
+    """
+
+    eta: float = Field(ge=0.0, le=1.0)
+    chord_m: float = Field(gt=0.0, lt=15.0)
+    x_le_m: float = Field(ge=0.0, lt=100.0)
+    z_le_m: float = Field(ge=-20.0, le=20.0)
+    t_over_c: float | None = Field(default=None, gt=0.02, lt=0.30)
+
+
 class WingSpec(PhysicalModel):
     span_m: float = Field(3.80, gt=0.2, lt=80.0)
     root_chord_m: float = Field(1.15, gt=0.05, lt=15.0)
@@ -152,6 +169,235 @@ class WingSpec(PhysicalModel):
     airfoil: str = Field("2412", pattern=r"^\d{4}$")
     x_le_root_m: float = Field(0.85, ge=0.0)  # fuselage station of wing root LE
     z_root_m: float = 0.0
+    sections: list[WingSectionSpec] | None = Field(
+        default=None,
+        min_length=3,
+        max_length=12,
+    )
+
+    @staticmethod
+    def _section_value(
+        section: WingSectionSpec | Mapping[str, Any], name: str
+    ) -> float:
+        value = (
+            section[name] if isinstance(section, Mapping) else getattr(section, name)
+        )
+        return float(value)
+
+    @staticmethod
+    def _piecewise_integral(
+        sections: Sequence[WingSectionSpec | Mapping[str, Any]],
+        left_name: str,
+        right_name: str | None = None,
+    ) -> float:
+        """Integrate one linear field or the product of two over eta.
+
+        The product of two fields that are linear inside a panel is quadratic,
+        so Simpson's rule is exact panel by panel.
+        """
+        total = 0.0
+        for left, right in zip(sections, sections[1:]):
+            eta0 = WingSpec._section_value(left, "eta")
+            eta1 = WingSpec._section_value(right, "eta")
+            deta = eta1 - eta0
+            a0 = WingSpec._section_value(left, left_name)
+            a1 = WingSpec._section_value(right, left_name)
+            if right_name is None:
+                total += 0.5 * deta * (a0 + a1)
+                continue
+            b0 = (
+                eta0
+                if right_name == "eta"
+                else WingSpec._section_value(left, right_name)
+            )
+            b1 = (
+                eta1
+                if right_name == "eta"
+                else WingSpec._section_value(right, right_name)
+            )
+            amid = 0.5 * (a0 + a1)
+            bmid = 0.5 * (b0 + b1)
+            total += deta * (a0 * b0 + 4.0 * amid * bmid + a1 * b1) / 6.0
+        return total
+
+    @staticmethod
+    def equivalent_trapezoid(
+        sections: Sequence[WingSectionSpec | Mapping[str, Any]],
+        span_m: float,
+    ) -> dict[str, float]:
+        """Return the scalar trapezoid that preserves section area and MAC locus."""
+        if len(sections) < 2:
+            raise ValueError("wing equivalent trapezoid requires at least two sections")
+        etas = [WingSpec._section_value(section, "eta") for section in sections]
+        if (
+            abs(etas[0]) > 1e-9
+            or abs(etas[-1] - 1.0) > 1e-9
+            or any(right - left <= 1e-9 for left, right in zip(etas, etas[1:]))
+        ):
+            raise ValueError(
+                "wing sections must start at eta=0, end at eta=1, "
+                "and be strictly increasing"
+            )
+        if span_m <= 0.0:
+            raise ValueError("wing span must be positive")
+
+        chord_int = WingSpec._piecewise_integral(sections, "chord_m")
+        chord_sq_int = WingSpec._piecewise_integral(sections, "chord_m", "chord_m")
+        eta_chord_int = WingSpec._piecewise_integral(sections, "chord_m", "eta")
+        x_chord_int = WingSpec._piecewise_integral(sections, "chord_m", "x_le_m")
+        z_chord_int = WingSpec._piecewise_integral(sections, "chord_m", "z_le_m")
+        root_chord = WingSpec._section_value(sections[0], "chord_m")
+        x_root = WingSpec._section_value(sections[0], "x_le_m")
+        z_root = WingSpec._section_value(sections[0], "z_le_m")
+        area = float(span_m) * chord_int
+        taper = 2.0 * area / (float(span_m) * root_chord) - 1.0
+        mac = chord_sq_int / chord_int
+        semispan = 0.5 * float(span_m)
+        y_mac = semispan * eta_chord_int / chord_int
+        x_le_mac = x_chord_int / chord_int
+        z_le_mac = z_chord_int / chord_int
+        le_sweep = math.degrees(math.atan2(x_le_mac - x_root, y_mac))
+        dihedral = math.degrees(math.atan2(z_le_mac - z_root, y_mac))
+        return {
+            "span_m": float(span_m),
+            "root_chord_m": root_chord,
+            "taper": taper,
+            "le_sweep_deg": le_sweep,
+            "dihedral_deg": dihedral,
+            "x_le_root_m": x_root,
+            "z_root_m": z_root,
+            "area_m2": area,
+            "mac_m": mac,
+            "y_mac_m": y_mac,
+            "x_le_mac_m": x_le_mac,
+            "z_le_mac_m": z_le_mac,
+        }
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_section_equivalents(cls, data: Any) -> Any:
+        """Fill omitted scalar descriptors from a complete section list."""
+        if not isinstance(data, Mapping):
+            return data
+        values = dict(data)
+        sections = values.get("sections")
+        if not sections:
+            return values
+        try:
+            equivalent = cls.equivalent_trapezoid(
+                sections,
+                float(values.get("span_m", cls.model_fields["span_m"].default)),
+            )
+        except (KeyError, TypeError, ValueError):
+            # Field and after-model validation provide the precise malformed
+            # section error once Pydantic has parsed the individual records.
+            return values
+        for name in (
+            "root_chord_m",
+            "taper",
+            "le_sweep_deg",
+            "dihedral_deg",
+            "x_le_root_m",
+            "z_root_m",
+        ):
+            if values.get(name) is None or name not in values:
+                values[name] = equivalent[name]
+        return values
+
+    @model_validator(mode="after")
+    def validate_section_equivalents(self) -> Self:
+        if self.sections is None:
+            return self
+        equivalent = self.equivalent_trapezoid(self.sections, self.span_m)
+        tolerances = {
+            "root_chord_m": 2e-4,
+            "taper": 2e-4,
+            "le_sweep_deg": 0.02,
+            "dihedral_deg": 0.02,
+            "x_le_root_m": 2e-4,
+            "z_root_m": 2e-4,
+        }
+        for name, tolerance in tolerances.items():
+            got = float(getattr(self, name))
+            want = float(equivalent[name])
+            if abs(got - want) > tolerance:
+                raise ValueError(
+                    f"wing.{name}={got:.6g} does not match the section-derived "
+                    f"equivalent {want:.6g} (tolerance {tolerance:g})"
+                )
+        return self
+
+    def _interpolate_section_value(self, eta: float, name: str) -> float:
+        eta = min(max(float(eta), 0.0), 1.0)
+        if self.sections is None:
+            raise ValueError("section interpolation requires wing.sections")
+        for left, right in zip(self.sections, self.sections[1:]):
+            if eta <= right.eta + 1e-12:
+                fraction = (eta - left.eta) / max(right.eta - left.eta, 1e-12)
+                left_value = (
+                    self.t_over_c
+                    if name == "t_over_c" and left.t_over_c is None
+                    else float(getattr(left, name))
+                )
+                right_value = (
+                    self.t_over_c
+                    if name == "t_over_c" and right.t_over_c is None
+                    else float(getattr(right, name))
+                )
+                return left_value + fraction * (right_value - left_value)
+        last = self.sections[-1]
+        if name == "t_over_c" and last.t_over_c is None:
+            return self.t_over_c
+        return float(getattr(last, name))
+
+    def chord_at(self, eta: float) -> float:
+        if self.sections is not None:
+            return self._interpolate_section_value(eta, "chord_m")
+        return self.root_chord_m + min(max(float(eta), 0.0), 1.0) * (
+            self.tip_chord_m - self.root_chord_m
+        )
+
+    def x_le_at(self, eta: float) -> float:
+        eta = min(max(float(eta), 0.0), 1.0)
+        if self.sections is not None:
+            return self._interpolate_section_value(eta, "x_le_m")
+        return self.x_le_root_m + eta * 0.5 * self.span_m * math.tan(
+            math.radians(self.le_sweep_deg)
+        )
+
+    def z_le_at(self, eta: float) -> float:
+        eta = min(max(float(eta), 0.0), 1.0)
+        if self.sections is not None:
+            return self._interpolate_section_value(eta, "z_le_m")
+        return self.z_root_m + eta * 0.5 * self.span_m * math.tan(
+            math.radians(self.dihedral_deg)
+        )
+
+    def t_over_c_at(self, eta: float) -> float:
+        if self.sections is not None:
+            return self._interpolate_section_value(eta, "t_over_c")
+        return self.t_over_c
+
+    def chord_squared_integral_eta(
+        self, eta_start: float = 0.0, eta_end: float = 1.0
+    ) -> float:
+        """Exact ``integral(chord(eta)**2 d eta)`` over a bounded interval."""
+        start = min(max(float(eta_start), 0.0), 1.0)
+        end = min(max(float(eta_end), 0.0), 1.0)
+        if end <= start:
+            return 0.0
+        knots = [start]
+        if self.sections is not None:
+            knots.extend(
+                section.eta for section in self.sections if start < section.eta < end
+            )
+        knots.append(end)
+        total = 0.0
+        for eta0, eta1 in zip(knots, knots[1:]):
+            chord0 = self.chord_at(eta0)
+            chord1 = self.chord_at(eta1)
+            total += (eta1 - eta0) * (chord0**2 + chord0 * chord1 + chord1**2) / 3.0
+        return total
 
     @computed_field
     @property
@@ -161,6 +407,8 @@ class WingSpec(PhysicalModel):
     @computed_field
     @property
     def area_m2(self) -> float:
+        if self.sections is not None:
+            return self.equivalent_trapezoid(self.sections, self.span_m)["area_m2"]
         return 0.5 * (self.root_chord_m + self.tip_chord_m) * self.span_m
 
     @computed_field
@@ -171,6 +419,8 @@ class WingSpec(PhysicalModel):
     @computed_field
     @property
     def mac_m(self) -> float:
+        if self.sections is not None:
+            return self.equivalent_trapezoid(self.sections, self.span_m)["mac_m"]
         taper = self.taper
         return (
             (2.0 / 3.0) * self.root_chord_m * (1.0 + taper + taper**2) / (1.0 + taper)
@@ -179,15 +429,17 @@ class WingSpec(PhysicalModel):
     @computed_field
     @property
     def y_mac_m(self) -> float:
-        """Spanwise station of MAC from centerline, trapezoidal wing."""
+        """Spanwise station of MAC from centerline."""
+        if self.sections is not None:
+            return self.equivalent_trapezoid(self.sections, self.span_m)["y_mac_m"]
         t = self.taper
         return (self.span_m / 6.0) * (1.0 + 2.0 * t) / (1.0 + t)
 
     @computed_field
     @property
     def x_le_mac_m(self) -> float:
-        import math
-
+        if self.sections is not None:
+            return self.equivalent_trapezoid(self.sections, self.span_m)["x_le_mac_m"]
         return self.x_le_root_m + self.y_mac_m * math.tan(
             math.radians(self.le_sweep_deg)
         )
@@ -766,8 +1018,19 @@ class VehicleSpec(PhysicalModel):
     flight_dynamics: FlightDynamicsSpec = Field(default_factory=FlightDynamicsSpec)
     solver: SolverSpec = Field(default_factory=SolverSpec)
 
+    def assert_cross_model_invariants(self) -> None:
+        """Recheck invariants that nested assignment cannot trigger on the parent."""
+        if self.wing.sections is not None and not (
+            self.sketch is not None and self.sketch.treatment == "reproduction"
+        ):
+            raise ValueError(
+                "wing.sections currently requires sketch.treatment='reproduction'; "
+                "section-aware MDO design variables are not implemented"
+            )
+
     @model_validator(mode="after")
     def validate_reference_vehicle(self) -> Self:
+        self.assert_cross_model_invariants()
         empty = self.mass.operating_empty_mass_kg
         empty_cg = self.mass.operating_empty_cg_x_m
         if empty is not None and empty < self.engine.dry_mass_kg:
@@ -809,7 +1072,9 @@ class VehicleSpec(PhysicalModel):
                     raise ValueError("centerline vtail controls require single mixing")
         trim_mode = self.mission.pitch_trim_control
         if trim_mode == "tail_incidence" and self.htail.span_m <= 0.05:
-            raise ValueError("pitch_trim_control tail_incidence requires a horizontal tail")
+            raise ValueError(
+                "pitch_trim_control tail_incidence requires a horizontal tail"
+            )
         if trim_mode == "elevon":
             if self.htail.span_m > 0.05:
                 raise ValueError(

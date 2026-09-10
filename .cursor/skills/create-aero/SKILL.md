@@ -72,6 +72,11 @@ pipeline:
 2. Confirm `design.yaml .sketch` contains those measured targets and
    tolerances. A non-reference planform must not inherit the template
    envelope.
+   When `wing.sections` is present, require
+   `sketch.treatment: reproduction`, 3–12 strictly increasing eta stations
+   from 0 to 1, and scalar root/taper/sweep/dihedral values matching
+   `WingSpec.equivalent_trapezoid`. The measured sections—not the scalar
+   trapezoid—must drive OpenVSP, OAS, and Studio.
 3. Run the baseline geometry checkpoint:
 
    ```bash
@@ -93,7 +98,12 @@ pipeline:
    `results/<name>/baseline/geometry.json .reference_fidelity.ok == true`
    (mandatory for `reproduction`; disclosed for other treatments), and you
    must open `results/<name>/baseline/reference_overlay.png`. Departures are
-   acceptable only where the brief lists the feature as unrepresentable.
+   acceptable only where the brief lists the feature as unrepresentable. For
+   a sectioned wing, also read `geometry.json .wing.planform_mode`,
+   `.openvsp.readback.wing_sections`, and
+   `.reference_fidelity.disclosed.p95_exposed_components_m.wing`; do not
+   mistake the buried centreline carry-through's component p95 for exposed
+   shape error.
 6. Require the concept inputs (`brief.md`, `design.yaml`, sketches, and
    `reference/`) to be committed before the full run. If they are
    uncommitted, stop and ask the user to commit them or explicitly authorize a
