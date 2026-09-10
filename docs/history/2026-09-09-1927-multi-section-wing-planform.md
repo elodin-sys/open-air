@@ -2,7 +2,7 @@
 
 - Type: milestone
 - Window: 2026-09-09
-- Commits: `dc75252`
+- Commits: `dc75252`, `4e6bd21`
 
 The scan-grounded AtomRC Dolphin still missed its root blend, rounded wingtip,
 and outboard height after the fin attachment was corrected. The cause was not
