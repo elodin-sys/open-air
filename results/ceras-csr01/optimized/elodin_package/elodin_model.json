@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "ceras-csr01",
-  "created_at": "2026-09-10T05:16:42+00:00",
+  "created_at": "2026-09-10T08:16:55+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -145,7 +145,7 @@
     "geometry_vsp3": {
       "path": "geometry/ceras-csr01.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "88729e1049a699414b64b73c1ea09cab2deb206cc2df154aaa819ff3c071422a",
+      "sha256": "36bda53fb3273119fc09a23a32dc21bdd744100897deeac53ec2d6cddc0529bc",
       "size_bytes": 279412
     },
     "geometry_whole_stl": {
@@ -169,7 +169,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "941b6d335a5675a5cc47873e07bd6909571f46699dd8eb035ef015d552306308",
+      "sha256": "574f23dcc7bba2bbe7b69e68fa302845caf2c87ad55955328e57f8fb8099097c",
       "size_bytes": 899
     },
     "render_glb": {
@@ -358,7 +358,7 @@
       "Aero/structures solver agreement is verification, not physical-aircraft validation.",
       "No measured inertia tensor is available; consumers must not invent one from this package."
     ],
-    "design_sha256": "9eb8f45d7d6e81c798a2db7cae595eaa18da90b8af86c04a041ecc42cb75374c",
+    "design_sha256": "4cef36700ead0a7fe446afc95bec1104845aa073f3ac414ac6d3243382453b0a",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -366,14 +366,14 @@
       "propulsion": "C",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "ed3c5ebf61d678e1ba3a758b2610806616a9d172810fd403377103ce2b5199b7",
-    "pipeline_run_id": "313d931fd608437aa1cfddf4699e88ad",
-    "source_git_commit": "d772c0edec594d0737e3607499a7db50e67527fa",
+    "model_source_sha256": "1dda28b80e996e89b19a7e394d2e8ae08e11e372689b9723a301dd77ab05aef2",
+    "pipeline_run_id": "36e12a81cbd1415d94ab2951ed71402f",
+    "source_git_commit": "c7ad921a3fbf0dca9dfc0a3e69ac701874fdd0d3",
     "upstream_sha256": {
-      "aero.json": "57aea6078df0254cba5185c774ca6d28b5c1101860bef1d38b97b8c8d4e86517",
-      "geometry.json": "98f15ad13bd27f1d686fb1052bc0783cd5680c66ea21216b8a17745d21a70fbf",
-      "structures.json": "ccbe26a35a44645245db2552c42900ba7c9b6b9fe6ca8b851b09f5b49c6fd104",
-      "validation.json": "6b9702586b1a13c9552cd0bdff4a62ba785a3d88ac1acca7c2505b3056503785"
+      "aero.json": "67b2ae55cbece8c7c6e3d869434647065cf36b934776718c4d23598840f02dc1",
+      "geometry.json": "7e34306a4f8e2b3b7e70a91a6887dd6914722b1a6410fbb534270aed1eb92809",
+      "structures.json": "5eb3be2bae174d9527e18130d032e3d695e9897270fd9bb027a2e1c20aace87b",
+      "validation.json": "8bfb8145286bc3b62bc71eda19e4b9eaf2141a706c0e6a7cc9c8890cdad43c9a"
     }
   },
   "reference_geometry": {
@@ -381,6 +381,7 @@
     "aspect_ratio": 9.482598643901643,
     "evidence_class": "C",
     "fuselage": {
+      "fairings": null,
       "fuel_tank_x_m": 14.0,
       "length_m": 37.49,
       "max_height_m": 4.14,
@@ -394,6 +395,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 0.0,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 0.0,
@@ -403,6 +405,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 3.1,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 2.7,
@@ -412,6 +415,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 4.14,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 3.95,
@@ -421,6 +425,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 4.05,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 3.9,
@@ -430,6 +435,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 2.8,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 2.2,
@@ -439,6 +445,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 0.0,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 0.0,

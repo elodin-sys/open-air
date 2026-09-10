@@ -6,9 +6,11 @@ import numpy as np
 
 from conftest import BASELINE_DESIGN
 from openair.cli import load_spec
+from openair.geometry.fuselage import fuselage_section_shape, section_polygon
 from openair.geometry.mesh_checks import (
     check_fin_mesh,
     check_wing_mesh,
+    fairing_contained_by_body_or_wing,
     root_section_inside_fuselage,
 )
 
@@ -153,3 +155,91 @@ def test_attachment_section_slice_scales_for_transport_mesh():
     result = root_section_inside_fuselage(root, fuse, 2, "fin_test", spec)
 
     assert result["ok"], result
+
+
+def test_spec_attachment_uses_authoritative_local_section_not_wide_slab():
+    spec = _spec()
+    fuse = _fuselage_cloud()
+    root = np.asarray(
+        [
+            [spec.vtail.x_le_m + chord, 0.30, 0.12 + span]
+            for span in np.linspace(0.0, 0.3, 20)
+            for chord in (0.0, 0.1)
+        ]
+    )
+
+    result = root_section_inside_fuselage(root, fuse, 2, "fin_test", spec)
+
+    assert not result["ok"], result
+    assert result["support"] == "fuselage"
+    assert result["proximity_limit_m"] == 0.01
+    assert result["eccentricity"] > 1.10
+
+
+def test_fairing_containment_requires_base_support():
+    spec = _spec()
+    x = np.linspace(1.2, 1.6, 20)
+    y = np.linspace(-0.15, 0.15, 15)
+    fairing = np.asarray(
+        [
+            [x_m, y_m, 0.04 + 0.08 * (1.0 - (y_m / 0.15) ** 2)]
+            for x_m in x
+            for y_m in y
+        ]
+    )
+
+    supported = fairing_contained_by_body_or_wing(
+        fairing,
+        fairing.copy(),
+        "fairing_test",
+        spec,
+    )
+    unsupported = fairing_contained_by_body_or_wing(
+        fairing + np.array([0.0, 1.0, 0.5]),
+        fairing,
+        "fairing_test",
+        spec,
+    )
+
+    assert supported["ok"], supported
+    assert not unsupported["ok"], unsupported
+
+
+def test_tangent_horizontal_tail_can_pass_on_root_surface_contact():
+    spec = _spec()
+    x_root = 1.20
+    chord = 0.10
+    shape = fuselage_section_shape(spec, x_root + 0.5 * chord)
+    section = section_polygon(
+        shape.width_m,
+        shape.height_m,
+        z_center_m=shape.z_center_m,
+        side_power=shape.side_power,
+        top_power=shape.top_power,
+        bottom_power=shape.bottom_power,
+        max_width_loc=shape.max_width_loc,
+        samples=64,
+    )
+    support = np.asarray(
+        [
+            [x_root + x_offset, y_m, z_m]
+            for x_offset in (0.0, 0.5 * chord, chord)
+            for y_m, z_m in section
+        ]
+    )
+    top = shape.z_center_m + 0.5 * shape.height_m
+    root = np.asarray(
+        [
+            [x_root + x_offset, y_m, top + z_offset]
+            for x_offset in (0.0, chord)
+            for y_m in np.linspace(0.0, 0.10, 12)
+            for z_offset in (0.0, 0.02)
+        ]
+    )
+
+    htail = root_section_inside_fuselage(root, support, 1, "htail", spec)
+    generic = root_section_inside_fuselage(root, support, 1, "wing", spec)
+
+    assert htail["ok"], htail
+    assert htail["tangent_surface_contact"]
+    assert not generic["ok"], generic

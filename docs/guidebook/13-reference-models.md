@@ -97,6 +97,14 @@ publishing. A staged concept bundle passes `--out <staging>/reference` and
      When that junction resolves, carry `y_root_m/z_root_m` into `vtail` and
      set `root_attachment: measured`; leaving the default `derived` mode
      deliberately ignores those coordinates.
+   - *Aft shoulder/deck*: after the measured fin plates are removed, compare
+     the mirror-averaged upper envelope with the represented core-body/wing
+     surface over the fin root chord. A contiguous excess over at least 60 %
+     of that chord is fit as a point-capped 4–8-station
+     `fuselage.fairings` dome. `max_width_loc=-1` puts its widest line at the
+     base; that base is buried by the disclosed, resolution-scaled allowance
+     so the OpenVSP loft intersects rather than kisses the wing/body union.
+     This is emitted for `reproduction` only.
 4. **Tolerances.** Every value carries `max(2 × resolution, symmetry residual,
    left/right disagreement, fit residual)` with floors of 1 mm and 0.5°, plus
    explicit allowances for open noses and incomplete leading edges.
@@ -106,7 +114,8 @@ publishing. A staged concept bundle passes `--out <staging>/reference` and
    `reference-sections.png` (review figure), and `sketch-{top,side,front}.png`
    silhouettes (10 mm grid, scale bar, PNG text metadata with mm/px and
    origin; oriented like `threeview.png`: nose left, +y/+z up).
-   The default treatment is `reproduction`, which emits `wing.sections`.
+   The default treatment is `reproduction`, which emits `wing.sections` and
+   any resolved measured body fairing.
    `inspiration`/`requirement` retain the section candidate in disclosures but
    emit a scalar suggested wing so the result remains valid for MDO.
 
@@ -118,7 +127,9 @@ fitted lines over the straight band; the solid section loft follows the blend
 and rounded tip while the dashed equivalent trapezoid preserves its integrated
 area/MAC locus; each station envelope (black) is followed by its fitted super-ellipse
 (red) with a small RMS; airfoil sections show the expected thickness and
-camber sign; the fin outline sits on the deck. Every station also records
+camber sign; the fin outline sits on the deck. A resolved aft shoulder appears
+as dashed plan/side outlines and its fin-free measured/fitted section envelope
+is overlaid at nearby body stations. Every station also records
 `fill_method`, `width_clamped`, `top_overridden`/`bottom_overridden`, and
 `width_core_m` versus `width_blended_m` (the latter counts wing-root shoulder
 blends as body — a heuristic; choose deliberately and say why in the brief).
@@ -132,10 +143,12 @@ component), silhouette IoU per view with reference-only and model-only areas,
 body-station deltas, and wing LE/TE deltas, plus `reference_overlay.png`
 (reference silhouette in blue, exported mesh edges on top).
 
-The gate (`checks`) is: **body p95 ≤ band** (the fuselage component; the
-whole aircraft when component STLs are absent) and **IoU top ≥ 0.90 / side ≥
-0.85**. Defaults: 15 mm, 0.90, 0.85 (`--fidelity-p95-mm`, `--fidelity-iou`
-at ingest). The wing and fins are already gated by the measured sketch priors
+The gate (`checks`) is: **body p95 ≤ band** (area-weighted union of the core
+fuselage and measured fairings; whole aircraft when component STLs are absent)
+and **IoU top ≥ 0.90 / side ≥ 0.85**. Defaults: 15 mm, 0.90, 0.85
+(`--fidelity-p95-mm`, `--fidelity-iou` at ingest). Buried `fin_*_root`
+components are explicitly excluded from component fidelity. The wing and fins
+are already gated by the measured sketch priors
 (span, chords, sweep, taper, station, `fin_*`), so their p95 and the
 whole-aircraft p95 are **disclosed** (`disclosed`) rather than gating. For a
 sectioned wing the disclosure separately reports **model-to-reference**
@@ -153,8 +166,12 @@ acceptance band. Replacing its remaining single trapezoid with the audited
 11-section loft then raised top/front IoU to 0.968/0.899 (side 0.952),
 delivered 4.87 mm model-to-reference exposed-wing p95, and moved
 whole-aircraft p95 to 13.2 mm.
-The full wing-component p95 remains 16.0 mm because it includes buried
-carry-through surface. For
+The follow-up shoulder loft and 33 mm buried fin-root extension make the STL
+physically connected without moving the measured exposed fin. The body-union
+p95 is 12.5 mm, whole-aircraft p95 13.7 mm, and top/side/front IoU
+0.968/0.952/0.900; the small p95 increase reflects the deliberately buried
+attachment surfaces, not an acceptance change. The full wing-component p95
+remains 16.1 mm because it includes buried carry-through surface. For
 `sketch.treatment: reproduction` the check is part of the geometry stage `ok`
 and of the **Geometry truth** gate (chapter 00); otherwise it is recorded and
 disclosed, not gating.
@@ -178,6 +195,11 @@ disclosed, not gating.
     station counts, z-asymmetry exclusions, LE/TE/z maximum simplification
     residuals, tip method, gross area, and equivalent descriptors must agree
     with `suggested.wing` and the solid outline in `reference-sections.png`.
+5c. When `measurements.fairings.aft_shoulder.ok`, inspect
+    `disclosures.aft_shoulder_fairing`: fin-point exclusion, source/selected
+    station counts, fit RMS, maximum excess, simplification residual,
+    base-burial allowance, and junction crease must agree with
+    `suggested.fuselage.fairings` and the dashed review-figure outline.
 6. Open `reference-sections.png`; then after `python -m openair.geometry run`
    open `reference_overlay.png` and read `reference_fidelity.checks`.
 7. `reference.json .provenance.source_sha256` must match the file you were
@@ -196,6 +218,11 @@ disclosed, not gating.
 - **Blended wing roots have no single width.** The core body (erosion) and the
   blended width (thickness threshold) can differ by half the body width where
   a shoulder fairs the wing in. Either is defensible; neither is "the" body.
+- **A buried fairing base is not measured material thickness.** The visible
+  dome follows the fin-free scan envelope; its lower overlap is deliberately
+  extended into the represented wing/body so independent OpenVSP geoms form
+  a connected artifact. Disclose that allowance and exclude the hidden
+  surface from physics and component-fidelity claims.
 - **Deflected controls masquerade as twist and reflex.** The hinge detector
   and undeflection remove most of it, but the as-scanned deflection is a
   control position at scan time, not a trimmed neutral (measurement form

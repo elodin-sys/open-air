@@ -366,6 +366,20 @@ def run_report_stage(
         if spec.vtail.root_attachment == "measured"
         else "root derived from the local aft-body section"
     )
+    fairing_count = len(spec.fuselage.fairings or [])
+    fin_extension = float(
+        ((((geom or {}).get("openvsp") or {}).get("fin_attach") or {}).get(
+            "root_extension_m",
+            0.0,
+        ))
+    )
+    fairing_text = (
+        f"; {fairing_count} measured body fairing"
+        f"{'s' if fairing_count != 1 else ''}, fin-root burial "
+        f"{1000 * fin_extension:.0f} mm (loft-only/non-lifting)"
+        if fairing_count
+        else ""
+    )
     wing_planform_text = (
         f"{len(spec.wing.sections)}-section measured loft, gross projected area "
         f"{spec.wing.area_m2:.3f} m², MAC {spec.wing.mac_m:.3f} m; scalar root "
@@ -527,7 +541,7 @@ def run_report_stage(
         f"- Wing: {wing_planform_text}; span {spec.wing.span_m:.2f} m, "
         f"t/c {spec.wing.t_over_c:.3f}, NACA {spec.wing.airfoil}",
         f"- Washout {spec.wing.twist_root_deg - spec.wing.twist_tip_deg:.1f}° (root {spec.wing.twist_root_deg:+.1f}°, tip {spec.wing.twist_tip_deg:+.1f}°) — {wing_trim_note}",
-        f"- {fin_topology.title()}: span {spec.vtail.span_m:.2f} m, cant {spec.vtail.cant_deg:.1f}°, {fin_root_text} (see `geometry.json .openvsp.fin_attach`); {tail_config}",
+        f"- {fin_topology.title()}: span {spec.vtail.span_m:.2f} m, cant {spec.vtail.cant_deg:.1f}°, {fin_root_text} (see `geometry.json .openvsp.fin_attach`){fairing_text}; {tail_config}",
         f"- Payload bay front face x={spec.fuselage.payload_bay_x_m:.2f} m; fuselage tank x={spec.fuselage.fuel_tank_x_m:.2f} m (balance-driven)",
         f"- Propulsion installation: {installation_text}; declared mass, thrust, "
         "and fuel flow represent the complete installed system",

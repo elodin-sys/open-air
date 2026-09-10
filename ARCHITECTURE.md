@@ -132,15 +132,19 @@ a calibrated grid gives the metres-per-square scale.
 The fourth view is an orbitable Three.js confirmation viewport. A pure
 client-side builder lofts disposable triangle render data from the current
 schema values (split super-ellipse fuselage rings plus NACA-thickness
-wing/tail surfaces); it never becomes editable state and is rebuilt after
+wing/tail surfaces, measured body fairings, and buried fin-root extensions);
+it never becomes editable state and is rebuilt after
 each patch. Explicit fuselage stations carry side, top, and bottom powers:
 2.0 preserves an ellipse, while independently sharper or flatter shoulders,
-deck, and belly represent blade and bubble-over-hull bodies. The dominant
+deck, and belly represent blade and bubble-over-hull bodies.
+`max_width_loc` shifts the widest line vertically; `-1` forms the lower-edge
+base of a measured shoulder dome. The dominant
 section is sampled into the Front view rather than approximated by an ellipse.
 Shaded/wireframe layers share CG, reserve-CG, neutral-point, payload-bay, and
 fuel-tank overlays with the 2D views. Its span, area, and three-axis bounding
 box are tested against OpenVSP read-back and exported STL geometry for the
-default, forward-swept, station-loft, blade/bubble, and sectioned-wing designs; the browser
+default, forward-swept, station-loft, blade/bubble, measured-fin, fairing, and
+sectioned-wing designs; the browser
 and Python section-area factors are also compared directly. If WebGL is
 unavailable, the 2D editor and pure-JavaScript mesh checks continue to work.
 
@@ -150,10 +154,10 @@ temporary session directory, launches the installed OpenVSP GUI, and watches
 the model for saves. A restricted importer accepts only geometry that
 `VehicleSpec` can represent (one scalar trapezoid or 3–12-section measured
 NACA four-series wing, 4–8 point/ellipse/split-super-ellipse fuselage stations,
+reproduction-only measured fairing lofts, their derived fin-root extensions,
 one centerline fin or a symmetric fin pair, and the optional single-section
-horizontal tail).
-Asymmetric upper/lower lateral
-powers, nonzero super-ellipse width bias, rounded/general sections,
+horizontal tail). Asymmetric upper/lower lateral
+powers, rounded/general sections,
 unsupported components, extra wing sections, mixed airfoils, or
 unrepresentable transforms are rejected with actionable feedback and leave
 the Studio unchanged. Accepted saves emit one
@@ -250,7 +254,9 @@ three-view comparison before MDO) and the full AERO QA review afterwards.
 
 `VehicleSpec` composes `EngineSpec`, `WingSpec` (scalar trapezoid plus optional
 3–12-station `WingSectionSpec` measured-reproduction loft),
-`FuselageSpec` (with an optional 4–8 section `FuselageStation` loft), `VerticalTailSpec` (one
+`FuselageSpec` (optional 4–8 section `FuselageStation` core loft plus
+reproduction-only `BodyFairingSpec` lofts with shifted maximum width),
+`VerticalTailSpec` (one
 centerline fin or a symmetric pair), optional `HorizontalTailSpec`,
 `MissionSpec`, `StructureSpec`/`MaterialSpec`,
 `SketchEnvelopeSpec`, `MassGuessSpec`, and `SolverSpec`. Field bounds and
@@ -286,8 +292,9 @@ Deep dive: [guidebook 09](docs/guidebook/09-sizing-aero-buildup.md).
 
 ### Geometry — `src/openair/geometry/`
 
-`openvsp_model.py` builds the OpenVSP model (scalar or measured-section wing, station-loft or legacy
-fuselage, and one or two fins attached to the local body section), verifies every
+`openvsp_model.py` builds the OpenVSP model (scalar or measured-section wing,
+station-loft or legacy fuselage, measured body fairings, and one or two fins
+with derived non-lifting buried root extensions), verifies every
 parameter by API read-back, and exports `.vsp3` plus whole-model and
 per-component STLs. Whenever control surfaces are declared it also creates
 and read-back verifies generalized wing/horizontal-tail/vertical-tail control
@@ -296,14 +303,17 @@ validation elevon cross-check both consume them). `fuselage.py` is the
 single station-interpolation source
 shared by geometry, packing, drag, plots, and mesh checks. It samples the same
 split super-ellipse equation as OpenVSP and supplies polygon area, perimeter,
-and generalized containment; powers of 2 retain the historical ellipse
+and generalized containment, including shifted maximum-width location; powers
+of 2 at zero shift retain the historical ellipse
 formulas exactly. `fin_attachment.py` is the shared builder/GUI policy:
 `derived` preserves the 60%-body default, while `measured` honours declared
-root y/z exactly and relies on exported-mesh QA to prove attachment.
+root y/z exactly, then marches a continuation of the fin LE/TE lines inboard
+until the core-body/fairing union contains the whole root chord.
 `packing.py` checks engine, payload-bay, and fuel volumes
 against local body sections.
 `mesh_checks.py` re-measures the *exported STL* — component extents, fin
-verticality, root attachment inside the local section — because read-back
+verticality, fairing-base support, and attachment inside the authoritative
+local body union — because read-back
 alone let rotated fins pass (F11/F14). `threeview.png` is rendered from the
 mesh, not the spec (F15).
 Deep dive: [guidebook 01](docs/guidebook/01-openvsp.md).

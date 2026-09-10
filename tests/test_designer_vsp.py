@@ -13,6 +13,7 @@ import yaml
 
 import openair.designer.server as designer_server
 from openair.designer.server import ConceptWorkspace, WorkspaceError, make_server
+from openair.geometry.fin_attachment import fin_attachment
 from openair.geometry.openvsp_model import (
     VSP_LOCK,
     _drain_vsp_errors,
@@ -170,6 +171,54 @@ def _shape_roundtrip_spec() -> VehicleSpec:
     return VehicleSpec.model_validate(data)
 
 
+def _fairing_roundtrip_spec() -> VehicleSpec:
+    source = _roundtrip_spec()
+    data = source.model_dump(mode="json", exclude_computed_fields=True)
+    data["name"] = "vsp-fairing-roundtrip"
+    data["sketch"] = {
+        "treatment": "reproduction",
+        "span_over_length": source.wing.span_m / source.fuselage.length_m,
+        "root_over_length": source.wing.root_chord_m / source.fuselage.length_m,
+        "le_sweep_deg": source.wing.le_sweep_deg,
+        "taper": source.wing.taper,
+    }
+    data["fuselage"]["fairings"] = [
+        {
+            "name": "aft_shoulder",
+            "role": "shoulder",
+            "stations": [
+                {
+                    "x_over_length": 0.50,
+                    "width_m": 0.0,
+                    "height_m": 0.0,
+                    "z_offset_m": 0.02,
+                },
+                {
+                    "x_over_length": 0.56,
+                    "width_m": 0.20,
+                    "height_m": 0.08,
+                    "z_offset_m": 0.04,
+                    "max_width_loc": -1.0,
+                },
+                {
+                    "x_over_length": 0.72,
+                    "width_m": 0.16,
+                    "height_m": 0.06,
+                    "z_offset_m": 0.05,
+                    "max_width_loc": -0.7,
+                },
+                {
+                    "x_over_length": 0.78,
+                    "width_m": 0.0,
+                    "height_m": 0.0,
+                    "z_offset_m": 0.04,
+                },
+            ],
+        }
+    ]
+    return VehicleSpec.model_validate(data)
+
+
 def _sectioned_roundtrip_spec() -> VehicleSpec:
     source = _roundtrip_spec()
     data = source.model_dump(mode="json", exclude_computed_fields=True)
@@ -311,27 +360,31 @@ def test_sectioned_wing_rejects_non_linear_interior_twist(tmp_path: Path):
 def test_measured_twin_fin_root_round_trips_gui_edits(tmp_path: Path):
     spec = _roundtrip_spec()
     spec.name = "vsp-measured-fin-roundtrip"
+    derived = fin_attachment(spec)
     spec.vtail.root_attachment = "measured"
-    spec.vtail.y_root_m = 0.12
-    spec.vtail.z_root_m = 0.10
+    spec.vtail.y_root_m = derived["y_m"] + 0.02
+    spec.vtail.z_root_m = derived["z_m"] + 0.01
     path = tmp_path / "measured-fin.vsp3"
     _write_or_skip(spec, path)
 
     geometry = import_vsp3(path, spec)
     assert geometry_changes(spec, geometry) == []
 
+    edited_y = spec.vtail.y_root_m + 0.005
+    edited_z = spec.vtail.z_root_m + 0.003
+
     def edit(vsp, geoms):
-        for name, y_m in (("vtailr", 0.15), ("vtaill", -0.15)):
+        for name, y_m in (("vtailr", edited_y), ("vtaill", -edited_y)):
             vsp.SetParmVal(geoms[name], "Y_Rel_Location", "XForm", y_m)
-            vsp.SetParmVal(geoms[name], "Z_Rel_Location", "XForm", 0.12)
+            vsp.SetParmVal(geoms[name], "Z_Rel_Location", "XForm", edited_z)
 
     _edit_vsp3(path, edit)
     geometry = import_vsp3(path, spec)
     imported = _merge(spec, geometry)
 
     assert imported.vtail.root_attachment == "measured"
-    assert imported.vtail.y_root_m == pytest.approx(0.15)
-    assert imported.vtail.z_root_m == pytest.approx(0.12)
+    assert imported.vtail.y_root_m == pytest.approx(edited_y)
+    assert imported.vtail.z_root_m == pytest.approx(edited_z)
 
 
 def test_derived_twin_fin_root_gui_edit_is_rejected(tmp_path: Path):
@@ -390,11 +443,42 @@ def test_split_superellipse_fuselage_round_trip(tmp_path: Path):
         assert actual.bottom_power == pytest.approx(expected.bottom_power)
 
 
+def test_max_width_location_and_fairing_round_trip(tmp_path: Path):
+    spec = _fairing_roundtrip_spec()
+    path = tmp_path / "fairing-roundtrip.vsp3"
+    _write_or_skip(spec, path)
+
+    geometry = import_vsp3(path, spec)
+    imported = _merge(spec, geometry)
+    assert geometry_changes(spec, geometry) == []
+    fairing = imported.fuselage.fairings[0]
+    assert fairing.name == "aft_shoulder"
+    assert fairing.stations[1].max_width_loc == pytest.approx(-1.0)
+    assert fairing.stations[2].max_width_loc == pytest.approx(-0.7)
+
+
+def test_import_rejects_edited_derived_fin_root_extension(tmp_path: Path):
+    spec = _roundtrip_spec()
+    derived = fin_attachment(spec)
+    spec.vtail.root_attachment = "measured"
+    spec.vtail.y_root_m = derived["y_m"] + 0.02
+    spec.vtail.z_root_m = derived["z_m"] + 0.01
+    path = tmp_path / "edited-root-extension.vsp3"
+    _write_or_skip(spec, path)
+
+    def edit(vsp, geoms):
+        span = vsp.GetParmVal(geoms["vtailr_root"], "Span", "XSec_1")
+        vsp.SetParmVal(geoms["vtailr_root"], "Span", "XSec_1", span + 0.01)
+
+    _edit_vsp3(path, edit)
+    with pytest.raises(ImportRejected, match="derived root extension was edited"):
+        import_vsp3(path, spec)
+
+
 @pytest.mark.parametrize(
     ("unsupported", "expected"),
     [
         ("bottom-side-power", "Super_M_bot must equal Super_M"),
-        ("max-width-location", "Super_MaxWidthLoc must remain 0"),
         ("rounded-rectangle", "rounded-rectangle/general sections"),
         ("general-fuse", "rounded-rectangle/general sections"),
     ],
@@ -413,8 +497,6 @@ def test_import_rejects_unrepresentable_fuselage_sections(
         section = vsp.GetXSec(xsurf, 2)
         if unsupported == "bottom-side-power":
             vsp.SetParmVal(vsp.GetXSecParm(section, "Super_M_bot"), 2.4)
-        elif unsupported == "max-width-location":
-            vsp.SetParmVal(vsp.GetXSecParm(section, "Super_MaxWidthLoc"), 0.2)
         elif unsupported == "rounded-rectangle":
             vsp.ChangeXSecShape(xsurf, 2, vsp.XS_ROUNDED_RECTANGLE)
         else:

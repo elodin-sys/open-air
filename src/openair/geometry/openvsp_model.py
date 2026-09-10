@@ -63,13 +63,16 @@ FUSE_XSEC_SCALES = LEGACY_XSEC_SCALES
 
 
 def _station_uses_superellipse(station) -> bool:
-    return any(
-        abs(power - 2.0) > 1e-12
-        for power in (
-            station.side_power,
-            station.top_power,
-            station.bottom_power,
+    return (
+        any(
+            abs(power - 2.0) > 1e-12
+            for power in (
+                station.side_power,
+                station.top_power,
+                station.bottom_power,
+            )
         )
+        or abs(station.max_width_loc) > 1e-12
     )
 
 
@@ -105,6 +108,81 @@ def _set_wing_driver_group(vsp, geom_id: str, section_index: int = 1) -> None:
             )
         except Exception:
             pass
+
+
+def _configure_station_loft(
+    vsp,
+    geom_id: str,
+    stations,
+    length_m: float,
+    *,
+    localize_x: bool = False,
+) -> str:
+    """Configure one FUSELAGE geom from absolute-size source stations."""
+    if localize_x:
+        first_fraction = stations[0].x_over_length
+        fraction_range = stations[-1].x_over_length - first_fraction
+        if fraction_range <= 1e-6:
+            raise ValueError("station loft has no positive x extent")
+        x_origin_m = first_fraction * length_m
+        geom_length_m = fraction_range * length_m
+        _set(vsp, geom_id, "X_Rel_Location", "XForm", x_origin_m)
+    else:
+        first_fraction = 0.0
+        fraction_range = 1.0
+        geom_length_m = length_m
+    _set(vsp, geom_id, "Length", "Design", geom_length_m)
+    xsurf = vsp.GetXSecSurf(geom_id, 0)
+    while int(vsp.GetNumXSec(xsurf)) < len(stations):
+        vsp.InsertXSec(geom_id, int(vsp.GetNumXSec(xsurf)) - 2, vsp.XS_ELLIPSE)
+    while int(vsp.GetNumXSec(xsurf)) > len(stations):
+        vsp.CutXSec(geom_id, int(vsp.GetNumXSec(xsurf)) - 2)
+    for index, station in enumerate(stations):
+        shape = (
+            vsp.XS_POINT
+            if station.width_m == 0.0 and station.height_m == 0.0
+            else (
+                vsp.XS_SUPER_ELLIPSE
+                if _station_uses_superellipse(station)
+                else vsp.XS_ELLIPSE
+            )
+        )
+        vsp.ChangeXSecShape(xsurf, index, shape)
+    vsp.Update()
+    for index, station in enumerate(stations):
+        xs = vsp.GetXSec(xsurf, index)
+        local_x = (station.x_over_length - first_fraction) / fraction_range
+        vsp.SetParmVal(vsp.GetXSecParm(xs, "XLocPercent"), local_x)
+        vsp.SetParmVal(
+            vsp.GetXSecParm(xs, "ZLocPercent"),
+            station.z_offset_m / geom_length_m,
+        )
+        if station.width_m <= 0.0 or station.height_m <= 0.0:
+            pass
+        else:
+            vsp.SetXSecWidthHeight(xs, station.width_m, station.height_m)
+            if _station_uses_superellipse(station):
+                for name, value in (
+                    ("Super_TopBotSym", 0.0),
+                    ("Super_M", station.side_power),
+                    ("Super_N", station.top_power),
+                    ("Super_M_bot", station.side_power),
+                    ("Super_N_bot", station.bottom_power),
+                    ("Super_MaxWidthLoc", station.max_width_loc),
+                ):
+                    vsp.SetParmVal(vsp.GetXSecParm(xs, name), value)
+        if localize_x:
+            # A point-capped shoulder must not overshoot its measured base or
+            # top between stations. Zero Hermite strengths make each quadrant
+            # follow the station polyline exactly.
+            for quadrant in ("Top", "Right", "Bottom", "Left"):
+                for side in ("L", "R"):
+                    vsp.SetParmVal(
+                        vsp.GetXSecParm(xs, f"{quadrant}{side}Strength"),
+                        0.0,
+                    )
+    vsp.Update()
+    return xsurf
 
 
 def _wing_twist_at(spec: VehicleSpec, eta: float) -> float:
@@ -151,6 +229,12 @@ def _configure_wing(vsp, wing_id: str, spec: VehicleSpec) -> None:
             "OpenVSP wing section count does not match wing.sections: "
             f"{vsp.GetNumXSec(xsec_surf)} != {len(wing.sections)}"
         )
+    # OpenVSP 3.51 can reuse the most recently configured FUSELAGE section
+    # type when InsertXSec follows an auxiliary body loft. Pin every wing
+    # section explicitly instead of trusting the insertion type argument.
+    for index in range(len(wing.sections)):
+        vsp.ChangeXSecShape(xsec_surf, index, vsp.XS_FOUR_SERIES)
+    vsp.Update()
 
     for index in range(1, len(wing.sections)):
         _set_wing_driver_group(vsp, wing_id, index)
@@ -317,9 +401,9 @@ def _construct_model(
 
     fid = vsp.AddGeom("FUSELAGE", "")
     vsp.SetGeomName(fid, "fuselage")
-    _set(vsp, fid, "Length", "Design", spec.fuselage.length_m)
-    xsurf = vsp.GetXSecSurf(fid, 0)
     if spec.fuselage.stations is None:
+        _set(vsp, fid, "Length", "Design", spec.fuselage.length_m)
+        xsurf = vsp.GetXSecSurf(fid, 0)
         try:
             nxs = vsp.GetNumXSec(xsurf)
             scales = list(FUSE_XSEC_SCALES)
@@ -334,48 +418,50 @@ def _construct_model(
         except Exception as exc:
             errors.append(f"fuselage_legacy: {exc}")
     else:
-        stations = spec.fuselage.stations
         try:
-            while vsp.GetNumXSec(xsurf) < len(stations):
-                vsp.InsertXSec(fid, vsp.GetNumXSec(xsurf) - 2, vsp.XS_ELLIPSE)
-            while vsp.GetNumXSec(xsurf) > len(stations):
-                vsp.CutXSec(fid, vsp.GetNumXSec(xsurf) - 2)
-            for index, station in enumerate(stations):
-                shape = (
-                    vsp.XS_POINT
-                    if station.width_m == 0.0 and station.height_m == 0.0
-                    else (
-                        vsp.XS_SUPER_ELLIPSE
-                        if _station_uses_superellipse(station)
-                        else vsp.XS_ELLIPSE
-                    )
-                )
-                vsp.ChangeXSecShape(xsurf, index, shape)
-            vsp.Update()
-            for index, station in enumerate(stations):
-                xs = vsp.GetXSec(xsurf, index)
-                vsp.SetParmVal(
-                    vsp.GetXSecParm(xs, "XLocPercent"), station.x_over_length
-                )
-                vsp.SetParmVal(
-                    vsp.GetXSecParm(xs, "ZLocPercent"),
-                    station.z_offset_m / spec.fuselage.length_m,
-                )
-                if station.width_m > 0.0 and station.height_m > 0.0:
-                    vsp.SetXSecWidthHeight(xs, station.width_m, station.height_m)
-                    if _station_uses_superellipse(station):
-                        for name, value in (
-                            ("Super_TopBotSym", 0.0),
-                            ("Super_M", station.side_power),
-                            ("Super_N", station.top_power),
-                            ("Super_M_bot", station.side_power),
-                            ("Super_N_bot", station.bottom_power),
-                            ("Super_MaxWidthLoc", 0.0),
-                        ):
-                            vsp.SetParmVal(vsp.GetXSecParm(xs, name), value)
+            xsurf = _configure_station_loft(
+                vsp,
+                fid,
+                spec.fuselage.stations,
+                spec.fuselage.length_m,
+            )
         except Exception as exc:
             errors.append(f"fuselage_stations: {exc}")
+            xsurf = vsp.GetXSecSurf(fid, 0)
     vsp.Update()
+
+    fairings: list[dict[str, Any]] = []
+    for fairing in spec.fuselage.fairings or []:
+        fairing_name = f"fairing_{fairing.name}"
+        fairing_id = vsp.AddGeom("FUSELAGE", "")
+        vsp.SetGeomName(fairing_id, fairing_name)
+        try:
+            fairing_xsurf = _configure_station_loft(
+                vsp,
+                fairing_id,
+                fairing.stations,
+                spec.fuselage.length_m,
+                localize_x=True,
+            )
+            x_origin_m = (
+                fairing.stations[0].x_over_length * spec.fuselage.length_m
+            )
+            geom_length_m = (
+                fairing.stations[-1].x_over_length
+                - fairing.stations[0].x_over_length
+            ) * spec.fuselage.length_m
+            fairings.append(
+                {
+                    "name": fairing_name,
+                    "geom_id": fairing_id,
+                    "xsurf": fairing_xsurf,
+                    "spec_name": fairing.name,
+                    "x_origin_m": x_origin_m,
+                    "geom_length_m": geom_length_m,
+                }
+            )
+        except Exception as exc:
+            errors.append(f"{fairing_name}: {exc}")
 
     wid = vsp.AddGeom("WING", "")
     vsp.SetGeomName(wid, "wing")
@@ -398,6 +484,7 @@ def _construct_model(
     root_y = fin_attach["y_m"]
     z_attach = fin_attach["z_m"]
     vtails = []
+    vtail_roots = []
     fin_defs = (
         ((1.0, "vtailc", 0.0),)
         if spec.vtail.count == 1
@@ -435,6 +522,69 @@ def _construct_model(
         _set(vsp, vid, "ThickChord", "XSecCurve_1", spec.vtail.t_over_c)
         vsp.Update()
         vtails.append(vid)
+
+        if fin_attach["extension_required"]:
+            root_id = vsp.AddGeom("WING", "")
+            root_name = f"{name}_root"
+            vsp.SetGeomName(root_id, root_name)
+            _set(vsp, root_id, "Sym_Planar_Flag", "Sym", 0.0)
+            _set(vsp, root_id, "Sym_Ancestor_Origin_Flag", "Sym", 0.0)
+            _set_wing_driver_group(vsp, root_id)
+            buried_y = (
+                0.0
+                if spec.vtail.count == 1
+                else sign * abs(fin_attach["buried_root_y_m"])
+            )
+            _set(
+                vsp,
+                root_id,
+                "X_Rel_Location",
+                "XForm",
+                fin_attach["buried_root_x_le_m"],
+            )
+            _set(vsp, root_id, "Y_Rel_Location", "XForm", buried_y)
+            _set(
+                vsp,
+                root_id,
+                "Z_Rel_Location",
+                "XForm",
+                fin_attach["buried_root_z_m"],
+            )
+            _set(
+                vsp,
+                root_id,
+                "X_Rel_Rotation",
+                "XForm",
+                90.0 - sign * spec.vtail.cant_deg,
+            )
+            _set(vsp, root_id, "Y_Rel_Rotation", "XForm", 0.0)
+            _set(
+                vsp,
+                root_id,
+                "Span",
+                "XSec_1",
+                fin_attach["root_extension_m"],
+            )
+            _set(
+                vsp,
+                root_id,
+                "Root_Chord",
+                "XSec_1",
+                fin_attach["buried_root_chord_m"],
+            )
+            _set(
+                vsp,
+                root_id,
+                "Tip_Chord",
+                "XSec_1",
+                spec.vtail.root_chord_m,
+            )
+            _set(vsp, root_id, "Sweep", "XSec_1", spec.vtail.le_sweep_deg)
+            _set(vsp, root_id, "Sweep_Location", "XSec_1", 0.0)
+            _set(vsp, root_id, "ThickChord", "XSecCurve_0", spec.vtail.t_over_c)
+            _set(vsp, root_id, "ThickChord", "XSecCurve_1", spec.vtail.t_over_c)
+            vsp.Update()
+            vtail_roots.append(root_id)
 
     hid = None
     if spec.htail.span_m > 0.05:
@@ -584,7 +734,9 @@ def _construct_model(
         "control_surfaces": controls,
         "control_groups": logical_groups,
         "vtails": vtails,
+        "vtail_roots": vtail_roots,
         "htail": hid,
+        "fairings": fairings,
         "engine_pods": engine_pods,
         "engine_pod_positions": pod_positions,
         "fin_attach": fin_attach,
@@ -603,6 +755,14 @@ def _rebind_serialized_model_ids(vsp, built: dict[str, Any]) -> dict[str, Any]:
     required = {"fuselage", "wing"}
     fin_names = ["vtailc"] if len(built["vtails"]) == 1 else ["vtailr", "vtaill"]
     required.update(fin_names)
+    fairing_names = [fairing["name"] for fairing in built["fairings"]]
+    root_names = (
+        [f"{name}_root" for name in fin_names]
+        if built["fin_attach"]["extension_required"]
+        else []
+    )
+    required.update(fairing_names)
+    required.update(root_names)
     if built["htail"] is not None:
         required.add("htail")
     missing = required - by_name.keys()
@@ -663,7 +823,16 @@ def _rebind_serialized_model_ids(vsp, built: dict[str, Any]) -> dict[str, Any]:
         "control_surfaces": controls,
         "control_groups": control_groups,
         "vtails": [by_name[name] for name in fin_names],
+        "vtail_roots": [by_name[name] for name in root_names],
         "htail": by_name.get("htail"),
+        "fairings": [
+            {
+                **fairing,
+                "geom_id": by_name[fairing["name"]],
+                "xsurf": vsp.GetXSecSurf(by_name[fairing["name"]], 0),
+            }
+            for fairing in built["fairings"]
+        ],
         "engine_pods": engine_pods,
     }
 
@@ -793,6 +962,113 @@ def _sectioned_wing_readback(
         "panels": panel_rows,
         "matches": sections_ok,
     }, sections_ok
+
+
+def _station_loft_readback(
+    vsp,
+    xsurf: str,
+    stations,
+    length_m: float,
+    *,
+    x_origin_m: float = 0.0,
+    geom_length_m: float | None = None,
+    linear_strengths: bool = False,
+) -> tuple[list[dict[str, Any]], bool]:
+    """Read and verify one station-defined FUSELAGE geom."""
+    loft_length = length_m if geom_length_m is None else geom_length_m
+    rows: list[dict[str, Any]] = []
+    matches = int(vsp.GetNumXSec(xsurf)) == len(stations)
+    for index, wanted in enumerate(stations):
+        xs = vsp.GetXSec(xsurf, index)
+        shape = int(vsp.GetXSecShape(xs))
+        expected_shape = (
+            int(vsp.XS_POINT)
+            if wanted.width_m == 0.0 and wanted.height_m == 0.0
+            else (
+                int(vsp.XS_SUPER_ELLIPSE)
+                if _station_uses_superellipse(wanted)
+                else int(vsp.XS_ELLIPSE)
+            )
+        )
+        if shape == int(vsp.XS_SUPER_ELLIPSE):
+            powers = {
+                "side_power": float(
+                    vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_M"))
+                ),
+                "top_power": float(
+                    vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_N"))
+                ),
+                "bottom_side_power": float(
+                    vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_M_bot"))
+                ),
+                "bottom_power": float(
+                    vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_N_bot"))
+                ),
+                "max_width_location": float(
+                    vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_MaxWidthLoc"))
+                ),
+                "top_bottom_symmetric": float(
+                    vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_TopBotSym"))
+                ),
+            }
+        else:
+            powers = {
+                "side_power": 2.0,
+                "top_power": 2.0,
+                "bottom_side_power": 2.0,
+                "bottom_power": 2.0,
+                "max_width_location": 0.0,
+                "top_bottom_symmetric": 0.0,
+            }
+        row = {
+            "shape": shape,
+            "x_over_length": (
+                x_origin_m
+                + float(vsp.GetParmVal(vsp.GetXSecParm(xs, "XLocPercent")))
+                * loft_length
+            )
+            / length_m,
+            "width_m": float(vsp.GetXSecWidth(xs)),
+            "height_m": float(vsp.GetXSecHeight(xs)),
+            "z_offset_m": float(
+                vsp.GetParmVal(vsp.GetXSecParm(xs, "ZLocPercent"))
+            )
+            * loft_length,
+            **powers,
+        }
+        strengths = [
+            float(vsp.GetParmVal(vsp.GetXSecParm(xs, f"{quadrant}{side}Strength")))
+            for quadrant in ("Top", "Right", "Bottom", "Left")
+            for side in ("L", "R")
+        ]
+        row["interpolation_strength_max"] = max(strengths)
+        rows.append(row)
+        shape_parameters_match = (
+            True
+            if expected_shape == int(vsp.XS_POINT)
+            else (
+                abs(row["side_power"] - wanted.side_power) <= 1e-5
+                and abs(row["top_power"] - wanted.top_power) <= 1e-5
+                and abs(row["bottom_side_power"] - wanted.side_power) <= 1e-5
+                and abs(row["bottom_power"] - wanted.bottom_power) <= 1e-5
+                and abs(row["max_width_location"] - wanted.max_width_loc)
+                <= 1e-5
+                and abs(row["top_bottom_symmetric"]) <= 1e-8
+            )
+        )
+        matches = matches and (
+            row["shape"] == expected_shape
+            and abs(row["x_over_length"] - wanted.x_over_length) <= 1e-5
+            and abs(row["width_m"] - wanted.width_m) <= 1e-4
+            and abs(row["height_m"] - wanted.height_m) <= 1e-4
+            and abs(row["z_offset_m"] - wanted.z_offset_m) <= 1e-4
+            and shape_parameters_match
+            and (
+                not linear_strengths
+                or abs(row["interpolation_strength_max"]) <= 1e-8
+            )
+        )
+    return rows, matches
 
 
 def _construction_readback(
@@ -979,80 +1255,44 @@ def _construction_readback(
         readback["control_surfaces_match"] = controls_ok
         station_ok = True
         if spec.fuselage.stations is not None:
-            station_readback = []
-            station_ok = vsp.GetNumXSec(xsurf) == len(spec.fuselage.stations)
-            for index, wanted in enumerate(spec.fuselage.stations):
-                xs = vsp.GetXSec(xsurf, index)
-                shape = int(vsp.GetXSecShape(xs))
-                expected_shape = (
-                    int(vsp.XS_POINT)
-                    if wanted.width_m == 0.0 and wanted.height_m == 0.0
-                    else (
-                        int(vsp.XS_SUPER_ELLIPSE)
-                        if _station_uses_superellipse(wanted)
-                        else int(vsp.XS_ELLIPSE)
-                    )
-                )
-                if shape == int(vsp.XS_SUPER_ELLIPSE):
-                    powers = {
-                        "side_power": float(
-                            vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_M"))
-                        ),
-                        "top_power": float(
-                            vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_N"))
-                        ),
-                        "bottom_side_power": float(
-                            vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_M_bot"))
-                        ),
-                        "bottom_power": float(
-                            vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_N_bot"))
-                        ),
-                        "max_width_location": float(
-                            vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_MaxWidthLoc"))
-                        ),
-                        "top_bottom_symmetric": float(
-                            vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_TopBotSym"))
-                        ),
-                    }
-                else:
-                    powers = {
-                        "side_power": 2.0,
-                        "top_power": 2.0,
-                        "bottom_side_power": 2.0,
-                        "bottom_power": 2.0,
-                        "max_width_location": 0.0,
-                        "top_bottom_symmetric": 0.0,
-                    }
-                got_station = {
-                    "shape": shape,
-                    "x_over_length": float(
-                        vsp.GetParmVal(vsp.GetXSecParm(xs, "XLocPercent"))
-                    ),
-                    "width_m": float(vsp.GetXSecWidth(xs)),
-                    "height_m": float(vsp.GetXSecHeight(xs)),
-                    "z_offset_m": float(
-                        vsp.GetParmVal(vsp.GetXSecParm(xs, "ZLocPercent"))
-                    )
-                    * spec.fuselage.length_m,
-                    **powers,
-                }
-                station_readback.append(got_station)
-                station_ok = station_ok and (
-                    got_station["shape"] == expected_shape
-                    and abs(got_station["x_over_length"] - wanted.x_over_length) <= 1e-5
-                    and abs(got_station["width_m"] - wanted.width_m) <= 1e-4
-                    and abs(got_station["height_m"] - wanted.height_m) <= 1e-4
-                    and abs(got_station["z_offset_m"] - wanted.z_offset_m) <= 1e-4
-                    and abs(got_station["side_power"] - wanted.side_power) <= 1e-5
-                    and abs(got_station["top_power"] - wanted.top_power) <= 1e-5
-                    and abs(got_station["bottom_side_power"] - wanted.side_power)
-                    <= 1e-5
-                    and abs(got_station["bottom_power"] - wanted.bottom_power) <= 1e-5
-                    and abs(got_station["max_width_location"]) <= 1e-8
-                    and abs(got_station["top_bottom_symmetric"]) <= 1e-8
-                )
+            station_readback, station_ok = _station_loft_readback(
+                vsp,
+                xsurf,
+                spec.fuselage.stations,
+                spec.fuselage.length_m,
+            )
             readback["fuselage_stations"] = station_readback
             readback["fuselage_stations_match"] = station_ok
+
+        fairing_rows = []
+        fairings_ok = len(built["fairings"]) == len(spec.fuselage.fairings or [])
+        wanted_fairings = {
+            fairing.name: fairing for fairing in spec.fuselage.fairings or []
+        }
+        for fairing in built["fairings"]:
+            wanted = wanted_fairings.get(fairing["spec_name"])
+            if wanted is None:
+                fairings_ok = False
+                continue
+            rows, matches = _station_loft_readback(
+                vsp,
+                fairing["xsurf"],
+                wanted.stations,
+                spec.fuselage.length_m,
+                x_origin_m=fairing["x_origin_m"],
+                geom_length_m=fairing["geom_length_m"],
+                linear_strengths=True,
+            )
+            fairings_ok = fairings_ok and matches
+            fairing_rows.append(
+                {
+                    "name": fairing["name"],
+                    "stations": rows,
+                    "matches": matches,
+                }
+            )
+        readback["fairings"] = fairing_rows
+        readback["fairings_match"] = fairings_ok
 
         expected_fin_names = (
             ["vtailc"] if spec.vtail.count == 1 else ["vtailr", "vtaill"]
@@ -1112,7 +1352,86 @@ def _construction_readback(
         readback["vtails"] = fin_readback
         readback["vtails_match"] = fin_ok
 
-        auxiliary_ok = fin_ok and controls_ok
+        expected_root_count = spec.vtail.count if built["fin_attach"]["extension_required"] else 0
+        expected_root_names = [f"{name}_root" for name in expected_fin_names]
+        expected_root_y = (
+            [0.0]
+            if spec.vtail.count == 1
+            else [
+                abs(built["fin_attach"]["buried_root_y_m"]),
+                -abs(built["fin_attach"]["buried_root_y_m"]),
+            ]
+        )
+        root_rows = []
+        roots_ok = len(built["vtail_roots"]) == expected_root_count
+        for index, root_id in enumerate(built["vtail_roots"]):
+            values = {
+                "name": str(vsp.GetGeomName(root_id)),
+                "span_m": float(vsp.GetParmVal(root_id, "Span", "XSec_1")),
+                "root_chord_m": float(
+                    vsp.GetParmVal(root_id, "Root_Chord", "XSec_1")
+                ),
+                "tip_chord_m": float(
+                    vsp.GetParmVal(root_id, "Tip_Chord", "XSec_1")
+                ),
+                "sweep_deg": float(vsp.GetParmVal(root_id, "Sweep", "XSec_1")),
+                "sweep_location": float(
+                    vsp.GetParmVal(root_id, "Sweep_Location", "XSec_1")
+                ),
+                "t_over_c_root": float(
+                    vsp.GetParmVal(root_id, "ThickChord", "XSecCurve_0")
+                ),
+                "t_over_c_tip": float(
+                    vsp.GetParmVal(root_id, "ThickChord", "XSecCurve_1")
+                ),
+                "x_le_m": float(
+                    vsp.GetParmVal(root_id, "X_Rel_Location", "XForm")
+                ),
+                "y_root_m": float(
+                    vsp.GetParmVal(root_id, "Y_Rel_Location", "XForm")
+                ),
+                "z_root_m": float(
+                    vsp.GetParmVal(root_id, "Z_Rel_Location", "XForm")
+                ),
+                "x_rotation_deg": float(
+                    vsp.GetParmVal(root_id, "X_Rel_Rotation", "XForm")
+                ),
+            }
+            root_rows.append(values)
+            roots_ok = roots_ok and (
+                index < expected_root_count
+                and values["name"] == expected_root_names[index]
+                and _rel(
+                    values["span_m"],
+                    built["fin_attach"]["root_extension_m"],
+                )
+                <= 0.02
+                and _rel(
+                    values["root_chord_m"],
+                    built["fin_attach"]["buried_root_chord_m"],
+                )
+                <= 0.02
+                and _rel(values["tip_chord_m"], spec.vtail.root_chord_m) <= 0.02
+                and abs(values["sweep_deg"] - spec.vtail.le_sweep_deg) <= 0.1
+                and abs(values["sweep_location"]) <= 1e-6
+                and abs(values["t_over_c_root"] - spec.vtail.t_over_c) <= 1e-4
+                and abs(values["t_over_c_tip"] - spec.vtail.t_over_c) <= 1e-4
+                and abs(
+                    values["x_le_m"] - built["fin_attach"]["buried_root_x_le_m"]
+                )
+                <= 1e-4
+                and abs(values["y_root_m"] - expected_root_y[index]) <= 1e-4
+                and abs(
+                    values["z_root_m"] - built["fin_attach"]["buried_root_z_m"]
+                )
+                <= 1e-4
+                and abs(values["x_rotation_deg"] - expected_fin_rotation[index])
+                <= 0.1
+            )
+        readback["vtail_root_extensions"] = root_rows
+        readback["vtail_root_extensions_match"] = roots_ok
+
+        auxiliary_ok = fin_ok and roots_ok and fairings_ok and controls_ok
         if built["htail"] is not None:
             hid = built["htail"]
             htail_values = {
@@ -1248,6 +1567,9 @@ def write_vsp3(spec: VehicleSpec, path: Path) -> dict[str, Any]:
             "diagnostic_vsp3": diagnostic_path,
             "geom_ids": {
                 "fuselage": built["fuselage"],
+                "fairings": [
+                    fairing["geom_id"] for fairing in built["fairings"]
+                ],
                 "wing": built["wing"],
                 "control_surfaces": [
                     {
@@ -1260,6 +1582,7 @@ def write_vsp3(spec: VehicleSpec, path: Path) -> dict[str, Any]:
                     for control in built["control_surfaces"]
                 ],
                 "vtails": built["vtails"],
+                "vtail_roots": built["vtail_roots"],
                 "htail": built["htail"],
                 "engine_pods": built["engine_pods"],
             },
@@ -1309,9 +1632,11 @@ def _failed_serialized_geometry_result(
         "stl": None,
         "geom_ids": {
             "fuselage": None,
+            "fairings": [],
             "wing": None,
             "control_surfaces": [],
             "vtails": [],
+            "vtail_roots": [],
             "htail": None,
             "engine_pods": [],
         },
@@ -1380,8 +1705,10 @@ def _build_openvsp_model_locked(spec: VehicleSpec, outdir: Path) -> dict[str, An
         )
 
     fid = built["fuselage"]
+    fairings = built["fairings"]
     wid = built["wing"]
     vtails = built["vtails"]
+    vtail_roots = built["vtail_roots"]
     hid = built["htail"]
     engine_pods = built["engine_pods"]
     fin_attach = built["fin_attach"]
@@ -1441,8 +1768,10 @@ def _build_openvsp_model_locked(spec: VehicleSpec, outdir: Path) -> dict[str, An
             spec,
             {
                 "fuselage": fid,
+                "fairings": fairings,
                 "wing": wid,
                 "vtails": vtails,
+                "vtail_roots": vtail_roots,
                 "htail": hid,
                 "engine_pods": engine_pods,
             },
@@ -1462,6 +1791,7 @@ def _build_openvsp_model_locked(spec: VehicleSpec, outdir: Path) -> dict[str, An
         "stl": str(stl_path) if stl_path and Path(stl_path).exists() else None,
         "geom_ids": {
             "fuselage": fid,
+            "fairings": [fairing["geom_id"] for fairing in fairings],
             "wing": wid,
             "control_surfaces": [
                 {
@@ -1474,6 +1804,7 @@ def _build_openvsp_model_locked(spec: VehicleSpec, outdir: Path) -> dict[str, An
                 for control in built["control_surfaces"]
             ],
             "vtails": vtails,
+            "vtail_roots": vtail_roots,
             "htail": hid,
             "engine_pods": engine_pods,
         },

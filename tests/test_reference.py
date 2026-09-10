@@ -261,6 +261,8 @@ def test_ingest_recovers_known_geometry(ingested):
     assert all(
         b["x_over_length"] > a["x_over_length"] for a, b in zip(stations, stations[1:])
     )
+    assert not summary["measurements"]["fairings"]["aft_shoulder"]["ok"]
+    assert not fuselage.get("fairings")
     VehicleSpec.model_validate(
         {
             "name": "synthetic-ref",
@@ -528,6 +530,41 @@ def test_compare_flags_a_different_shape(ingested, tmp_path):
     assert result["checks"]["iou_top"]["ok"] is False
 
 
+def test_compare_gates_body_union_and_excludes_buried_root(ingested, tmp_path):
+    out, _ = ingested
+    aligned = trimesh.load(
+        str(out / "reference" / "reference.ply"), force="mesh", process=False
+    )
+    model_path = tmp_path / "body-union.stl"
+    aligned.export(str(model_path))
+    spec = VehicleSpec(name="synthetic-ref")
+    spec.fuselage.length_m = LENGTH
+
+    result = compare_reference(
+        spec,
+        tmp_path,
+        stl_path=model_path,
+        component_stls={
+            "fuselage": str(model_path),
+            "fairing_aft_shoulder": str(model_path),
+            "fin_r_root": str(model_path),
+        },
+        reference_dir=out / "reference",
+        write=False,
+    )
+
+    assert result["ok"]
+    assert result["checks"]["p95_body"]["basis"] == (
+        "fuselage + measured fairing components"
+    )
+    assert result["disclosed"]["body_union_components"] == [
+        "fuselage",
+        "fairing_aft_shoulder",
+    ]
+    assert result["components"]["fin_r_root"]["excluded_from_fidelity"]
+    assert "fin_r_root" not in result["disclosed"]["p95_components_m"]
+
+
 def test_compare_without_reference_is_unavailable(tmp_path):
     spec = VehicleSpec(name="none")
     result = compare_reference(
@@ -546,6 +583,84 @@ def test_section_powers_recover_an_ellipse():
     assert abs(fit["side_power"] - 2.0) < 0.15
     assert abs(fit["top_power"] - 2.0) < 0.15
     assert abs(fit["bottom_power"] - 2.0) < 0.15
+
+
+def test_shoulder_fairing_fit_recovers_synthetic_dome():
+    points = []
+    for x_m in np.linspace(0.005, 0.695, 139):
+        scale = math.sin(math.pi * x_m / LENGTH)
+        for theta in np.linspace(0.0, 2.0 * math.pi, 64, endpoint=False):
+            points.append(
+                [
+                    x_m,
+                    BODY_HALF_WIDTH * scale * math.cos(theta),
+                    BODY_HALF_HEIGHT * scale * math.sin(theta),
+                ]
+            )
+    for x_m in np.linspace(0.42, 0.69, 80):
+        for y_m in np.linspace(-0.20, 0.20, 100):
+            points.extend(([x_m, y_m, 0.006], [x_m, y_m, -0.006]))
+    for x_m in np.linspace(0.48, 0.66, 50):
+        fraction = (x_m - 0.48) / 0.18
+        half_width = 0.085 - 0.010 * fraction
+        base_z = 0.004
+        top_z = 0.052 - 0.010 * fraction
+        for y_m in np.linspace(-half_width, half_width, 80):
+            dome_z = base_z + (top_z - base_z) * math.sqrt(
+                max(0.0, 1.0 - (y_m / half_width) ** 2)
+            )
+            points.extend(([x_m, y_m, dome_z], [x_m, y_m, base_z]))
+    profile = [
+        {
+            "x_m": x_m,
+            "width_m": 2.0
+            * BODY_HALF_WIDTH
+            * math.sin(math.pi * x_m / LENGTH),
+            "height_m": 2.0
+            * BODY_HALF_HEIGHT
+            * math.sin(math.pi * x_m / LENGTH),
+        }
+        for x_m in np.linspace(0.005, 0.695, 139)
+    ]
+    fin = {
+        "span_m": FIN_SPAN,
+        "root_chord_m": FIN_ROOT_CHORD,
+        "tip_chord_m": 0.6 * FIN_ROOT_CHORD,
+        "taper": 0.6,
+        "le_sweep_deg": 25.0,
+        "cant_deg": FIN_CANT_DEG,
+        "toe_deg": 0.0,
+        "x_le_m": FIN_X_LE,
+        "y_root_m": FIN_Y_ROOT,
+        "z_root_m": 0.05,
+        "thickness_m": 0.008,
+        "t_over_c": 0.10,
+        "plane_normal": [0.0, 1.0, 0.0],
+        "fit_rms_m": {"le": 0.0, "te": 0.0},
+    }
+    fins = {
+        "count": 2,
+        "fins": [{**fin, "y_root_m": -FIN_Y_ROOT}, fin],
+        "mirrored_mean": fin,
+    }
+
+    result = M.measure_shoulder_fairing(
+        M.PointField(np.asarray(points), 0.001),
+        length_m=LENGTH,
+        semispan_m=0.5 * SPAN,
+        body_profile_records=profile,
+        wing=None,
+        fins=fins,
+    )
+
+    assert result["ok"], result
+    assert result["station_count"] == 8
+    assert result["stations"][0]["width_m"] == 0.0
+    assert result["stations"][-1]["width_m"] == 0.0
+    measured_width = max(station["width_m"] for station in result["stations"])
+    assert 0.09 <= measured_width <= 0.18
+    assert result["shoulder_excess_max_m"] >= 0.03
+    assert result["base_burial_allowance_m"] == pytest.approx(0.008)
 
 
 def test_choose_station_fractions_is_monotone_and_bounded():

@@ -212,6 +212,8 @@ def render_sections_figure(
     stations = record.get("stations") or []
     profile = record.get("body_profile") or []
     fins = record.get("fins") or {}
+    shoulder = (record.get("fairings") or {}).get("aft_shoulder") or {}
+    shoulder_stations = shoulder.get("stations") or []
     airfoils = record.get("airfoil_sections") or []
     length = overall["length_m"]
     semispan = overall["semispan_m"]
@@ -236,6 +238,24 @@ def render_sections_figure(
             xs, half, color="#34798e", lw=1.2, label="body half-width (thickness edge)"
         )
         ax.plot(xs, [-h for h in half], color="#34798e", lw=1.2)
+    if shoulder_stations:
+        shoulder_x = [station["x_m"] for station in shoulder_stations]
+        shoulder_half = [0.5 * station["width_m"] for station in shoulder_stations]
+        ax.plot(
+            shoulder_x,
+            shoulder_half,
+            color="#34765a",
+            lw=1.3,
+            ls="--",
+            label="measured aft-shoulder fairing",
+        )
+        ax.plot(
+            shoulder_x,
+            [-value for value in shoulder_half],
+            color="#34765a",
+            lw=1.3,
+            ls="--",
+        )
     if wing.get("ok"):
         for side, color in (("right", "#e9673f"), ("left", "#926fc0")):
             recs = [s for s in wing["stations"] if s["side"] == side]
@@ -343,6 +363,29 @@ def render_sections_figure(
         )
         ax.plot(xs, [r["z_bottom_m"] for r in profile], color="#34798e", lw=1.2)
         ax.plot(xs, [r["z_offset_m"] for r in profile], color="#34798e", lw=0.8, ls=":")
+    if shoulder_stations:
+        shoulder_x = [station["x_m"] for station in shoulder_stations]
+        ax.plot(
+            shoulder_x,
+            [
+                station["z_offset_m"] + 0.5 * station["height_m"]
+                for station in shoulder_stations
+            ],
+            color="#34765a",
+            lw=1.3,
+            ls="--",
+            label="aft shoulder top/base",
+        )
+        ax.plot(
+            shoulder_x,
+            [
+                station["z_offset_m"] - 0.5 * station["height_m"]
+                for station in shoulder_stations
+            ],
+            color="#34765a",
+            lw=1.0,
+            ls=":",
+        )
     if wing.get("ok"):
         recs = wing["stations"]
         ax.scatter(
@@ -453,6 +496,11 @@ def render_sections_figure(
             f"cant {mean['cant_deg']:.1f}° · LE sweep {mean['le_sweep_deg']:.1f}° · x_le {mean['x_le_m']:.4f} m",
             f"fin root y/z {mean['y_root_m']:.4f}/{mean['z_root_m']:.4f} m · t/c {mean['t_over_c']:.3f}",
         ]
+    if shoulder.get("ok"):
+        lines += [
+            f"aft shoulder ×{shoulder['station_count']} stations · excess max {1000 * shoulder['shoulder_excess_max_m']:.1f} mm",
+            f"fairing fit rms max {1000 * shoulder['fit_rms_max_m']:.1f} mm · fin-free envelope",
+        ]
     control = record.get("control_surface") or {}
     lines.append(
         f"hinge: x/c {control['hinge_x_over_c']:.2f}, η {control['span_start_fraction']:.2f}–{control['span_end_fraction']:.2f}"
@@ -484,6 +532,7 @@ def render_sections_figure(
                 side_power=st["side_power"],
                 top_power=st["top_power"],
                 bottom_power=st["bottom_power"],
+                max_width_loc=st.get("max_width_loc", 0.0),
             )
             ax.plot(
                 [p[0] for p in poly] + [poly[0][0]],
@@ -491,6 +540,45 @@ def render_sections_figure(
                 color="#e9673f",
                 lw=1.2,
             )
+            if shoulder_stations:
+                shoulder_station = min(
+                    shoulder_stations,
+                    key=lambda row: abs(row["x_m"] - st["x_over_length"] * length),
+                )
+                if (
+                    abs(
+                        shoulder_station["x_m"]
+                        - st["x_over_length"] * length
+                    )
+                    <= 0.012
+                    and shoulder_station.get("envelope_abs_y_m")
+                ):
+                    fairing_y = np.asarray(
+                        shoulder_station["envelope_abs_y_m"],
+                        dtype=float,
+                    )
+                    measured_top = np.asarray(
+                        shoulder_station["envelope_top_z_m"],
+                        dtype=float,
+                    )
+                    fitted_top = np.asarray(
+                        shoulder_station["fit_top_z_m"],
+                        dtype=float,
+                    )
+                    ax.plot(
+                        np.concatenate([-fairing_y[::-1], fairing_y]),
+                        np.concatenate([measured_top[::-1], measured_top]),
+                        color="#34765a",
+                        lw=0.8,
+                        ls=":",
+                    )
+                    ax.plot(
+                        np.concatenate([-fairing_y[::-1], fairing_y]),
+                        np.concatenate([fitted_top[::-1], fitted_top]),
+                        color="#34765a",
+                        lw=1.0,
+                        ls="--",
+                    )
             ax.set_aspect("equal")
             ax.set_title(
                 f"x/L {st['x_over_length']:.2f}: w {st['width_m'] * 1000:.0f} h {st['height_m'] * 1000:.0f} mm\n"

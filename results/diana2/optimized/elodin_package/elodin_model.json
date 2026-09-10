@@ -149,7 +149,7 @@
     "validity_component_required": true
   },
   "concept": "diana2",
-  "created_at": "2026-09-10T05:18:32+00:00",
+  "created_at": "2026-09-10T08:18:39+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -240,7 +240,7 @@
     "geometry_vsp3": {
       "path": "geometry/diana2.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "5aa64bc4e2190ef051f1c3918400d4d4b8af0bb0b2e2d03c5df6d0b649e34287",
+      "sha256": "c006699ded289f2731453eb7a8124ae4dd42ba085ea62b32c810a1bf449cf0ee",
       "size_bytes": 277534
     },
     "geometry_whole_stl": {
@@ -264,7 +264,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "68bff76ac71eb3c6c8f84fcb2ad979bc4ac7bf8e04f1602d10c8464003f5ce80",
+      "sha256": "f9ea3f05ea5676e6691dcc34de798316166865918be211a2db1e1ca0921e0a98",
       "size_bytes": 1316
     },
     "render_glb": {
@@ -428,7 +428,7 @@
       "Propulsion map is evaluated from the analytic lapse/TSFC model, not an identified engine deck.",
       "NACA 0012 may be a documented surrogate rather than the physical aircraft section."
     ],
-    "design_sha256": "aeba9943df5572c168a08db4f273cca72cb747ae58ee971c96a23c6fa7e5f4e4",
+    "design_sha256": "5f93e91924be35310de4273ec68dc2863eb4b865c6119021c9b3661105e00be1",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -436,15 +436,15 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "ed3c5ebf61d678e1ba3a758b2610806616a9d172810fd403377103ce2b5199b7",
-    "pipeline_run_id": "800fa51ad696419db7c3a87a23e3c834",
-    "source_git_commit": "d772c0edec594d0737e3607499a7db50e67527fa",
+    "model_source_sha256": "1dda28b80e996e89b19a7e394d2e8ae08e11e372689b9723a301dd77ab05aef2",
+    "pipeline_run_id": "123e6eddaa8f4f93ab2d2000ce7d018e",
+    "source_git_commit": "c7ad921a3fbf0dca9dfc0a3e69ac701874fdd0d3",
     "upstream_sha256": {
-      "aero.json": "45a5b5f1046e666e4698f5870f4da10c65ceae8573d6a324dcc953bb5bb7984c",
-      "flightdyn.json": "55d0a243cfa06bb5294eb0425602c11bdde52a49a41b71ac0dd9979721ddcb40",
-      "geometry.json": "5dff71b5374f219a9ec245da70d594ac48f27b5d8f4a80e0a8a887a84c2d5d91",
-      "structures.json": "8e5de19200245daa0598a3355eab495ff534947d844c214e69c076822a8d4eac",
-      "validation.json": "b84c4d0a40dd0013e10f6b0523918d4ac728276a96953c22bb495a0963b29e18"
+      "aero.json": "fe194989b1db433bebe045ac38e75f6b2cfe94903542f3ab9f4d77a0182c5688",
+      "flightdyn.json": "38cb3377142475d36baeedc206f6701478ea6c08d1c48949339c52a732c71a23",
+      "geometry.json": "7653b9bb58d143314b22de12af4bbd492cd516f2f2f4b98863cee29b5dbf69e9",
+      "structures.json": "d9d17537b53df2788e39963a8dc8b04e736b1893b29dc34f4fd8bc7b6df11b39",
+      "validation.json": "155da41db571a3ab667bba8b0e6f7a5223c88f42e6ef0b96b8c0b56e8d66b17d"
     }
   },
   "reference_geometry": {
@@ -452,6 +452,7 @@
     "aspect_ratio": 24.271844660194173,
     "evidence_class": "C",
     "fuselage": {
+      "fairings": null,
       "fuel_tank_x_m": 0.74,
       "length_m": 2.33,
       "max_height_m": 0.22,

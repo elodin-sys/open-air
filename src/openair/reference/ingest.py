@@ -691,9 +691,16 @@ def measure_reference(
 
     # Fins.
     deck_x, deck_z = M.deck_profile(profile)
-    out["fins"] = M.measure_fins(
-        field, length_m=length, semispan_m=semispan, deck_x=deck_x, deck_z=deck_z
+    measured_fins = M.measure_fins(
+        field,
+        length_m=length,
+        semispan_m=semispan,
+        deck_x=deck_x,
+        deck_z=deck_z,
+        include_member_indices=True,
     )
+    fin_member_indices = measured_fins.pop("_member_indices", [])
+    out["fins"] = measured_fins
 
     # Stations.
     anchors: list[float] = []
@@ -792,6 +799,17 @@ def measure_reference(
         )
     out["stations"] = stations
     out["body_half_width_at_wing_m"] = body_half_width
+    out["fairings"] = {
+        "aft_shoulder": M.measure_shoulder_fairing(
+            field,
+            length_m=length,
+            semispan_m=semispan,
+            body_profile_records=profile,
+            wing=wing_model,
+            fins=measured_fins,
+            fin_member_indices=fin_member_indices,
+        )
+    }
     return out
 
 
@@ -1336,6 +1354,7 @@ def suggest_spec_values(
                     "side_power": round(s["side_power"], 2),
                     "top_power": round(s["top_power"], 2),
                     "bottom_power": round(s["bottom_power"], 2),
+                    "max_width_loc": round(s.get("max_width_loc", 0.0), 3),
                 }
                 for s in stations
             ],
@@ -1356,6 +1375,88 @@ def suggest_spec_values(
                 for s in stations
             ],
         }
+        fairing_measurement = (
+            (record.get("fairings") or {}).get("aft_shoulder") or {}
+        )
+        fairing_stations = fairing_measurement.get("stations") or []
+        if fairing_stations:
+            if not fairing_measurement.get("ok") and treatment == "reproduction":
+                residuals = fairing_measurement.get(
+                    "simplification_max_residual_m",
+                    {},
+                )
+                raise ReferenceInputError(
+                    "measured aft shoulder cannot be represented by at most "
+                    f"8 stations: maximum residual "
+                    f"{max(residuals.values(), default=float('nan')):.4f} m "
+                    f"exceeds "
+                    f"{fairing_measurement.get('simplification_acceptance_m', float('nan')):.4f} m"
+                )
+            disclosure = {
+                key: value
+                for key, value in fairing_measurement.items()
+                if key != "stations"
+            }
+            disclosure["applicability"] = (
+                "fuselage.fairings is emitted only for "
+                "sketch.treatment=reproduction"
+            )
+            disclosures["aft_shoulder_fairing"] = disclosure
+            suggested["fuselage"]["fairings"] = (
+                [
+                    {
+                        "name": "aft_shoulder",
+                        "role": "shoulder",
+                        "stations": [
+                            {
+                                "x_over_length": round(
+                                    station["x_over_length"],
+                                    4,
+                                ),
+                                "width_m": round(station["width_m"], 4),
+                                "height_m": round(station["height_m"], 4),
+                                "z_offset_m": round(station["z_offset_m"], 4),
+                                "side_power": round(station["side_power"], 2),
+                                "top_power": round(station["top_power"], 2),
+                                "bottom_power": round(
+                                    station["bottom_power"],
+                                    2,
+                                ),
+                                "max_width_loc": round(
+                                    station["max_width_loc"],
+                                    3,
+                                ),
+                            }
+                            for station in fairing_stations
+                        ],
+                    }
+                ]
+                if treatment == "reproduction"
+                else None
+            )
+            tolerances["fuselage"]["fairings"] = [
+                {
+                    "name": "aft_shoulder",
+                    "stations": [
+                        {
+                            "x_over_length": station["x_over_length"],
+                            "width_m": M.length_tolerance(
+                                base,
+                                fairing_measurement.get("fit_rms_max_m"),
+                            ),
+                            "height_m": M.length_tolerance(
+                                base,
+                                fairing_measurement.get("fit_rms_max_m"),
+                            ),
+                            "z_offset_m": M.length_tolerance(
+                                base,
+                                fairing_measurement.get("fit_rms_max_m"),
+                            ),
+                        }
+                        for station in fairing_stations
+                    ],
+                }
+            ]
     fins = record.get("fins") or {}
     if fins.get("count"):
         mean = fins.get("mirrored_mean") or fins["fins"][0]
@@ -1419,6 +1520,12 @@ def suggest_spec_values(
             "mean t/c is scaled where the root/deck outline adds chord so absolute "
             "wing thickness is not inflated. Only the six airfoil cuts are direct "
             "section-thickness measurements."
+        )
+    if (record.get("fairings") or {}).get("aft_shoulder", {}).get("ok"):
+        notes.append(
+            "The aft shoulder/deck above the wing is represented as a separate "
+            "measured fuselage fairing. It is loft-fidelity geometry only; "
+            "packing, wetted-area drag, mass, OAS, and VSPAERO exclude it."
         )
     if wing.get("ok") and wing.get("nose_open_fraction", 0.0) > 0.2:
         notes.append(

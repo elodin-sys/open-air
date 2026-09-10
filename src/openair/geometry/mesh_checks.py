@@ -7,9 +7,11 @@ exported tessellation itself against analytic expectations from the spec:
 
 - per-component extents (wing span horizontal, fins vertical, fuselage dims)
 - whole-model height computed (never eyeballed) from spec + fin attachment
-- attachment: each fin/wing root section centroid must sit inside the local
-  fuselage section measured from the fuselage mesh (primary), with a loose
-  vertex-cloud proximity floor as a secondary signal.
+- attachment: each fin/wing root centroid must sit inside the authoritative
+  local core-body/fairing section (primary), with a length-scaled
+  vertex-cloud proximity floor for surface-mounted roots.
+- fairing support: the point-capped lower boundary must overlap the core body
+  or exported wing projection at 95% of sampled points.
 
 All check functions are pure numpy on vertex arrays so they are unit-testable
 without OpenVSP.
@@ -22,9 +24,12 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+from scipy.spatial import cKDTree
 
 from openair.geometry.fuselage import (
     FuselageSectionShape,
+    body_or_fairing_eccentricities,
+    fairing_section_shape,
     fuselage_profile,
     fuselage_section_shape,
     fuselage_z_bounds,
@@ -34,7 +39,7 @@ from openair.geometry.packing import external_nacelle_y_positions
 from openair.schemas import VehicleSpec
 
 ATTACH_ECC_MAX = 1.10  # root centroid inside local section equation (with 10% slack)
-PROXIMITY_FLOOR_M = 0.06  # vertex-cloud distance floor (tessellation-limited)
+PROXIMITY_FLOOR_M = 0.01  # UAV floor; 0.002*length recovers 60 mm at 30 m
 
 
 def read_stl_vertices(path: str | Path) -> np.ndarray:
@@ -206,6 +211,47 @@ def check_fuselage_mesh(verts: np.ndarray, spec: VehicleSpec) -> list[dict[str, 
     ]
 
 
+def check_fairing_mesh(
+    verts: np.ndarray,
+    spec: VehicleSpec,
+    fairing,
+) -> list[dict[str, Any]]:
+    """Verify one source-measured auxiliary body loft from its STL."""
+    ext = _extent(verts)
+    length = spec.fuselage.length_m
+    x_want = (
+        fairing.stations[-1].x_over_length
+        - fairing.stations[0].x_over_length
+    ) * length
+    width_want = max(station.width_m for station in fairing.stations)
+    z_lo = min(
+        station.z_offset_m - 0.5 * station.height_m
+        for station in fairing.stations
+    )
+    z_hi = max(
+        station.z_offset_m + 0.5 * station.height_m
+        for station in fairing.stations
+    )
+    height_want = z_hi - z_lo
+    prefix = f"fairing_{fairing.name}"
+    return [
+        _check(f"{prefix}_length", ext[0], x_want, max(0.05 * x_want, 0.003)),
+        _check(
+            f"{prefix}_width",
+            ext[1],
+            width_want,
+            max(0.08 * width_want, 0.003),
+        ),
+        _check(
+            f"{prefix}_height",
+            ext[2],
+            height_want,
+            max(0.25 * height_want, 0.010),
+            "point-capped OpenVSP fuselage splines may overshoot between stations",
+        ),
+    ]
+
+
 def check_engine_pod_mesh(
     verts: np.ndarray,
     spec: VehicleSpec,
@@ -288,8 +334,8 @@ def root_section_inside_fuselage(
     name: str,
     spec: VehicleSpec | None = None,
 ) -> dict[str, Any]:
-    """Primary attachment check: the component's root-section centroid must
-    lie inside the local fuselage section (measured from the fuselage mesh).
+    """Primary attachment check: the component root centroid must lie inside
+    the authoritative local core-body/fairing section.
 
     root_axis: 2 for fins (root = lowest 20% in z), 1 for the wing
     (root = |y| smallest 10% of semi-span).
@@ -301,46 +347,71 @@ def root_section_inside_fuselage(
     else:
         band = np.abs(coord) <= np.abs(coord).min() + max(0.05 * span_extent, 0.02)
     root = comp_verts[band]
-    cx, cy, cz = root.mean(axis=0)
-    # The longitudinal station spacing of the exported tessellation scales
-    # with vehicle length. A fixed 12 cm slice worked for UAVs but can fall
-    # between adjacent rings on transport-size meshes and falsely report a
-    # detached root.
-    section_half_width = (
-        max(0.12, 0.02 * spec.fuselage.length_m) if spec is not None else 0.12
-    )
-    near = fuse_verts[np.abs(fuse_verts[:, 0] - cx) < section_half_width]
-    if len(near) < 8:
+    if not len(root):
         return {
             "name": f"{name}_attached",
             "ok": False,
-            "note": f"no fuselage section near x={cx:.2f}",
+            "note": "empty component root sample",
         }
-    y_lo, z_lo = near[:, 1:3].min(axis=0)
-    y_hi, z_hi = near[:, 1:3].max(axis=0)
-    y_center = float(0.5 * (y_lo + y_hi))
-    z_center = float(0.5 * (z_lo + z_hi))
-    half_w = float(0.5 * (y_hi - y_lo))
-    half_h = float(0.5 * (z_hi - z_lo))
-    side_power = 2.0
+    cx, cy, cz = root.mean(axis=0)
     if spec is not None:
-        shape = fuselage_section_shape(spec, float(cx))
+        eccentricities = body_or_fairing_eccentricities(
+            spec,
+            float(cx),
+            float(cy),
+            float(cz),
+        )
+        support, ecc = min(eccentricities.items(), key=lambda item: item[1])
+        if support == "fuselage":
+            shape = fuselage_section_shape(spec, float(cx))
+        else:
+            fairing_name = support.removeprefix("fairing_")
+            fairing = next(
+                item
+                for item in spec.fuselage.fairings or []
+                if item.name == fairing_name
+            )
+            shape = fairing_section_shape(spec, fairing, float(cx))
+        y_center = 0.0
+        z_center = shape.z_center_m
+        half_w = 0.5 * shape.width_m
+        half_h = 0.5 * shape.height_m
         side_power = shape.side_power
         top_power = shape.top_power
         bottom_power = shape.bottom_power
+        vertical_power = (
+            top_power if cz >= shape.max_width_z_m else bottom_power
+        )
     else:
+        # Compatibility fallback for pure-numpy callers without a source spec.
+        near = fuse_verts[np.abs(fuse_verts[:, 0] - cx) < 0.12]
+        if len(near) < 8:
+            return {
+                "name": f"{name}_attached",
+                "ok": False,
+                "note": f"no fuselage section near x={cx:.2f}",
+            }
+        y_lo, z_lo = near[:, 1:3].min(axis=0)
+        y_hi, z_hi = near[:, 1:3].max(axis=0)
+        y_center = float(0.5 * (y_lo + y_hi))
+        z_center = float(0.5 * (z_lo + z_hi))
+        half_w = float(0.5 * (y_hi - y_lo))
+        half_h = float(0.5 * (z_hi - z_lo))
+        side_power = 2.0
         top_power = 2.0
         bottom_power = 2.0
-    vertical_power = top_power if cz >= z_center else bottom_power
-    measured_shape = FuselageSectionShape(
-        2.0 * max(half_w, 1e-6),
-        2.0 * max(half_h, 1e-6),
-        z_center,
-        side_power,
-        top_power,
-        bottom_power,
-    )
-    ecc = section_eccentricity(measured_shape, cy - y_center, cz)
+        vertical_power = top_power if cz >= z_center else bottom_power
+        measured_shape = FuselageSectionShape(
+            2.0 * max(half_w, 1e-6),
+            2.0 * max(half_h, 1e-6),
+            z_center,
+            side_power,
+            top_power,
+            bottom_power,
+        )
+        ecc = section_eccentricity(measured_shape, cy - y_center, cz)
+        eccentricities = {"mesh_bounding_section": float(ecc)}
+        support = "mesh_bounding_section"
     # Secondary: nearest fuselage vertex (whole body) to any root vertex —
     # tessellation-limited, so this is only a coarse floor.
     d = float(
@@ -360,7 +431,14 @@ def root_section_inside_fuselage(
         if spec is not None
         else PROXIMITY_FLOOR_M
     )
-    ok = ecc <= ATTACH_ECC_MAX and (deeply_inside or d <= proximity_floor)
+    # A horizontal tail mounted tangent to the crown can have its
+    # root-section centroid outside the body even while lower root vertices
+    # intersect it. Preserve that explicit surface-contact case; fins use the
+    # buried-root centroid criterion and cannot pass on proximity alone.
+    tangent_htail = name == "htail" and d <= proximity_floor
+    ok = (
+        ecc <= ATTACH_ECC_MAX and (deeply_inside or d <= proximity_floor)
+    ) or tangent_htail
     return {
         "name": f"{name}_attached",
         "root_centroid": [float(cx), float(cy), float(cz)],
@@ -372,9 +450,129 @@ def root_section_inside_fuselage(
             "vertical": vertical_power,
         },
         "eccentricity": float(ecc),
+        "section_eccentricities": {
+            key: float(value) for key, value in eccentricities.items()
+        },
+        "support": support,
         "min_vertex_distance_m": float(d),
+        "proximity_limit_m": float(proximity_floor),
+        "tangent_surface_contact": bool(tangent_htail),
         "ok": bool(ok),
-        "note": "root centroid inside local section shape; proximity floor for surface-mounted roots",
+        "note": (
+            "horizontal-tail lower root contacts the body within the "
+            "length-scaled tessellation tolerance"
+            if tangent_htail
+            else (
+                "root centroid inside the authoritative local body/fairing "
+                "union; length-scaled proximity floor for surface-mounted roots"
+                if spec is not None
+                else "root centroid inside mesh-derived local section"
+            )
+        ),
+    }
+
+
+def fairing_contained_by_body_or_wing(
+    fairing_verts: np.ndarray,
+    support_verts: np.ndarray,
+    name: str,
+    spec: VehicleSpec,
+) -> dict[str, Any]:
+    """Require the lower fairing boundary to overlap the body/wing union."""
+    x_lo = float(fairing_verts[:, 0].min())
+    x_hi = float(fairing_verts[:, 0].max())
+    base_samples: list[np.ndarray] = []
+    for left, right in zip(
+        np.linspace(x_lo, x_hi, 25)[:-1],
+        np.linspace(x_lo, x_hi, 25)[1:],
+    ):
+        slab = fairing_verts[
+            (fairing_verts[:, 0] >= left) & (fairing_verts[:, 0] <= right)
+        ]
+        if not len(slab):
+            continue
+        z_range = float(np.ptp(slab[:, 2]))
+        lower = slab[
+            slab[:, 2]
+            <= float(slab[:, 2].min()) + max(0.15 * z_range, 0.002)
+        ]
+        if len(lower):
+            base_samples.append(lower[:: max(1, len(lower) // 16)][:16])
+    if not base_samples:
+        return {
+            "name": f"{name}_contained",
+            "ok": False,
+            "note": "no fairing lower-boundary samples",
+        }
+    base = np.vstack(base_samples)
+    support = support_verts[:: max(1, len(support_verts) // 20_000)]
+    distances = np.empty(len(base))
+    for start in range(0, len(base), 64):
+        chunk = base[start : start + 64]
+        distances[start : start + len(chunk)] = np.linalg.norm(
+            chunk[:, None, :] - support[None, :, :],
+            axis=2,
+        ).min(axis=1)
+    penetration_margin = min(0.002, 0.005 * spec.fuselage.length_m)
+
+    projection_radius = max(0.015, 0.001 * spec.fuselage.length_m)
+    tree = cKDTree(support_verts[:, :2])
+    projected_distance, projected_indices = tree.query(
+        base[:, :2],
+        k=min(96, len(support_verts)),
+    )
+    if projected_distance.ndim == 1:
+        projected_distance = projected_distance[:, None]
+        projected_indices = projected_indices[:, None]
+    supported_rows = []
+    for point, horizontal_distance, indices in zip(
+        base,
+        projected_distance,
+        projected_indices,
+    ):
+        inside_body = (
+            section_eccentricity(
+                fuselage_section_shape(spec, float(point[0])),
+                float(point[1]),
+                float(point[2]),
+            )
+            <= 1.0
+        )
+        local = support_verts[indices[horizontal_distance <= projection_radius], 2]
+        inside_projected_union = False
+        if len(local) >= 2:
+            lower = float(local.min())
+            upper = float(local.max())
+            local_margin = min(
+                penetration_margin,
+                0.20 * max(upper - lower, 0.0),
+            )
+            inside_projected_union = (
+                lower + local_margin
+                <= float(point[2])
+                <= upper - local_margin
+            )
+        supported_rows.append(inside_body or inside_projected_union)
+    supported = np.asarray(supported_rows, dtype=bool)
+    supported_fraction = float(np.mean(supported))
+    limit = max(PROXIMITY_FLOOR_M, 0.002 * spec.fuselage.length_m)
+    p95 = float(np.percentile(distances, 95))
+    return {
+        "name": f"{name}_contained",
+        "base_sample_count": int(len(base)),
+        "p95_base_distance_m": p95,
+        "max_base_distance_m": float(distances.max()),
+        "limit_m": float(limit),
+        "supported_fraction": supported_fraction,
+        "required_supported_fraction": 0.95,
+        "penetration_margin_m": float(penetration_margin),
+        "mesh_projection_radius_m": float(projection_radius),
+        "ok": bool(supported_fraction >= 0.95),
+        "note": (
+            "at least 95% of the fairing lower boundary must lie at least the "
+            "reported margin inside the core-body or exported wing projection; "
+            "3-D vertex distance is disclosure only"
+        ),
     }
 
 
@@ -453,12 +651,21 @@ def run_mesh_checks(
     fin_z_attach_m: float,
 ) -> dict[str, Any]:
     components = {"fuselage": geom_ids["fuselage"], "wing": geom_ids["wing"]}
+    fairing_specs = {
+        f"fairing_{fairing.name}": fairing
+        for fairing in spec.fuselage.fairings or []
+    }
+    for fairing in geom_ids.get("fairings") or []:
+        components[fairing["name"]] = fairing["geom_id"]
     if geom_ids.get("htail"):
         components["htail"] = geom_ids["htail"]
     vtails = geom_ids.get("vtails") or []
+    vtail_roots = geom_ids.get("vtail_roots") or []
     fin_sides = ("c",) if spec.vtail.count == 1 else ("r", "l")
     for side, vid in zip(fin_sides, vtails):
         components[f"fin_{side}"] = vid
+    for side, root_id in zip(fin_sides, vtail_roots):
+        components[f"fin_{side}_root"] = root_id
     engine_pods = geom_ids.get("engine_pods") or []
     for index, pod_id in enumerate(engine_pods):
         components[f"engine_pod_{index + 1}"] = pod_id
@@ -482,6 +689,9 @@ def run_mesh_checks(
         checks += check_htail_mesh(verts["htail"], spec)
     if "fuselage" in verts:
         checks += check_fuselage_mesh(verts["fuselage"], spec)
+    for name, fairing in fairing_specs.items():
+        if name in verts:
+            checks += check_fairing_mesh(verts[name], spec, fairing)
     for side in fin_sides:
         key = f"fin_{side}"
         if key in verts:
@@ -504,12 +714,28 @@ def run_mesh_checks(
         whole = np.vstack(list(verts.values()))
         checks += check_whole_mesh(whole, spec, fin_z_attach_m)
     if "fuselage" in verts:
+        body_union = np.vstack(
+            [
+                verts["fuselage"],
+                *[
+                    verts[name]
+                    for name in fairing_specs
+                    if name in verts
+                ],
+            ]
+        )
         for side in fin_sides:
             key = f"fin_{side}"
             if key in verts:
+                root_key = f"{key}_root"
+                fin_union = (
+                    np.vstack([verts[key], verts[root_key]])
+                    if root_key in verts
+                    else verts[key]
+                )
                 checks.append(
                     root_section_inside_fuselage(
-                        verts[key], verts["fuselage"], 2, key, spec
+                        fin_union, body_union, 2, key, spec
                     )
                 )
         if "wing" in verts:
@@ -549,12 +775,33 @@ def run_mesh_checks(
                         spec,
                     )
                 )
+        fairing_support = (
+            np.vstack([verts["fuselage"], verts["wing"]])
+            if "wing" in verts
+            else verts["fuselage"]
+        )
+        for name in fairing_specs:
+            if name in verts:
+                checks.append(
+                    fairing_contained_by_body_or_wing(
+                        verts[name],
+                        fairing_support,
+                        name,
+                        spec,
+                    )
+                )
 
     expected = {
         "fuselage",
         "wing",
         *(["htail"] if spec.htail.span_m > 0.05 else []),
         *(f"fin_{side}" for side in fin_sides),
+        *(
+            (f"fin_{side}_root" for side in fin_sides)
+            if vtail_roots
+            else ()
+        ),
+        *fairing_specs,
         *(f"engine_pod_{index + 1}" for index in range(len(nacelle_positions))),
     }
     missing = expected - set(verts)

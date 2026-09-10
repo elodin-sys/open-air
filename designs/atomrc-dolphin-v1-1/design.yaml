@@ -235,6 +235,78 @@ fuselage:
       side_power: 1.05
       top_power: 3.44
       bottom_power: 6.33
+  # Fin-free scan envelope of the aft deck/shoulder. This auxiliary loft is
+  # geometry-fidelity only: it is excluded from packing, drag, mass, OAS, and
+  # VSPAERO. Its base is buried 6.6 mm into the wing/body union so the
+  # point-capped OpenVSP surface remains physically connected.
+  fairings:
+    - name: aft_shoulder
+      role: shoulder
+      stations:
+        - x_over_length: 0.7444
+          width_m: 0.0
+          height_m: 0.0
+          z_offset_m: 0.0568
+          side_power: 2.0
+          top_power: 2.0
+          bottom_power: 2.0
+          max_width_loc: 0.0
+        - x_over_length: 0.7514
+          width_m: 0.1438
+          height_m: 0.0329
+          z_offset_m: 0.0403
+          side_power: 1.74
+          top_power: 2.71
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.7655
+          width_m: 0.1490
+          height_m: 0.0314
+          z_offset_m: 0.0400
+          side_power: 1.71
+          top_power: 2.52
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.7795
+          width_m: 0.1438
+          height_m: 0.0340
+          z_offset_m: 0.0378
+          side_power: 1.56
+          top_power: 3.31
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.7936
+          width_m: 0.1488
+          height_m: 0.0325
+          z_offset_m: 0.0376
+          side_power: 1.64
+          top_power: 2.49
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.8919
+          width_m: 0.1339
+          height_m: 0.0357
+          z_offset_m: 0.0314
+          side_power: 0.78
+          top_power: 3.61
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.9130
+          width_m: 0.1393
+          height_m: 0.0375
+          z_offset_m: 0.0301
+          side_power: 0.88
+          top_power: 2.22
+          bottom_power: 2.0
+          max_width_loc: -1.0
+        - x_over_length: 0.9200
+          width_m: 0.0
+          height_m: 0.0
+          z_offset_m: 0.0489
+          side_power: 2.0
+          top_power: 2.0
+          bottom_power: 2.0
+          max_width_loc: 0.0
 
 vtail:
   count: 2
@@ -247,8 +319,8 @@ vtail:
   t_over_c: 0.129
   x_le_m: 0.5426
   # Measured root junction at the deck/strake edge. Use it exactly; the
-  # exported-mesh attachment check verifies the simplified loft can support
-  # the root within its tessellation tolerance (see brief.md sections 5/7).
+  # buried root extension continues into the measured shoulder/body union;
+  # exported-mesh attachment QA verifies the serialized STL (brief sections 5/7).
   y_root_m: 0.062
   z_root_m: 0.0496
 

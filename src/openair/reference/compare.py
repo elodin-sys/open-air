@@ -311,6 +311,13 @@ def compare_reference(
         pts = _dense_points(comp, 60_000, seed=9)
         d, _ = ref_tree.query(pts, k=1, workers=-1)
         components[name] = _distance_stats(d)
+        if name.startswith("fin_") and name.endswith("_root"):
+            components[name].update(
+                {
+                    "basis": "buried attachment; excluded from component fidelity",
+                    "excluded_from_fidelity": True,
+                }
+            )
         if name == "wing" and wing_exclusion_half_width > 0.0:
             exposed = np.abs(pts[:, 1]) >= wing_exclusion_half_width
             if np.any(exposed):
@@ -327,11 +334,34 @@ def compare_reference(
     model_field = M.PointField(model_points, max(model_spacing, 0.0005))
     fuselage_field = None
     wing_field = None
-    if component_stls and component_stls.get("fuselage"):
+    body_stats = None
+    body_paths = {
+        name: path
+        for name, path in (component_stls or {}).items()
+        if name == "fuselage" or name.startswith("fairing_")
+    }
+    if body_paths:
+        body_meshes = [(name, _load_mesh(path)) for name, path in body_paths.items()]
+        total_area = sum(max(float(mesh.area), 1e-12) for _, mesh in body_meshes)
+        body_points = np.vstack(
+            [
+                _dense_points(
+                    mesh,
+                    max(10_000, int(250_000 * float(mesh.area) / total_area)),
+                    seed=13 + index,
+                )
+                for index, (_, mesh) in enumerate(body_meshes)
+            ]
+        )
         fuselage_field = M.PointField(
-            _dense_points(_load_mesh(component_stls["fuselage"]), 250_000, seed=13),
+            body_points,
             max(model_spacing, 0.0005),
         )
+        body_distance, _ = ref_tree.query(body_points, k=1, workers=-1)
+        body_stats = {
+            **_distance_stats(body_distance),
+            "components": list(body_paths),
+        }
     if component_stls and component_stls.get("wing"):
         wing_field = M.PointField(
             _dense_points(_load_mesh(component_stls["wing"]), 250_000, seed=17),
@@ -354,14 +384,17 @@ def compare_reference(
     # selected, a derived fin attachment); it is disclosed, not gating.
     # Whole-aircraft p95 is disclosed as well. Silhouette IoU gates the
     # planform and profile.
-    body_stats = (
-        components.get("fuselage")
-        if "p95_m" in (components.get("fuselage") or {})
-        else None
-    )
+    if body_stats is None and "p95_m" in (components.get("fuselage") or {}):
+        body_stats = components["fuselage"]
     p95_gate_value = body_stats["p95_m"] if body_stats else m2r["p95_m"]
     p95_gate_basis = (
-        "fuselage component" if body_stats else "whole aircraft (no component STLs)"
+        (
+            "fuselage + measured fairing components"
+            if body_stats and len(body_stats.get("components", [])) > 1
+            else "fuselage component"
+        )
+        if body_stats
+        else "whole aircraft (no component STLs)"
     )
     checks = {
         "p95_body": {
@@ -396,8 +429,10 @@ def compare_reference(
         "p95_components_m": {
             name: stats.get("p95_m")
             for name, stats in components.items()
-            if "p95_m" in stats
+            if "p95_m" in stats and not stats.get("excluded_from_fidelity")
         },
+        "p95_body_union_m": body_stats.get("p95_m") if body_stats else None,
+        "body_union_components": body_stats.get("components", []) if body_stats else [],
         "p95_model_to_reference_exposed_components_m": {
             name: stats["exposed"]["p95_m"]
             for name, stats in components.items()

@@ -279,14 +279,24 @@ def test_measured_twin_fin_root_is_built_and_read_back_exactly(tmp_path):
     assert attachment["derived_y_m"] == pytest.approx(derived["y_m"])
     assert attachment["derived_z_m"] == pytest.approx(derived["z_m"])
     assert attachment["root_section_eccentricity"] > 0.0
+    assert attachment["extension_required"]
+    assert 0.0 < attachment["root_extension_m"] <= 0.5 * spec.vtail.span_m
+    assert all(
+        row["minimum"] <= attachment["root_burial_eccentricity_limit"]
+        for row in attachment["buried_root_station_eccentricities"]
+    )
     right, left = vsp_info["readback"]["vtails"]
     assert right["y_root_m"] == pytest.approx(spec.vtail.y_root_m)
     assert left["y_root_m"] == pytest.approx(-spec.vtail.y_root_m)
     assert right["z_root_m"] == pytest.approx(spec.vtail.z_root_m)
     assert left["z_root_m"] == pytest.approx(spec.vtail.z_root_m)
+    assert vsp_info["readback"]["vtail_root_extensions_match"]
+    assert len(vsp_info["readback"]["vtail_root_extensions"]) == 2
     checks = {item["name"]: item for item in vsp_info["mesh_checks"]["checks"]}
     assert checks["fin_r_attached"]["ok"]
     assert checks["fin_l_attached"]["ok"]
+    assert checks["fin_r_attached"]["eccentricity"] <= 0.8
+    assert checks["fin_l_attached"]["eccentricity"] <= 0.8
 
 
 def test_elevon_subsurface_and_control_group_round_trip(tmp_path):

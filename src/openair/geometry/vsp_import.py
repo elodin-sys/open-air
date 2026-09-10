@@ -337,6 +337,10 @@ def _is_legacy_body(
             or abs(station["width_m"] - expected_width) > 1e-4
             or abs(station["height_m"] - expected_height) > 1e-4
             or abs(station["z_offset_m"]) > 1e-5
+            or abs(station["side_power"] - 2.0) > 1e-5
+            or abs(station["top_power"] - 2.0) > 1e-5
+            or abs(station["bottom_power"] - 2.0) > 1e-5
+            or abs(station["max_width_loc"]) > 1e-5
         ):
             return False
     return True
@@ -346,16 +350,62 @@ def _import_fuselage(
     vsp,
     geom_id: str,
     seed: VehicleSpec,
+    *,
+    label: str = "fuselage",
+    fairing_spec=None,
 ) -> tuple[dict[str, Any], list[str]]:
-    reasons = _reject_nonzero_transform(vsp, geom_id, "fuselage")
+    reasons = _reject_nonzero_transform(
+        vsp,
+        geom_id,
+        label,
+        allow_location={"X_Rel_Location"} if fairing_spec is not None else None,
+    )
     length = _parm(vsp, geom_id, "Length", "Design")
+    x_origin = (
+        _parm(vsp, geom_id, "X_Rel_Location", "XForm")
+        if fairing_spec is not None
+        else 0.0
+    )
+    reference_length = seed.fuselage.length_m if fairing_spec is not None else length
+    if fairing_spec is not None:
+        expected_origin = (
+            fairing_spec.stations[0].x_over_length * seed.fuselage.length_m
+        )
+        expected_length = (
+            fairing_spec.stations[-1].x_over_length
+            - fairing_spec.stations[0].x_over_length
+        ) * seed.fuselage.length_m
+        if abs(x_origin - expected_origin) > VALUE_TOL:
+            reasons.append(
+                f"{label}: X_Rel_Location={x_origin:.6g} must remain "
+                f"{expected_origin:.6g}"
+            )
+        if abs(length - expected_length) > VALUE_TOL:
+            reasons.append(
+                f"{label}: Length={length:.6g} must remain {expected_length:.6g}"
+            )
     xsurf = vsp.GetXSecSurf(geom_id, 0)
     count = int(vsp.GetNumXSec(xsurf))
     if not 4 <= count <= 8:
-        reasons.append(f"fuselage: expected 4–8 sections, found {count}")
+        reasons.append(f"{label}: expected 4–8 sections, found {count}")
     stations: list[dict[str, float]] = []
     for index in range(count):
         xs = vsp.GetXSec(xsurf, index)
+        if fairing_spec is not None:
+            strengths = [
+                float(
+                    vsp.GetParmVal(
+                        vsp.GetXSecParm(xs, f"{quadrant}{side}Strength")
+                    )
+                )
+                for quadrant in ("Top", "Right", "Bottom", "Left")
+                for side in ("L", "R")
+            ]
+            if max(abs(value) for value in strengths) > VALUE_TOL:
+                reasons.append(
+                    f"{label}: section {index}: fairing interpolation "
+                    "strengths are derived and must remain 0"
+                )
         shape = int(vsp.GetXSecShape(xs))
         supported = {
             int(vsp.XS_POINT),
@@ -370,12 +420,13 @@ def _import_fuselage(
                 detail = "rounded-rectangle/general sections are not representable"
             else:
                 detail = f"cross-section type {shape} is not representable"
-            reasons.append(f"fuselage: section {index}: {detail}")
+            reasons.append(f"{label}: section {index}: {detail}")
         width = 0.0 if shape == int(vsp.XS_POINT) else float(vsp.GetXSecWidth(xs))
         height = 0.0 if shape == int(vsp.XS_POINT) else float(vsp.GetXSecHeight(xs))
         side_power = 2.0
         top_power = 2.0
         bottom_power = 2.0
+        max_width_location = 0.0
         if shape == int(vsp.XS_SUPER_ELLIPSE):
             side_power = float(vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_M")))
             top_power = float(vsp.GetParmVal(vsp.GetXSecParm(xs, "Super_N")))
@@ -388,18 +439,18 @@ def _import_fuselage(
             )
             if abs(bottom_side_power - side_power) > VALUE_TOL:
                 reasons.append(
-                    f"fuselage: section {index}: Super_M_bot must equal "
+                    f"{label}: section {index}: Super_M_bot must equal "
                     "Super_M because side_power is shared by both halves"
-                )
-            if abs(max_width_location) > VALUE_TOL:
-                reasons.append(
-                    f"fuselage: section {index}: Super_MaxWidthLoc must remain "
-                    "0; vertical width bias is not representable yet"
                 )
         stations.append(
             {
                 "x_over_length": float(
-                    vsp.GetParmVal(vsp.GetXSecParm(xs, "XLocPercent"))
+                    (
+                        x_origin
+                        + vsp.GetParmVal(vsp.GetXSecParm(xs, "XLocPercent"))
+                        * length
+                    )
+                    / reference_length
                 ),
                 "width_m": width,
                 "height_m": height,
@@ -408,6 +459,7 @@ def _import_fuselage(
                 "side_power": side_power,
                 "top_power": top_power,
                 "bottom_power": bottom_power,
+                "max_width_loc": max_width_location,
             }
         )
     if not stations:
@@ -417,6 +469,8 @@ def _import_fuselage(
     else:
         max_width = max(station["width_m"] for station in stations)
         max_height = max(station["height_m"] for station in stations)
+    if fairing_spec is not None:
+        return {"stations": stations}, reasons
     return {
         "length_m": length,
         "max_width_m": max_width,
@@ -656,6 +710,88 @@ def _model_geoms(vsp) -> tuple[dict[str, str], list[str]]:
     return by_name, reasons
 
 
+def _validate_tail_root_extensions(
+    vsp,
+    by_name: dict[str, str],
+    fin_names: list[str],
+    attachment: dict[str, Any],
+    spec: VehicleSpec,
+) -> list[str]:
+    """Reject GUI edits to derived, non-schema fin-root extension geoms."""
+    if not attachment["extension_required"]:
+        return []
+    reasons: list[str] = []
+    for index, fin_name in enumerate(fin_names):
+        name = f"{fin_name}_root"
+        geom_id = by_name[name]
+        values, value_reasons = _read_tail_planform(vsp, geom_id, name)
+        reasons.extend(value_reasons)
+        reasons.extend(
+            _reject_nonzero_transform(
+                vsp,
+                geom_id,
+                name,
+                allow_location={
+                    "X_Rel_Location",
+                    "Y_Rel_Location",
+                    "Z_Rel_Location",
+                },
+                allow_rotation={"X_Rel_Rotation"},
+            )
+        )
+        y_expected = (
+            0.0
+            if spec.vtail.count == 1
+            else (1.0 if index == 0 else -1.0)
+            * abs(attachment["buried_root_y_m"])
+        )
+        rotation_expected = (
+            90.0 - spec.vtail.cant_deg
+            if spec.vtail.count == 1 or index == 0
+            else 90.0 + spec.vtail.cant_deg
+        )
+        expected = {
+            "span_m": attachment["root_extension_m"],
+            "root_chord_m": attachment["buried_root_chord_m"],
+            "taper": spec.vtail.root_chord_m
+            / attachment["buried_root_chord_m"],
+            "le_sweep_deg": spec.vtail.le_sweep_deg,
+            "t_over_c": spec.vtail.t_over_c,
+            "x_le_m": attachment["buried_root_x_le_m"],
+        }
+        mismatch = [
+            key
+            for key, wanted in expected.items()
+            if abs(values[key] - wanted) > 1e-4
+        ]
+        transforms = {
+            "y_root_m": (
+                _parm(vsp, geom_id, "Y_Rel_Location", "XForm"),
+                y_expected,
+            ),
+            "z_root_m": (
+                _parm(vsp, geom_id, "Z_Rel_Location", "XForm"),
+                attachment["buried_root_z_m"],
+            ),
+            "x_rotation_deg": (
+                _parm(vsp, geom_id, "X_Rel_Rotation", "XForm"),
+                rotation_expected,
+            ),
+        }
+        mismatch.extend(
+            key
+            for key, (got, wanted) in transforms.items()
+            if abs(got - wanted) > 1e-4
+        )
+        if mismatch:
+            reasons.append(
+                f"{name}: derived root extension was edited "
+                f"({', '.join(sorted(set(mismatch)))}); edit the measured "
+                "fairing/fin source instead"
+            )
+    return reasons
+
+
 def import_vsp3(
     path: str | Path,
     seed_spec: VehicleSpec,
@@ -676,8 +812,27 @@ def import_vsp3(
         vsp.ReadVSPFile(str(source))
         vsp.Update()
         by_name, reasons = _model_geoms(vsp)
-        fin_names = {"vtailc"} if seed_spec.vtail.count == 1 else {"vtailr", "vtaill"}
-        expected = {"fuselage", "wing", *fin_names}
+        fin_names = (
+            ["vtailc"] if seed_spec.vtail.count == 1 else ["vtailr", "vtaill"]
+        )
+        attachment_source = attachment_spec or seed_spec
+        attachment = fin_attachment(attachment_source)
+        fairing_names = [
+            f"fairing_{fairing.name}"
+            for fairing in seed_spec.fuselage.fairings or []
+        ]
+        root_names = (
+            [f"{name}_root" for name in fin_names]
+            if attachment["extension_required"]
+            else []
+        )
+        expected = {
+            "fuselage",
+            "wing",
+            *fin_names,
+            *fairing_names,
+            *root_names,
+        }
         if seed_spec.htail.span_m > 0.05:
             expected.add("htail")
         missing = sorted(expected - set(by_name))
@@ -696,6 +851,8 @@ def import_vsp3(
             "vtailr": "Wing",
             "vtaill": "Wing",
             "htail": "Wing",
+            **{name: "Fuselage" for name in fairing_names},
+            **{name: "Wing" for name in root_names},
         }
         type_mismatch = False
         for name in sorted(expected & set(by_name)):
@@ -711,9 +868,37 @@ def import_vsp3(
         fuselage, fuselage_reasons = _import_fuselage(
             vsp, by_name["fuselage"], seed_spec
         )
+        imported_fairings = []
+        for fairing in seed_spec.fuselage.fairings or []:
+            name = f"fairing_{fairing.name}"
+            imported, fairing_reasons = _import_fuselage(
+                vsp,
+                by_name[name],
+                seed_spec,
+                label=name,
+                fairing_spec=fairing,
+            )
+            reasons.extend(fairing_reasons)
+            imported_fairings.append(
+                {
+                    "name": fairing.name,
+                    "role": fairing.role,
+                    "stations": imported["stations"],
+                }
+            )
+        fuselage["fairings"] = imported_fairings or None
         wing, wing_reasons = _import_wing(vsp, by_name["wing"], seed_spec)
         reasons.extend(fuselage_reasons)
         reasons.extend(wing_reasons)
+        reasons.extend(
+            _validate_tail_root_extensions(
+                vsp,
+                by_name,
+                fin_names,
+                attachment,
+                attachment_source,
+            )
+        )
 
         seed_data = seed_spec.model_dump(mode="python", exclude_computed_fields=True)
         seed_data["wing"].update(wing)
@@ -792,6 +977,20 @@ def geometry_changes(
                         new_value, (int, float)
                     ):
                         return abs(float(old_value) - float(new_value)) > 1e-5
+                    if isinstance(old_value, dict) and isinstance(new_value, dict):
+                        return any(
+                            item_value_changed(old_value.get(key), value)
+                            for key, value in new_value.items()
+                        )
+                    if isinstance(old_value, list) and isinstance(new_value, list):
+                        return len(old_value) != len(new_value) or any(
+                            item_value_changed(old_item, new_item)
+                            for old_item, new_item in zip(
+                                old_value,
+                                new_value,
+                                strict=True,
+                            )
+                        )
                     return old_value != new_value
 
                 changed = any(

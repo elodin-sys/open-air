@@ -433,6 +433,42 @@ class WingModel:
         inner = [float(v["abs_y"].min()) for v in self.sides.values()]
         return min(inner) if inner else None
 
+    def band(self, x: float, y: float) -> tuple[float, float] | None:
+        """Interpolate the measured lower/upper wing skin at one global point."""
+        side = "right" if y >= 0.0 else "left"
+        data = self.sides.get(side)
+        if data is None:
+            return None
+        ay = abs(float(y))
+        if ay < float(data["abs_y"].min()) or ay > float(data["abs_y"].max()):
+            return None
+        x_le = float(np.interp(ay, data["abs_y"], data["x_le"]))
+        x_te = float(np.interp(ay, data["abs_y"], data["x_te"]))
+        chord = x_te - x_le
+        if chord <= 0.0:
+            return None
+        u = (float(x) - x_le) / chord
+        if not -0.02 <= u <= 1.02:
+            return None
+        u = float(np.clip(u, 0.0, 1.0))
+        lower_at_span = np.asarray(
+            [
+                np.interp(u, data["centers"], row)
+                for row in data["lower"]
+            ]
+        )
+        upper_at_span = np.asarray(
+            [
+                np.interp(u, data["centers"], row)
+                for row in data["upper"]
+            ]
+        )
+        lower = float(np.interp(ay, data["abs_y"], lower_at_span))
+        upper = float(np.interp(ay, data["abs_y"], upper_at_span))
+        if not math.isfinite(lower) or not math.isfinite(upper):
+            return None
+        return lower, upper
+
     def mask_points(self, pts: np.ndarray, x: float, margin_m: float) -> np.ndarray:
         """Boolean mask of points that belong to the wing at station ``x``."""
         out = np.zeros(pts.shape[0], dtype=bool)
@@ -1354,6 +1390,7 @@ def measure_fins(
     deck_z: np.ndarray,
     margin_m: float = 0.006,
     aft_fraction: float = 0.4,
+    include_member_indices: bool = False,
 ) -> dict[str, Any]:
     """Find surfaces rising above the body deck in the aft region and measure them."""
     pts = field.points
@@ -1365,7 +1402,8 @@ def measure_fins(
         & (pts[:, 2] > deck_at + margin_m)
         & (np.abs(pts[:, 1]) <= 0.5 * semispan_m)
     )
-    cand = pts[candidate]
+    candidate_indices = np.flatnonzero(candidate)
+    cand = pts[candidate_indices]
     if cand.shape[0] < 200:
         return {"count": 0, "reason": "no surfaces above the deck"}
     cell = max(4.0 * field.resolution_m, 0.004)
@@ -1383,13 +1421,17 @@ def measure_fins(
             continue
         record = _measure_one_fin(member, deck_x, deck_z, cell, field=field)
         if record is not None:
+            record["_member_indices"] = candidate_indices[labels == label]
             fins.append(record)
     if not fins:
         return {"count": 0, "reason": "no fin-like component"}
     fins.sort(key=lambda r: r["y_root_m"])
     for record in fins:
         record["side"] = "left" if record["y_root_m"] < -0.01 else ("right" if record["y_root_m"] > 0.01 else "center")
+    member_indices = [record.pop("_member_indices") for record in fins]
     out: dict[str, Any] = {"count": len(fins), "fins": fins}
+    if include_member_indices:
+        out["_member_indices"] = member_indices
     pair = [r for r in fins if r["side"] in {"left", "right"}]
     if len(pair) == 2:
         keys = ("span_m", "root_chord_m", "tip_chord_m", "taper", "le_sweep_deg", "cant_deg", "x_le_m", "z_root_m", "t_over_c", "toe_deg")
@@ -1397,6 +1439,385 @@ def measure_fins(
         out["mirrored_mean"]["y_root_m"] = float(np.mean([abs(r["y_root_m"]) for r in pair]))
         out["left_right_delta"] = {k: float(abs(pair[0][k] - pair[1][k])) if k not in {"cant_deg", "toe_deg"} else float(abs(abs(pair[0][k]) - abs(pair[1][k]))) for k in keys}
     return out
+
+
+def _measured_fin_mask(points: np.ndarray, fins: dict[str, Any]) -> np.ndarray:
+    """Return points lying on the measured fin plates, including their roots."""
+    mask = np.zeros(len(points), dtype=bool)
+    for fin in fins.get("fins") or []:
+        normal = np.asarray(fin["plane_normal"], dtype=float)
+        span_dir = np.cross(normal, np.array([1.0, 0.0, 0.0]))
+        span_dir /= max(np.linalg.norm(span_dir), 1e-12)
+        if span_dir[2] < 0.0:
+            span_dir = -span_dir
+        origin = np.array(
+            [fin["x_le_m"], fin["y_root_m"], fin["z_root_m"]],
+            dtype=float,
+        )
+        relative = points - origin
+        u = relative @ span_dir
+        plane_distance = np.abs(relative @ normal)
+        span = max(float(fin["span_m"]), 1e-9)
+        eta = np.clip(u / span, 0.0, 1.0)
+        leading = float(fin["x_le_m"]) + u * math.tan(
+            math.radians(float(fin["le_sweep_deg"]))
+        )
+        chord = float(fin["root_chord_m"]) + eta * (
+            float(fin["tip_chord_m"]) - float(fin["root_chord_m"])
+        )
+        mask |= (
+            (u >= -0.012)
+            & (u <= span + 0.012)
+            & (plane_distance <= 0.5 * float(fin["thickness_m"]) + 0.005)
+            & (points[:, 0] >= leading - 0.006)
+            & (points[:, 0] <= leading + chord + 0.006)
+        )
+    return mask
+
+
+def _simplify_fairing_rows(
+    rows: list[dict[str, Any]],
+    required: set[int],
+    *,
+    max_rows: int = 6,
+) -> tuple[list[int], dict[str, float]]:
+    """Greedily simplify the station loft while retaining fin-root anchors."""
+    selected = list(range(len(rows)))
+    fields = ("width_m", "height_m", "z_offset_m")
+    while len(selected) > max_rows:
+        penalties = []
+        for position in range(1, len(selected) - 1):
+            index = selected[position]
+            if index in required:
+                continue
+            left = selected[position - 1]
+            right = selected[position + 1]
+            fraction = (rows[index]["x_m"] - rows[left]["x_m"]) / max(
+                rows[right]["x_m"] - rows[left]["x_m"],
+                1e-12,
+            )
+            penalty = max(
+                abs(
+                    rows[index][field]
+                    - (
+                        rows[left][field]
+                        + fraction * (rows[right][field] - rows[left][field])
+                    )
+                )
+                for field in fields
+            )
+            penalties.append((penalty, index))
+        if not penalties:
+            break
+        selected.remove(min(penalties)[1])
+    selected_x = np.asarray([rows[index]["x_m"] for index in selected])
+    residuals = {
+        field: float(
+            np.max(
+                np.abs(
+                    np.asarray([row[field] for row in rows])
+                    - np.interp(
+                        np.asarray([row["x_m"] for row in rows]),
+                        selected_x,
+                        np.asarray([rows[index][field] for index in selected]),
+                    )
+                )
+            )
+        )
+        for field in fields
+    }
+    return selected, residuals
+
+
+def measure_shoulder_fairing(
+    field: PointField,
+    *,
+    length_m: float,
+    semispan_m: float,
+    body_profile_records: list[dict[str, Any]],
+    wing: WingModel | None,
+    fins: dict[str, Any],
+    fin_member_indices: list[np.ndarray] | None = None,
+) -> dict[str, Any]:
+    """Fit an aft shoulder dome to scan surface left after removing the fins."""
+    if not fins.get("count"):
+        return {"ok": False, "reason": "no measured fins anchor an aft shoulder"}
+    fin_mean = fins.get("mirrored_mean") or fins["fins"][0]
+    fin_x_le = float(fin_mean["x_le_m"])
+    fin_x_te = fin_x_le + float(fin_mean["root_chord_m"])
+    if not body_profile_records:
+        return {"ok": False, "reason": "no core-body profile"}
+
+    excluded = _measured_fin_mask(field.points, fins)
+    for indices in fin_member_indices or []:
+        excluded[np.asarray(indices, dtype=int)] = True
+    clean_field = PointField(field.points[~excluded], field.resolution_m)
+    widest_x = float(
+        max(body_profile_records, key=lambda row: row["width_m"])["x_m"]
+    )
+    x_start = max(widest_x, fin_x_le - max(0.10, 0.8 * fin_mean["root_chord_m"]))
+    x_stop = min(length_m - 0.005, fin_x_te + max(0.04, 0.3 * fin_mean["root_chord_m"]))
+    step = max(0.005, 6.0 * field.resolution_m)
+    threshold = max(0.003, 6.0 * field.resolution_m)
+    root_y = abs(float(fin_mean["y_root_m"]))
+    search_half_width = min(
+        0.30 * semispan_m,
+        max(1.8 * root_y, root_y + 0.035),
+    )
+    bin_width = max(0.0015, 3.0 * field.resolution_m)
+    rows: list[dict[str, Any]] = []
+    x_values = np.arange(x_start, x_stop + 0.5 * step, step)
+    for x_m in x_values:
+        slab = clean_field.slab(0, float(x_m), max(2.0 * field.resolution_m, 0.0015))
+        slab = slab[np.abs(slab[:, 1]) <= search_half_width]
+        if len(slab) < 80:
+            continue
+        abs_y, _, scan_top, count = envelope_bins(
+            np.abs(slab[:, 1]),
+            slab[:, 2],
+            bin_width,
+        )
+        keep = count >= 2
+        abs_y = abs_y[keep]
+        scan_top = scan_top[keep]
+        if len(abs_y) < 12:
+            continue
+        core = body_section(
+            clean_field,
+            float(x_m),
+            fit_powers=True,
+            wing=wing if wing is not None and wing.sides else None,
+        )
+        if core is None:
+            continue
+        core_env = core.get("envelope") or {}
+        core_y = np.abs(np.asarray(core_env.get("y_m", []), dtype=float))
+        core_top = np.asarray(core_env.get("z_top_m", []), dtype=float)
+        if len(core_y) < 4:
+            continue
+        order = np.argsort(core_y)
+        core_y = core_y[order]
+        core_top = core_top[order]
+        core_half_width = 0.5 * float(core["width_m"])
+        outboard = abs_y >= max(core_half_width + 0.015, root_y + 0.015)
+        if outboard.sum() < 3:
+            outboard = abs_y >= max(core_half_width + 0.010, 1.15 * root_y)
+        if outboard.sum() < 3:
+            continue
+        outboard_values = scan_top[outboard]
+        probe_y = min(
+            search_half_width - bin_width,
+            max(core_half_width + 0.020, root_y + 0.020),
+        )
+        probe_bands = (
+            [
+                band
+                for band in (
+                    wing.band(float(x_m), probe_y),
+                    wing.band(float(x_m), -probe_y),
+                )
+                if band is not None
+            ]
+            if wing is not None
+            else []
+        )
+        wing_top = (
+            float(np.median([band[1] for band in probe_bands]))
+            if probe_bands
+            else float(np.percentile(outboard_values, 35))
+        )
+        represented = np.full_like(scan_top, wing_top)
+        on_core = abs_y <= min(core_half_width, float(core_y.max()))
+        represented[on_core] = np.interp(
+            abs_y[on_core],
+            core_y,
+            core_top,
+        )
+        excess = scan_top - represented
+        shoulder_band = abs_y >= 0.55 * core_half_width
+        if not shoulder_band.any() or float(np.max(excess[shoulder_band])) <= threshold:
+            continue
+        active = scan_top >= wing_top + threshold
+        active &= abs_y <= search_half_width - 0.5 * bin_width
+        if active.sum() < 4:
+            continue
+        half_width = float(abs_y[np.flatnonzero(active)[-1]] + 0.5 * bin_width)
+        half_width = max(half_width, core_half_width)
+        edge_bands = (
+            [
+                band
+                for band in (
+                    wing.band(float(x_m), half_width),
+                    wing.band(float(x_m), -half_width),
+                )
+                if band is not None
+            ]
+            if wing is not None
+            else []
+        )
+        if edge_bands:
+            lower_skin = float(np.median([band[0] for band in edge_bands]))
+            upper_skin = float(np.median([band[1] for band in edge_bands]))
+            skin_depth = max(upper_skin - lower_skin, 0.0)
+            penetration = min(
+                max(0.004, 4.0 * field.resolution_m),
+                max(0.5 * skin_depth, skin_depth - 0.0005),
+            )
+            support_z = upper_skin - penetration
+        else:
+            support_z = wing_top - max(0.002, 2.0 * field.resolution_m)
+        # The measured scan skin and the OpenVSP section loft differ by a few
+        # millimetres near the highly tapered root trailing edge. Bury the
+        # auxiliary fairing below that support surface so the exported loft
+        # intersects rather than merely kisses the wing tessellation.
+        burial_allowance = max(0.006, 8.0 * field.resolution_m)
+        base_z = support_z - burial_allowance
+        centre = abs_y <= max(0.010, 4.0 * bin_width)
+        if not centre.any():
+            continue
+        top_z = float(np.median(scan_top[centre]))
+        height = top_z - base_z
+        if height <= 2.0 * threshold:
+            continue
+        fit = (abs_y <= half_width) & (scan_top >= base_z - threshold)
+        fit_y = abs_y[fit] / max(half_width, 1e-9)
+        fit_z = scan_top[fit]
+        if len(fit_y) < 8:
+            continue
+
+        def model(params: np.ndarray, normalized_y: np.ndarray) -> np.ndarray:
+            side_power, top_power = params
+            base = np.clip(1.0 - normalized_y**side_power, 0.0, 1.0)
+            return base_z + height * base ** (1.0 / top_power)
+
+        fit_result = optimize.least_squares(
+            lambda params: model(params, fit_y) - fit_z,
+            np.array([2.0, 2.0]),
+            bounds=(np.full(2, POWER_BOUNDS[0]), np.full(2, POWER_BOUNDS[1])),
+            loss="soft_l1",
+            f_scale=max(field.resolution_m, 5e-4),
+        )
+        fitted = model(fit_result.x, fit_y)
+        rows.append(
+            {
+                "x_m": float(x_m),
+                "x_over_length": float(x_m / length_m),
+                "width_m": float(2.0 * half_width),
+                "height_m": float(height),
+                "z_offset_m": float(0.5 * (top_z + base_z)),
+                "side_power": float(fit_result.x[0]),
+                "top_power": float(fit_result.x[1]),
+                "bottom_power": 2.0,
+                "max_width_loc": -1.0,
+                "base_z_m": float(base_z),
+                "support_z_m": float(support_z),
+                "base_burial_allowance_m": float(burial_allowance),
+                "top_z_m": float(top_z),
+                "excess_max_m": float(np.max(excess[shoulder_band])),
+                "fit_rms_m": float(np.sqrt(np.mean((fitted - fit_z) ** 2))),
+                "envelope_abs_y_m": abs_y[fit].tolist(),
+                "envelope_top_z_m": fit_z.tolist(),
+                "fit_top_z_m": fitted.tolist(),
+            }
+        )
+
+    if len(rows) < 4:
+        return {
+            "ok": False,
+            "reason": "no contiguous aft shoulder exceeded the represented body/wing by 3 mm",
+            "candidate_station_count": len(rows),
+            "fin_points_excluded": int(excluded.sum()),
+        }
+    # Keep the contiguous run that best overlaps the measured root chord.
+    groups: list[list[dict[str, Any]]] = []
+    for row in rows:
+        if not groups or row["x_m"] - groups[-1][-1]["x_m"] > 1.6 * step:
+            groups.append([row])
+        else:
+            groups[-1].append(row)
+    minimum_run = max(3.0 * step, 0.60 * float(fin_mean["root_chord_m"]))
+    groups = [
+        group
+        for group in groups
+        if len(group) >= 4
+        and group[-1]["x_m"] - group[0]["x_m"] >= minimum_run
+    ]
+    if not groups:
+        return {
+            "ok": False,
+            "reason": (
+                "shoulder candidates were not contiguous over at least 60% "
+                "of the measured fin root chord"
+            ),
+            "candidate_station_count": len(rows),
+            "fin_points_excluded": int(excluded.sum()),
+            "minimum_longitudinal_run_m": float(minimum_run),
+        }
+    rows = max(
+        groups,
+        key=lambda group: (
+            sum(fin_x_le - step <= row["x_m"] <= fin_x_te + step for row in group),
+            sum(row["excess_max_m"] for row in group),
+        ),
+    )
+    required = {
+        0,
+        len(rows) - 1,
+        min(range(len(rows)), key=lambda index: abs(rows[index]["x_m"] - fin_x_le)),
+        min(range(len(rows)), key=lambda index: abs(rows[index]["x_m"] - fin_x_te)),
+    }
+    selected_indices, residuals = _simplify_fairing_rows(rows, required)
+    acceptance = max(0.005, 8.0 * field.resolution_m)
+    selected = [rows[index] for index in selected_indices]
+    cap_margin = max(0.005, 3.0 * field.resolution_m)
+    front_x = max(0.0, selected[0]["x_m"] - cap_margin)
+    aft_x = min(length_m, selected[-1]["x_m"] + cap_margin)
+
+    def point_cap(x_m: float, adjacent: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "x_m": float(x_m),
+            "x_over_length": float(x_m / length_m),
+            "width_m": 0.0,
+            "height_m": 0.0,
+            "z_offset_m": float(adjacent["top_z_m"]),
+            "side_power": 2.0,
+            "top_power": 2.0,
+            "bottom_power": 2.0,
+            "max_width_loc": 0.0,
+            "point_cap": True,
+        }
+
+    stations = [
+        point_cap(front_x, selected[0]),
+        *selected,
+        point_cap(aft_x, selected[-1]),
+    ]
+    return {
+        "ok": bool(max(residuals.values()) <= acceptance),
+        "mode": "measured fin-free upper-envelope shoulder dome",
+        "stations": stations,
+        "source_station_count": len(rows),
+        "selected_interior_station_count": len(selected),
+        "station_count": len(stations),
+        "fin_points_excluded": int(excluded.sum()),
+        "threshold_m": float(threshold),
+        "fit_rms_max_m": float(max(row["fit_rms_m"] for row in rows)),
+        "shoulder_excess_max_m": float(max(row["excess_max_m"] for row in rows)),
+        "base_burial_allowance_m": float(
+            max(row["base_burial_allowance_m"] for row in rows)
+        ),
+        "simplification_max_residual_m": residuals,
+        "simplification_acceptance_m": float(acceptance),
+        "junction_crease": [
+            {
+                "x_m": row["x_m"],
+                "abs_y_m": 0.5 * row["width_m"],
+                "z_m": row["support_z_m"],
+                "buried_base_z_m": row["base_z_m"],
+            }
+            for row in selected
+        ],
+    }
 
 
 def _fin_root_on_body(

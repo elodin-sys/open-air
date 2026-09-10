@@ -99,8 +99,11 @@ def _print_summary(summary: dict) -> None:
         if not block:
             continue
         if key == "fuselage":
+            fairings = block.get("fairings") or []
             print(
-                f"  fuselage: length {block['length_m']} max w/h {block['max_width_m']}/{block['max_height_m']} stations {len(block['stations'])}"
+                f"  fuselage: length {block['length_m']} max w/h "
+                f"{block['max_width_m']}/{block['max_height_m']} stations "
+                f"{len(block['stations'])}, fairings {len(fairings)}"
             )
         else:
             print(

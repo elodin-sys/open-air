@@ -170,6 +170,23 @@ skins were missing (open bays / hatches) over x = 0.185–0.22, 0.315–0.35,
 neighbouring stations, and the top at one station. The measured "chin" at
 x ≈ 0.10–0.15 (bottom −0.017 m) is real.
 
+### Aft shoulder/deck fairing (measured, loft-fidelity only)
+
+After excluding 72,380 fin points, reference ingest found a contiguous
+fin-free upper-envelope excess over the fin root chord and fit it as an
+eight-station point-capped dome. The six interior stations span x/L
+0.7514–0.9130; width is 0.1339–0.1490 m, height 0.0314–0.0375 m, and
+`max_width_loc: -1` puts maximum width at the lower edge. The measured excess
+peaks at 46.5 mm. Fit RMS is at most 6.26 mm; 8-station simplification
+residuals are 3.87/2.25/1.11 mm in width/height/z against a 6.61 mm band.
+
+The base is intentionally buried 6.61 mm below the measured support surface.
+This hidden overlap absorbs the scan/OpenVSP trailing-edge loft difference
+and makes the serialized fairing physically intersect the core body/wing;
+it is not a claim that the real shoulder has that buried thickness. The
+fairing and derived fin-root extensions are excluded from packing, wetted-area
+drag, mass, OAS, VSPAERO, and component-fidelity scoring.
+
 ### Fins (two, outward-canted; measured)
 
 | Item | Evidence | Value | Tol | Provenance |
@@ -180,7 +197,7 @@ x ≈ 0.10–0.15 (bottom −0.017 m) is real.
 | Root chord / tip chord | LE/TE lines extrapolated to the junction and tip | 0.107 m / 0.060 m -> taper 0.559 | ±0.004 m | measured (reference model) |
 | LE sweep (in the fin plane) | LE line slope | 29.4° | ±1.0° | measured (reference model) |
 | x_le (root) | LE line at the junction | 0.5426 m | ±0.004 m | measured (reference model) |
-| Root junction | y ±0.062 m, z +0.0496 m (deck edge) | `vtail.root_attachment: measured`; OpenVSP uses `y_root_m/z_root_m` exactly | — | measured (reference model) |
+| Root junction | y ±0.062 m, z +0.0496 m (deck edge) | exposed fin uses measured y/z exactly; a derived 33 mm continuation is buried in the shoulder/body union | — | measured junction + derived hidden overlap |
 | t/c | plane-slab thickness 10.8 mm over the mean chord | 0.129 | — | measured (reference model) |
 
 The render-based estimate (fin span 0.177 m, cant 47.4°, x_le 0.517 m) is
@@ -241,10 +258,10 @@ stretch solvers only).
   loft carries the plan-view width and the canopy height, so the front view
   is fuller than the scan. Expect the reference overlay to show model-only
   area beside the canopy and reference-only area at the shoulder edges.
-- **Aft skid strakes / root deck**: the measured section outline now captures
-  their top-view extension as part of the wing loft. It does not claim that
-  the thin strakes are lifting wing or reproduce their plate thickness and
-  body fillet as separate components.
+- **Aft skid strakes / root deck**: the measured wing outline captures their
+  top-view extension and the new non-lifting shoulder fairing captures the
+  fin-free upper deck. It does not reproduce each thin strake, fillet, or
+  plate thickness as a separate component.
 - **Wing-root fillet / inner-panel incidence**: the nonlinear LE/TE outline
   between the body edge and |y| = 0.127 m is represented by six closely spaced
   section breakpoints. The buried centreline carry-through remains overlapping
@@ -264,13 +281,12 @@ stretch solvers only).
   0.42 m semispan and adds a nose-up moment and a forward neutral-point shift
   that neither lattice models, so the predicted elevon trim deflection is an
   upper bound for the wing-only physics, not a flight measurement.
-- **Fin root fairing and toe**: the fin origin now honours the measured
-  deck/strake junction exactly. A single planar OpenVSP WING cannot represent
-  the sloping root fairing or measured toe (±1.5°). The nominal point is
-  outside the narrow core-body section at the root LE (reported eccentricity
-  2.64) because the omitted aft deck/strake supports it; the exported root
-  centroid still passes the artifact attachment check (eccentricity 0.955,
-  nearest body vertex 16.1 mm) without relaxing its limits.
+- **Fin root fairing and toe**: the exposed fin origin honours the measured
+  deck/strake junction exactly. The measured shoulder plus a derived 33 mm
+  inboard continuation now close the STL gap; the exported root centroid is
+  inside the fairing/body union (eccentricity 0.546, nearest surface
+  1.7–2.2 mm). A planar WING plus dome still approximates the detailed
+  sloping fillet and cannot represent measured toe (about ±1.5°).
 - **Scan gaps**: missing leading-edge skin, open bays, missing belly panels
   (repaired by interpolation as listed above); propeller not scanned.
 - **Aft avionics-bay volume**: the packing contract reserves the aft
@@ -439,6 +455,34 @@ stretch solvers only).
   also corrected serialized static-margin bounds, measured-fin placement in
   Studio 2-D views, inspiration-mode section suggestions, directional
   distance labeling, and fail-closed VSP3 provenance checks.
+- Iteration 8 (2026-09-10): serialized-attachment repair — the screen-visible
+  daylight under both fins traced to a real representation gap, not bad fin
+  coordinates. The measured root y/z lies outside the narrow core-body loft
+  because the scan's aft shoulder/deck was omitted. Worse, the old attachment
+  check used a ±0.12 m fuselage-vertex slab and a fixed 60 mm proximity floor;
+  wider forward rings let the floating roots pass at eccentricity 0.955 /
+  16.1 mm.
+
+  Reference ingest now removes 72,380 fin points and fits the remaining
+  shoulder as the eight-station dome recorded above. OpenVSP and Studio use
+  shifted maximum-width sections, point-cap-safe zero interpolation strengths,
+  and a derived 33 mm continuation of each fin's LE/TE lines into the
+  fairing/body union. Reopened VSP3 read-back matches the fairing and both
+  extensions. The exported root centroids are inside the union at
+  eccentricity **0.546**, nearest surface **2.24/1.67 mm**; fairing-base
+  support is **95.4%** against the 95% requirement. The old 60 mm floor is now
+  10 mm at this scale.
+
+  Full pipeline closure remains validation **15/15** and gates **12/12**.
+  OAS geometry/trim is unchanged: elevon +9.6398°, NP 0.42890 m, static
+  margin 0.04318 MAC, CM residual −1.15e−6. Exact-name VSPAERO sets exclude
+  `fairing_aft_shoulder` and `vtail*_root`, so these hidden loft components do
+  not alter lifting physics. Reference top/side/front IoU is
+  **0.968/0.952/0.900**, exposed-wing p95 **4.87 mm**, fin p95
+  **3.06/3.62 mm**, body-union p95 **12.50 mm**, and whole-aircraft p95
+  **13.69 mm**. The small whole-p95 increase from 13.24 mm is the disclosed
+  cost of adding buried attachment surfaces; no source fin/wing/mass/CG/aero
+  value or acceptance band changed.
 
 <!-- OPENAIR_SKETCH_WORKSHEET_START -->
 ## Sketch measurement worksheet
@@ -454,6 +498,7 @@ taper 0.5093 / LE sweep −12.07° / dihedral −1.91°; wing root LE x 0.4071 m
 (x/L 0.5718); twist +1.6°/+0.5°; fuselage 0.712 m long, max width 0.150 m,
 max height 0.107 m, 8 stations, root-chord datum, z = 0 at the nose tip; twin
 fins span 0.119 m, root chord 0.107 m, LE sweep
-29.4°, cant 39.0° outward, x_le 0.5426 m; internal electric pusher package at
-x 0.680; payload bay = forward battery bay at x 0.190.
+29.4°, cant 39.0° outward, x_le 0.5426 m; measured aft-shoulder fairing with
+8 stations and 33 mm buried fin-root continuation; internal electric pusher
+package at x 0.680; payload bay = forward battery bay at x 0.190.
 <!-- OPENAIR_SKETCH_WORKSHEET_END -->

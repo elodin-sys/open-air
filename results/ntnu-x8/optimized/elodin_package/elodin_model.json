@@ -133,7 +133,7 @@
     "validity_component_required": true
   },
   "concept": "ntnu-x8",
-  "created_at": "2026-09-10T05:14:48+00:00",
+  "created_at": "2026-09-10T08:14:23+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -224,7 +224,7 @@
     "geometry_vsp3": {
       "path": "geometry/ntnu-x8.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "9996c81de04b47e1dbb40913ff790b1a7438058a3c2cd0d1129625ee5acb00a6",
+      "sha256": "40357393ff258701c5fe4ff565bc364b31f37a02b31efba6744febf4fd7b5fde",
       "size_bytes": 254282
     },
     "geometry_whole_stl": {
@@ -248,7 +248,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "e200409386e14e7d67437b1f3d2e292086dda709d3420d39131f8bdae2becaf7",
+      "sha256": "e48b062c6568b166d21af56a8089e76be9bf677197ae0b91d4738997a7f0f7ad",
       "size_bytes": 1220
     },
     "render_glb": {
@@ -468,7 +468,7 @@
       "steady linear derivatives do not model gusts, actuator delay, or stall",
       "NACA 0012 may be a documented surrogate rather than the physical aircraft section."
     ],
-    "design_sha256": "73f75ea0c2f154b29a065b8708fd793e56bd11c4b8efb224b9ed6afb23c62e58",
+    "design_sha256": "c8a4a6d9c9be761d0f61c99fefa1ff8db13ffa1cebd9e90eda09f18bcc17ded5",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -476,15 +476,15 @@
       "propulsion": "C",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "ed3c5ebf61d678e1ba3a758b2610806616a9d172810fd403377103ce2b5199b7",
-    "pipeline_run_id": "027a2cae48754de4b808854b178f8f7f",
-    "source_git_commit": "d772c0edec594d0737e3607499a7db50e67527fa",
+    "model_source_sha256": "1dda28b80e996e89b19a7e394d2e8ae08e11e372689b9723a301dd77ab05aef2",
+    "pipeline_run_id": "461abd940e654b749af5a1c84eedcd5c",
+    "source_git_commit": "c7ad921a3fbf0dca9dfc0a3e69ac701874fdd0d3",
     "upstream_sha256": {
-      "aero.json": "fe26ed6a6c5efa7242a8e93bea9a8ccbf6a2608547fd360623b41bfda68c8294",
-      "flightdyn.json": "82fba9f0b9e6abc837fbdc4514285eec902be0cc5f0a615028fddac28ae8420b",
-      "geometry.json": "4428f91c6ff5bc369ddc8365e620b8791116368a6103d40218d5bf41b103aaf8",
-      "structures.json": "ef318cdcbc82bc1feea9a35749534651b257728dab835a76b9c81654a6ea3aaa",
-      "validation.json": "e224812b6c9d708ffd32295e7f59465c62c4836ee8bb9c35eac9dec47c047794"
+      "aero.json": "f7d5560073c36ec90912c31f1e441b4c43779036cfcec9dfced46bd3c473cbe1",
+      "flightdyn.json": "bcf40e04f24bc69470df91f0112376a2375480eecb564fc0a5719b0c9e55cfff",
+      "geometry.json": "f15efd3fa6e14ac866e9cde18f8dc803521c81ca92739ffa0ccca269ab47e85f",
+      "structures.json": "7c685780276d8802041761f5ceb4b3aee8aa1d4de7646de42ff47a11969a601b",
+      "validation.json": "87ae15c039e4729d61afa4dce1ff7f8a6274422761bb74fef0084333a3e02a99"
     }
   },
   "reference_geometry": {
@@ -492,6 +492,7 @@
     "aspect_ratio": 5.88,
     "evidence_class": "C",
     "fuselage": {
+      "fairings": null,
       "fuel_tank_x_m": 0.435,
       "length_m": 0.79,
       "max_height_m": 0.17,

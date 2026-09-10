@@ -63,6 +63,13 @@ guidebook — read it, do not improvise:
   p95 is model-to-reference only; use it with silhouette reference-only area
   so omitted geometry cannot hide. Retain full component p95 as buried
   carry-through disclosure.
+- For `fuselage.fairings`, require reproduction treatment and trace every
+  station to `reference.json .measurements.fairings`. Verify shifted
+  max-width and zero interpolation-strength read-back, a reopened VSP3,
+  `fairing_*_contained` support ≥95%, and any `vtail*_root` extension at
+  LE/mid/TE eccentricity ≤0.8. Confirm fairings/root extensions are absent
+  from VSPAERO/OAS lifting sets and buried roots are excluded from component
+  fidelity rather than used to improve a score.
 - VSPAERO derivative evidence must carry
   `analysis.derivative_quality.ok` (tight 0.01 convergence factors,
   symmetry-noise floor, 0.01°/1° CLα agreement, and wake-quality evidence).

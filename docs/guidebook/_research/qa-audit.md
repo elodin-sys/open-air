@@ -411,6 +411,37 @@ the same 0.02 noise band and reduced the relevant symmetry ratios below
 4.4e-5. Final validation is 15/15 and the twelve-gate verdict is green without
 widening geometry or stability acceptance bands.
 
+## F36 — A broad attachment slab declared visibly floating fins attached
+
+After the measured fin coordinates and sectioned wing were correct, the
+Dolphin's whole-aircraft STL still showed daylight beneath both fin roots.
+The source coordinates were not wrong: the real fin plate continues into an
+aft shoulder/deck omitted by the core-body loft. The artifact check nevertheless
+passed. It built a supposed local section from every fuselage vertex within
+±0.12 m of the root centroid—17% of this 0.712 m aircraft—so wider forward
+rings inflated the enclosure, then accepted any surface-mounted root within a
+fixed 60 mm vertex-cloud distance. The reported eccentricity 0.955 and 16.1 mm
+distance therefore hid a visible 13 mm lateral / 15–25 mm vertical gap.
+
+**Fix:** reference ingest now removes the fin plates and fits the contiguous
+aft upper-envelope excess as a reproduction-only `fuselage.fairings` loft.
+Shifted split-super-ellipse sections (`max_width_loc=-1`) form its dome; zero
+OpenVSP interpolation strengths prevent point-cap overshoot, and its
+resolution-scaled buried base must have at least 95% support in the exported
+body/wing projection. The fin LE/TE lines continue inboard along the cant
+plane as separately named `vtail*_root` WING geoms until LE/mid/TE section
+eccentricities are ≤0.8 plus a 5 mm margin. Those geoms are serialized,
+read back, imported, previewed, and mesh-checked, but their names are absent
+from every VSPAERO/OAS lifting set and they are excluded from component
+fidelity.
+
+The Dolphin uses an eight-station measured shoulder and a 33 mm extension.
+The exported root centroid is inside the fairing/body union at eccentricity
+0.546 with 1.7–2.2 mm nearest-surface distance; fairing-base support is 95.4%.
+Reference geometry remains green (body-union p95 12.5 mm; top/side/front IoU
+0.968/0.952/0.900). No fin, wing, mass, CG, aerodynamic input, or acceptance
+band moved.
+
 ## Measured calibration constants (corrected OAS mesh, 32° swept trapezoid)
 
 - Neutral point: 25% MAC + 0.043 MAC → `np_shift_mac = 0.043`

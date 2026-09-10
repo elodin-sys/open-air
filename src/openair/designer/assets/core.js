@@ -414,6 +414,14 @@
       </div></div>`;
     }
 
+    function fairingEditor(path) {
+      const fairings = getPath(path);
+      const value = JSON.stringify(fairings || [], null, 2);
+      return `<div class="field wide"><label><span>Measured body fairings</span><span>read-only</span></label>
+        <textarea data-path="${escapeHtml(path)}" aria-label="${escapeHtml(path)}" disabled title="Regenerate fairings with openair.reference ingest">${escapeHtml(value)}</textarea>
+        <span class="hint">Measured loft-fidelity geometry; regenerate from the reference scan rather than editing in Studio.</span></div>`;
+    }
+
     function renderProperties(properties, prefix) {
       return Object.entries(properties).map(([name, node]) => {
         const path = prefix ? `${prefix}.${name}` : name;
@@ -421,6 +429,7 @@
         const value = getPath(path);
         if (resolved.type === "array") {
           if (path === "fuselage.stations") return stationEditor(path, node);
+          if (path === "fuselage.fairings") return fairingEditor(path);
           return inputHtml(name, {type: "string", title: node.title}, path, JSON.stringify(value || []));
         }
         if (resolved.type === "object" || resolved.properties) {
@@ -668,6 +677,7 @@
           sidePower: number(station.side_power, 2),
           topPower: number(station.top_power, 2),
           bottomPower: number(station.bottom_power, 2),
+          maxWidthLoc: number(station.max_width_loc, 0),
         }));
       }
       const fractions = [0, .25, .5, .75, 1];
@@ -680,7 +690,28 @@
         sidePower: 2,
         topPower: 2,
         bottomPower: 2,
+        maxWidthLoc: 0,
       }));
+    }
+
+    function fairingProfiles() {
+      const length = Math.max(number(design.fuselage.length_m), .01);
+      return (Array.isArray(design.fuselage.fairings) ? design.fuselage.fairings : [])
+        .filter(fairing => Array.isArray(fairing.stations) && fairing.stations.length >= 2)
+        .map(fairing => ({
+          name: fairing.name,
+          role: fairing.role,
+          sections: fairing.stations.map(station => ({
+            x: number(station.x_over_length) * length,
+            width: Math.max(number(station.width_m), 0),
+            height: Math.max(number(station.height_m), 0),
+            z: number(station.z_offset_m),
+            sidePower: number(station.side_power, 2),
+            topPower: number(station.top_power, 2),
+            bottomPower: number(station.bottom_power, 2),
+            maxWidthLoc: number(station.max_width_loc, 0),
+          })),
+        }));
     }
 
     function makeFrame(xMin, xMax, yMin, yMax) {
@@ -759,19 +790,32 @@
       const svg = $("#top-view");
       const wing = wingGeometry();
       const profile = bodyProfile();
+      const fairings = fairingProfiles();
+      const fairingSections = fairings.flatMap(fairing => fairing.sections);
       const f = design.fuselage;
       const length = number(f.length_m);
       const tail = design.htail;
       const tailHalfSpan = .5 * Math.max(number(tail.span_m), 0);
       const tailTipChord = number(tail.root_chord_m) * number(tail.taper);
       const tailTipX = number(tail.x_le_m) + tailHalfSpan * Math.tan(radians(number(tail.le_sweep_deg)));
-      const maxY = Math.max(wing.halfSpan * 1.08, tailHalfSpan * 1.08, ...profile.map(section => section.width * .65), .5);
-      const xMin = Math.min(0, ...wing.planform.map(point => point[0])) - .05 * length;
+      const maxY = Math.max(
+        wing.halfSpan * 1.08,
+        tailHalfSpan * 1.08,
+        ...profile.map(section => section.width * .65),
+        ...fairingSections.map(section => section.width * .65),
+        .5,
+      );
+      const xMin = Math.min(
+        0,
+        ...wing.planform.map(point => point[0]),
+        ...fairingSections.map(section => section.x),
+      ) - .05 * length;
       const xMax = Math.max(
         length,
         ...wing.planform.map(point => point[0]),
         number(tail.x_le_m) + number(tail.root_chord_m),
         tailTipX + tailTipChord,
+        ...fairingSections.map(section => section.x),
       ) + .05 * length;
       const frame = stableViewFrame(
         "top",
@@ -782,6 +826,16 @@
         ...profile.map(section => [section.x, .5 * section.width]),
         ...profile.slice().reverse().map(section => [section.x, -.5 * section.width]),
       ];
+      const fairingPaths = fairings.map(fairing => {
+        const points = [
+          ...fairing.sections.map(section => [section.x, .5 * section.width]),
+          ...fairing.sections.slice().reverse().map(section => [
+            section.x,
+            -.5 * section.width,
+          ]),
+        ];
+        return `<path class="fairing-shape" d="${pathData(points, frame)}"></path>`;
+      }).join("");
       const planform = wing.planform;
       const payloadX = number(f.payload_bay_x_m);
       const payloadEnd = payloadX + number(f.payload_bay_length_m);
@@ -800,6 +854,21 @@
         frame,
         "fin-shape",
       )).join("");
+      const finRootGeometry = window.OpenAirPreviewMesh.finRootGeometry(design);
+      const finRootExtensions = finRootGeometry.extensionRequired
+        ? finYs.map((y, index) => {
+          const sign = Math.round(number(fin.count, 2)) === 1
+            ? 1
+            : (index === 0 ? 1 : -1);
+          const points = [
+            [finRootGeometry.xLe, sign * Math.abs(finRootGeometry.y)],
+            [number(fin.x_le_m), y],
+            [number(fin.x_le_m) + number(fin.root_chord_m), y],
+            [finRootGeometry.xLe + finRootGeometry.chord, sign * Math.abs(finRootGeometry.y)],
+          ];
+          return `<path class="fin-shape root-extension" d="${pathData(points, frame)}"></path>`;
+        }).join("")
+        : "";
       const htail = number(tail.span_m) > .05 ? [
         [number(tail.x_le_m), 0],
         [tailTipX, tailHalfSpan],
@@ -814,7 +883,9 @@
         `<path class="airframe" d="${pathData(planform, frame)}"></path>`,
         htail.length ? `<path class="airframe tail-shape" d="${pathData(htail, frame)}"></path>` : "",
         `<path class="body-shape" d="${pathData(body, frame)}"></path>`,
+        fairingPaths,
         `<path class="bay" d="${pathData(payload, frame)}"></path>`,
+        finRootExtensions,
         finLines,
         balanceMarkers(frame, -.16 * maxY, .16 * maxY),
         semanticHandles("top", frame),
@@ -825,6 +896,8 @@
       const svg = $("#side-view");
       const wing = wingGeometry();
       const profile = bodyProfile();
+      const fairings = fairingProfiles();
+      const fairingSections = fairings.flatMap(fairing => fairing.sections);
       const f = design.fuselage;
       const v = design.vtail;
       const length = number(f.length_m);
@@ -842,15 +915,31 @@
         [finTipX + number(v.root_chord_m) * number(v.taper), finRootZ + finVertical],
         [finRootX + number(v.root_chord_m), finRootZ],
       ];
+      const finRootGeometry = window.OpenAirPreviewMesh.finRootGeometry(design);
+      const finRootExtension = finRootGeometry.extensionRequired
+        ? [
+          [finRootGeometry.xLe, finRootGeometry.z],
+          [finRootX, finRootZ],
+          [finRootX + number(v.root_chord_m), finRootZ],
+          [finRootGeometry.xLe + finRootGeometry.chord, finRootGeometry.z],
+        ]
+        : [];
       const yMin = Math.min(
         ...profile.map(section => section.z - .5 * section.height),
+        ...fairingSections.map(section => section.z - .5 * section.height),
         ...wing.sections.map(section => section.zLe),
+        finRootGeometry.z,
       ) - .12;
-      const yMax = Math.max(...profile.map(section => section.z + .5 * section.height), finRootZ + finVertical) + .10;
+      const yMax = Math.max(
+        ...profile.map(section => section.z + .5 * section.height),
+        ...fairingSections.map(section => section.z + .5 * section.height),
+        finRootZ + finVertical,
+      ) + .10;
       const xMax = Math.max(
         length,
         finTipX + number(v.root_chord_m),
         ...wing.sections.map(section => section.xLe + section.chord),
+        ...fairingSections.map(section => section.x),
       ) + .06 * length;
       const frame = stableViewFrame(
         "side",
@@ -865,11 +954,25 @@
         ]),
       ];
       const wingLine = `<path class="airframe" d="${pathData(wingSide, frame)}"></path>`;
+      const fairingPaths = fairings.map(fairing => {
+        const points = [
+          ...fairing.sections.map(section => [section.x, section.z + .5 * section.height]),
+          ...fairing.sections.slice().reverse().map(section => [
+            section.x,
+            section.z - .5 * section.height,
+          ]),
+        ];
+        return `<path class="fairing-shape" d="${pathData(points, frame)}"></path>`;
+      }).join("");
       svg.innerHTML = [
         gridLines(frame, "side"),
         line(0, 0, xMax, 0, frame),
         `<path class="body-shape" d="${pathData(body, frame)}"></path>`,
+        fairingPaths,
         wingLine,
+        finRootExtension.length
+          ? `<path class="fin-shape root-extension" d="${pathData(finRootExtension, frame)}"></path>`
+          : "",
         `<path class="fin-shape" d="${pathData(fin, frame)}"></path>`,
         balanceMarkers(frame, yMin, yMin + .18 * (yMax - yMin)),
         semanticHandles("side", frame),
@@ -880,6 +983,8 @@
       const svg = $("#front-view");
       const wing = wingGeometry();
       const profile = bodyProfile();
+      const fairings = fairingProfiles();
+      const fairingSections = fairings.flatMap(fairing => fairing.sections);
       const v = design.vtail;
       const largest = profile.reduce((best, section) => section.width * section.height > best.width * best.height ? section : best, profile[0]);
       const halfSpan = wing.halfSpan;
@@ -889,14 +994,38 @@
       const finDY = number(v.span_m) * Math.sin(radians(number(v.cant_deg)));
       const finDZ = number(v.span_m) * Math.cos(radians(number(v.cant_deg)));
       const envelopeHeight = number(design.fuselage.max_height_m);
-      const maxZ = Math.max(...wing.sections.map(section => section.zLe), largest.z + .5 * envelopeHeight, finBaseZ + finDZ) + .12;
-      const minZ = Math.min(0, largest.z - .5 * envelopeHeight, ...wing.sections.map(section => section.zLe)) - .10;
+      const maxZ = Math.max(
+        ...wing.sections.map(section => section.zLe),
+        largest.z + .5 * envelopeHeight,
+        ...fairingSections.map(section => section.z + .5 * section.height),
+        finBaseZ + finDZ,
+      ) + .12;
+      const minZ = Math.min(
+        0,
+        largest.z - .5 * envelopeHeight,
+        ...wing.sections.map(section => section.zLe),
+        ...fairingSections.map(section => section.z - .5 * section.height),
+      ) - .10;
       const frame = stableViewFrame(
         "front",
         makeFrame(-halfSpan * 1.08, halfSpan * 1.08, minZ, maxZ),
       );
       frames.front = frame;
       const section = window.OpenAirPreviewMesh.sectionPolygon(largest, 96);
+      const fairingPaths = fairings.map(fairing => {
+        const dominant = fairing.sections.reduce(
+          (best, candidate) => (
+            candidate.width * candidate.height > best.width * best.height
+              ? candidate
+              : best
+          ),
+          fairing.sections[0],
+        );
+        return `<path class="fairing-shape" d="${pathData(
+          window.OpenAirPreviewMesh.sectionPolygon(dominant, 96),
+          frame,
+        )}"></path>`;
+      }).join("");
       const wingPoints = [
         ...wing.sections.slice().reverse().map(section => [-section.eta * halfSpan, section.zLe]),
         ...wing.sections.slice(1).map(section => [section.eta * halfSpan, section.zLe]),
@@ -907,11 +1036,45 @@
           line(finBaseY, finBaseZ, finBaseY + finDY, finBaseZ + finDZ, frame, "fin-shape"),
           line(-finBaseY, finBaseZ, -finBaseY - finDY, finBaseZ + finDZ, frame, "fin-shape"),
         ];
+      const finRootGeometry = window.OpenAirPreviewMesh.finRootGeometry(design);
+      const finRootLines = !finRootGeometry.extensionRequired
+        ? []
+        : Math.round(number(v.count, 2)) === 1
+          ? [
+            line(
+              0,
+              finRootGeometry.z,
+              0,
+              finBaseZ,
+              frame,
+              "fin-shape root-extension",
+            ),
+          ]
+          : [
+            line(
+              Math.abs(finRootGeometry.y),
+              finRootGeometry.z,
+              finBaseY,
+              finBaseZ,
+              frame,
+              "fin-shape root-extension",
+            ),
+            line(
+              -Math.abs(finRootGeometry.y),
+              finRootGeometry.z,
+              -finBaseY,
+              finBaseZ,
+              frame,
+              "fin-shape root-extension",
+            ),
+          ];
       svg.innerHTML = [
         gridLines(frame, "front"),
         line(-halfSpan, 0, halfSpan, 0, frame),
         `<path class="airframe" fill="none" d="${pathData(wingPoints, frame, false)}"></path>`,
         `<path class="body-shape" d="${pathData(section, frame)}"></path>`,
+        fairingPaths,
+        ...finRootLines,
         ...finLines,
         semanticHandles("front", frame),
       ].join("");
@@ -1370,6 +1533,8 @@
       const wing = design.wing;
       const wingModel = wingGeometry();
       const fin = design.vtail;
+      const finRootGeometry = window.OpenAirPreviewMesh.finRootGeometry(design);
+      const fairings = Array.isArray(f.fairings) ? f.fairings : [];
       const wingRows = [
         `| Wing ${wingModel.sectioned ? "actual tip chord" : "tip chord"} | ${wingModel.tip.toFixed(4)} m | ${wingModel.sectioned ? "outer wing section" : "derived from taper"} |`,
         `| Wing projected area | ${wingModel.area.toFixed(4)} m² | ${wingModel.sectioned ? `${wingModel.sections.length}-section integral` : "trapezoid"} |`,
@@ -1425,14 +1590,15 @@
         `| Fin leading-edge sweep | ${number(fin.le_sweep_deg).toFixed(4)} deg | document source tolerance |`,
         `| Fin cant | ${number(fin.cant_deg).toFixed(4)} deg | document source tolerance |`,
         `| Fin root location (x, y, z) | (${number(fin.x_le_m).toFixed(4)}, ${number(fin.y_root_m).toFixed(4)}, ${number(fin.z_root_m).toFixed(4)}) m | document source tolerance |`,
+        `| Fin buried root extension | ${number(finRootGeometry.extension).toFixed(4)} m | derived from body/fairing containment (eccentricity ≤ 0.8 + 5 mm margin) |`,
         "",
         "### Fuselage stations",
         "",
       );
       if (Array.isArray(f.stations) && f.stations.length) {
         lines.push(
-          "| x/L | Width (m) | Height (m) | z offset (m) | Side power | Top power | Bottom power |",
-          "|---:|---:|---:|---:|---:|---:|---:|",
+          "| x/L | Width (m) | Height (m) | z offset (m) | Side power | Top power | Bottom power | Max-width loc |",
+          "|---:|---:|---:|---:|---:|---:|---:|---:|",
         );
         f.stations.forEach(station => {
           lines.push(
@@ -1442,11 +1608,38 @@
             + `| ${number(station.z_offset_m).toFixed(5)} `
             + `| ${number(station.side_power, 2).toFixed(5)} `
             + `| ${number(station.top_power, 2).toFixed(5)} `
-            + `| ${number(station.bottom_power, 2).toFixed(5)} |`,
+            + `| ${number(station.bottom_power, 2).toFixed(5)} `
+            + `| ${number(station.max_width_loc, 0).toFixed(5)} |`,
           );
         });
       } else {
         lines.push("Legacy five-section fuselage selected; no explicit measured station loft.");
+      }
+      lines.push("", "### Measured body fairings", "");
+      if (fairings.length) {
+        fairings.forEach(fairing => {
+          lines.push(
+            `#### ${fairing.name} (${fairing.role})`,
+            "",
+            "| x/L | Width (m) | Height (m) | z offset (m) | Side power | Top power | Bottom power | Max-width loc |",
+            "|---:|---:|---:|---:|---:|---:|---:|---:|",
+          );
+          fairing.stations.forEach(station => {
+            lines.push(
+              `| ${number(station.x_over_length).toFixed(5)} `
+              + `| ${number(station.width_m).toFixed(5)} `
+              + `| ${number(station.height_m).toFixed(5)} `
+              + `| ${number(station.z_offset_m).toFixed(5)} `
+              + `| ${number(station.side_power, 2).toFixed(5)} `
+              + `| ${number(station.top_power, 2).toFixed(5)} `
+              + `| ${number(station.bottom_power, 2).toFixed(5)} `
+              + `| ${number(station.max_width_loc, 0).toFixed(5)} |`,
+            );
+          });
+          lines.push("");
+        });
+      } else {
+        lines.push("No measured auxiliary body fairings.");
       }
       lines.push(
         "",

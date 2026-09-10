@@ -47,9 +47,11 @@ CAD kernel — components overlap unless you run CompGeom.
 [`src/openair/geometry/openvsp_model.py`](../../src/openair/geometry/openvsp_model.py)
 builds fuselage (XSec width/height rescale via `GetXSec` +
 `SetXSecWidthHeight`; explicit stations may use split super-ellipses with
-independent side/top/bottom powers), the swept wing (driver group
+independent side/top/bottom powers and a shifted maximum-width location),
+optional measured body-fairing lofts, the swept wing (driver group
 SPAN/ROOTC/TIPC, LE sweep, NACA camber/thickness on its XSec curves), twin
-canted fins (wings yawed 90° with symmetry off), exports `.vsp3` + STL +
+canted fins plus non-lifting buried root extensions (wings yawed 90° with
+symmetry off), exports `.vsp3` + STL +
 DegenGeom + MassProp, and then **verifies itself**: section type/dimensions/
 exponents and planform parm read-back plus an STL bounding-box check. Runtime
 paths come from
@@ -72,10 +74,22 @@ Fin placement is explicit in `vtail.root_attachment`.
 smallest body half-section under the full root chord. `measured` uses
 `vtail.y_root_m/z_root_m` exactly (mirrored to ±y for twin fins), records both
 the selected and would-be derived coordinates in
-`geometry.json .openvsp.fin_attach`, and lets exported-mesh attachment QA fail
-if the simplified body cannot support the measured junction. The same helper
-drives OpenVSP construction and GUI import; the Studio preview follows the
-same mode.
+`geometry.json .openvsp.fin_attach`. If the visible root is not buried in the
+core body or a measured `fuselage.fairings` loft, the helper continues its
+LE/TE lines inboard along the cant plane until LE/mid/TE are all inside the
+represented union at section eccentricity ≤ 0.8, then adds a 5 mm margin.
+That `vtail*_root` WING is serialized and exported but omitted from every
+VSPAERO lifting set. A root that cannot be buried within half the declared
+fin span fails closed. OpenVSP construction, restricted GUI import, and the
+Studio preview all use this policy.
+
+`fuselage.fairings` is available only to measured reproductions. Each fairing
+uses 4–8 point/ellipse/split-super-ellipse stations in the main fuselage x/L
+frame. `max_width_loc=-1` puts maximum width at the lower edge, forming a dome
+whose base overlaps the wing/body union. OpenVSP FUSELAGE endpoints are fixed
+at local 0/1, so the builder gives each fairing a local length/x transform and
+reconstructs global x/L during read-back/import. All eight quadrant
+interpolation strengths are pinned to zero so point caps cannot overshoot.
 
 ## Check your work
 
@@ -100,9 +114,15 @@ same mode.
    `threeview.png` (rendered from the mesh).
 6b. Fin roots: confirm `fin_attach.mode` is the declared mode. For
    `measured`, read-back y/z must equal the spec exactly and
-   `fin_*_attached` must still pass without widening eccentricity or proximity
-   limits. `root_section_eccentricity` is disclosure against the nominal
-   section at root LE; the artifact check remains the verdict.
+   `fin_*_attached` must pass against the authoritative core-body/fairing
+   union. If `extension_required`, require
+   `vtail_root_extensions_match`, every buried LE/mid/TE eccentricity ≤ 0.8,
+   and component STLs `fin_*_root`. The UAV proximity floor is 10 mm (scaling
+   to 0.2% of fuselage length), not the former blanket 60 mm. For fairings
+   also require station/interpolation read-back and
+   `fairing_*_contained`: at least 95% of the lower boundary is inside the
+   core body or exported wing projection. `root_section_eccentricity`
+   remains disclosure against the nominal core section at visible root LE.
 7. `reference_fidelity` (present when the concept has a measured reference
    model, chapter 13): point-sampled p95 deviation and silhouette IoU of the
    exported mesh against the aligned scan, with `reference_overlay.png`.
@@ -127,6 +147,12 @@ same mode.
   replaced them with the 60%-body heuristic. Any measured attachment must
   opt into `root_attachment: measured`; its read-back and mesh attachment are
   separate checks.
+- A broad axial vertex slab is not a local attachment section. Before F36, a
+  ±0.12 m slab and 60 mm proximity floor let the Dolphin's visibly floating
+  fins pass because wider forward fuselage rings inflated the inferred
+  section. Use schema-section containment at the root x and the
+  length-scaled proximity floor; include measured fairing/root-extension
+  components in the tested union.
 - Inserting wing XSecs and reading every requested chord back correctly does
   not prove the saved wing is stable. OpenVSP 3.51 can retain the original
   `XSec_1.Area`/`TotalArea`, then rescale all panels on reopen. Force the

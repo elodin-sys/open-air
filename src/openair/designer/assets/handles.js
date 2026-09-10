@@ -21,6 +21,7 @@
         sidePower: number(station.side_power, 2),
         topPower: number(station.top_power, 2),
         bottomPower: number(station.bottom_power, 2),
+        maxWidthLoc: number(station.max_width_loc, 0),
       }));
     }
     const fractions = [0, .25, .5, .75, 1];
@@ -34,6 +35,7 @@
       sidePower: 2,
       topPower: 2,
       bottomPower: 2,
+      maxWidthLoc: 0,
     }));
   }
 

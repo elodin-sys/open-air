@@ -149,7 +149,7 @@
     "validity_component_required": true
   },
   "concept": "diana2",
-  "created_at": "2026-09-10T05:18:22+00:00",
+  "created_at": "2026-09-10T08:18:29+00:00",
   "credibility": "geometry-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -240,7 +240,7 @@
     "geometry_vsp3": {
       "path": "geometry/diana2.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "bf0031e5803a022f8bd719a231273f0a2b06d95653cb51c8fa13f72d16346fa1",
+      "sha256": "6caa581beecd95642a598c19355aff8e0d31a31d747a4f6aef001bdb7c8a7a4b",
       "size_bytes": 277534
     },
     "geometry_whole_stl": {
@@ -264,7 +264,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "a8b2cce6acf90f70a64a8d872bddcb8c17dd1dde00d7bd900138cf0db7069aa9",
+      "sha256": "2a0256c5a32b34a3500de563ef52e5a04285f747ed087f82bbde107404c71ccb",
       "size_bytes": 1314
     },
     "render_glb": {
@@ -436,17 +436,17 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "ed3c5ebf61d678e1ba3a758b2610806616a9d172810fd403377103ce2b5199b7",
-    "pipeline_run_id": "800fa51ad696419db7c3a87a23e3c834",
-    "source_git_commit": "d772c0edec594d0737e3607499a7db50e67527fa",
+    "model_source_sha256": "1dda28b80e996e89b19a7e394d2e8ae08e11e372689b9723a301dd77ab05aef2",
+    "pipeline_run_id": "123e6eddaa8f4f93ab2d2000ce7d018e",
+    "source_git_commit": "c7ad921a3fbf0dca9dfc0a3e69ac701874fdd0d3",
     "upstream_sha256": {
-      "aero.json": "3da5c3bdf8bc1068011303893b90e665082cadda29ae76dc08143f13008bb504",
-      "flightdyn.json": "f6dd63c1dc3de9ccb533c87009c2bec0ab2387ab5e90420f1d67ca91c3c85d95",
-      "geometry.json": "1bb5bf2acfa042f47f467edb7fd5a4b6c3a2121120c4eb68627eee77a04106c9",
+      "aero.json": "c8420044b01f88341efd9fa807e8f17972ac99bab563986a1e32615e6d4ab842",
+      "flightdyn.json": "7cd20a53e52b4c8f2c14ad9801d334bf5a1a134040d7347b70666db2c9b0705f",
+      "geometry.json": "35a30868b1923ace612a692ac5e5a61e950e557e65b465fc0603e2e3ba5212ef",
       "mass_breakdown.json": "f55ea974dba549bfd80efd395cbefa9304d279e74cd6e5474f2f2e09a1edd630",
-      "sizing.json": "d200797fd32d531261a71121c5de4f563217ee161ddde2c157846e5c340e90a9",
-      "structures.json": "6bc744bb15acd4f2096144d2d0c67ebd64389502f402e94cee289b05351a129b",
-      "validation.json": "d9066761c022aee22dd067936f60ba2799549151746d93a4b1bed93862dd9538"
+      "sizing.json": "60493306f82f28d16d9e7a367b16b6eb00733a3b886e019972074fb77e2ac814",
+      "structures.json": "519db128c8037d48d5527f12e2c558166ca85df90b210a762657281ca6c78974",
+      "validation.json": "016cc3485dea7aababf625f36f57d53f726f6f160cbb5559f22e34591b7ae8a8"
     }
   },
   "reference_geometry": {
@@ -454,6 +454,7 @@
     "aspect_ratio": 24.271844660194173,
     "evidence_class": "C",
     "fuselage": {
+      "fairings": null,
       "fuel_tank_x_m": 0.74,
       "length_m": 2.33,
       "max_height_m": 0.22,

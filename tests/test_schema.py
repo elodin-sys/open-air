@@ -46,6 +46,49 @@ def test_default_spec_computed_fields():
     assert s.solver.vspaero_convergence_factor == 0.01
 
 
+def test_body_fairings_require_reproduction_and_point_caps():
+    import pytest
+    from pydantic import ValidationError
+
+    data = load_spec(BASELINE_DESIGN).model_dump(
+        mode="python",
+        exclude_computed_fields=True,
+    )
+    fairing = {
+        "name": "aft_shoulder",
+        "role": "shoulder",
+        "stations": [
+            {"x_over_length": 0.68, "width_m": 0.0, "height_m": 0.0},
+            {
+                "x_over_length": 0.74,
+                "width_m": 0.24,
+                "height_m": 0.08,
+                "max_width_loc": -1.0,
+            },
+            {
+                "x_over_length": 0.88,
+                "width_m": 0.18,
+                "height_m": 0.05,
+                "max_width_loc": -0.8,
+            },
+            {"x_over_length": 0.94, "width_m": 0.0, "height_m": 0.0},
+        ],
+    }
+    data["fuselage"]["fairings"] = [fairing]
+    with pytest.raises(ValidationError, match="requires.*reproduction"):
+        VehicleSpec.model_validate(data)
+
+    data["sketch"]["treatment"] = "reproduction"
+    spec = VehicleSpec.model_validate(data)
+    assert spec.fuselage.fairings[0].stations[1].max_width_loc == -1.0
+
+    invalid = spec.model_dump(mode="python", exclude_computed_fields=True)
+    invalid["fuselage"]["fairings"][0]["stations"][0]["width_m"] = 0.01
+    invalid["fuselage"]["fairings"][0]["stations"][0]["height_m"] = 0.01
+    with pytest.raises(ValidationError, match="point caps"):
+        VehicleSpec.model_validate(invalid)
+
+
 def test_sectioned_wing_reproduces_equivalent_trapezoid_and_interpolates():
     import math
 

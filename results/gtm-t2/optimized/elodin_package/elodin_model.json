@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "gtm-t2",
-  "created_at": "2026-09-10T05:12:46+00:00",
+  "created_at": "2026-09-10T08:12:45+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -145,7 +145,7 @@
     "geometry_vsp3": {
       "path": "geometry/gtm-t2.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "4689cafe245401e65ae5c368793ce0292426b8f761fab9e7e153389a8ae5159d",
+      "sha256": "1afa3966cafad1753bcf8e317dc8480553b09a95919e962e0b8a35f65936c71a",
       "size_bytes": 262950
     },
     "geometry_whole_stl": {
@@ -169,7 +169,7 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "a1ff7174873fcc02901fac17df24a73a0523b151d2e9993d87c0cbdfa2677406",
+      "sha256": "e43fa5bad7c810ba7d25b0ebcfef8fd046adee09ecdfbea54954753769e3e461",
       "size_bytes": 991
     },
     "render_glb": {
@@ -309,7 +309,7 @@
       "Propulsion map is evaluated from the analytic lapse/TSFC model, not an identified engine deck.",
       "No measured inertia tensor is available; consumers must not invent one from this package."
     ],
-    "design_sha256": "3aa0452b42e1340c2377f936dd60875127040de3f51ec796f79dea6536757f89",
+    "design_sha256": "b7668342cd3c6400dc6a1163d3b319307625fac05166c2ffca92be6486ba46f2",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -317,14 +317,14 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "ed3c5ebf61d678e1ba3a758b2610806616a9d172810fd403377103ce2b5199b7",
-    "pipeline_run_id": "b5714dea8500471a851ca287ca49e378",
-    "source_git_commit": "d772c0edec594d0737e3607499a7db50e67527fa",
+    "model_source_sha256": "1dda28b80e996e89b19a7e394d2e8ae08e11e372689b9723a301dd77ab05aef2",
+    "pipeline_run_id": "06f15e722b2a42b0b69463b039e53058",
+    "source_git_commit": "c7ad921a3fbf0dca9dfc0a3e69ac701874fdd0d3",
     "upstream_sha256": {
-      "aero.json": "2630cb1b0a2deb2fc15070d111f6ab54cfe58272dec0a2941b4ca420777d7f0a",
-      "geometry.json": "a8a25e72ec6dd2a2d953bdeb3774627ce138a25f8711ddd214b6ece357496bb9",
-      "structures.json": "9c3bde31f379aea93d847e10ec7ac7fcc7055932765275c12df10716598387f2",
-      "validation.json": "c426bb72d8573776b67f8d2df1a0ac6097868d4e83f0b50704c339ea0eb860e9"
+      "aero.json": "90a158f4386138223484264cd9f000140b2e0569db7bb1d4bdf2713c277794c9",
+      "geometry.json": "acf114629fe2f6893ccb09ccabe0baa06dc5981a3132bb7dce9d4a5ea664846b",
+      "structures.json": "3f98d32868f376ecc09395335d63871765adc2e3612fba5a693b70fadab7473a",
+      "validation.json": "fb1c6c296c2a88fc392901e3195ae4a7aa6369f9ba3a18ba9576084b412dac94"
     }
   },
   "reference_geometry": {
@@ -332,6 +332,7 @@
     "aspect_ratio": 7.947755166229314,
     "evidence_class": "C",
     "fuselage": {
+      "fairings": null,
       "fuel_tank_x_m": 1.225,
       "length_m": 2.5908,
       "max_height_m": 0.3,

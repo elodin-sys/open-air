@@ -33,8 +33,9 @@ A prototype passes QA only when all of these hold, in this order:
    (chapter 08).
 2. **Geometry truth**: `geometry.json .openvsp.readback.matches_spec == true`,
    `stl_bbox.ok == true`, AND `mesh_checks.ok == true` (per-component extents,
-   fin verticality, root attachment — measured from the exported STL, because
-   read-back cannot catch a wrong rotation choice: F11, F14). Then LOOK at
+   fin verticality, fairing-base support, and local body-union root attachment
+   — measured from the exported STL, because read-back cannot catch a wrong
+   rotation choice or a permissive attachment slab: F11, F14, F36). Then LOOK at
    `threeview.png`, which is rendered from the exported mesh, not the spec
    (F15). At least one report figure must always be artifact-derived. When
    the concept carries a measured reference model

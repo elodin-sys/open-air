@@ -42,7 +42,7 @@
     "validity_component_required": true
   },
   "concept": "atomrc-dolphin-v1-1",
-  "created_at": "2026-09-10T05:14:23+00:00",
+  "created_at": "2026-09-10T08:26:17+00:00",
   "credibility": "analysis-correlated",
   "frames": {
     "body": "X_FORWARD_Y_LEFT_Z_UP",
@@ -106,17 +106,35 @@
       "sha256": "69a8fc9d4f951feaaf221c06f58b8f0e7fcbe74fb506ae4afb1048c4bcd1ff70",
       "size_bytes": 2161
     },
+    "geometry_component_fairing_aft_shoulder": {
+      "path": "geometry/component_fairing_aft_shoulder.stl",
+      "role": "verified_geometry_component_fairing_aft_shoulder",
+      "sha256": "9b0e306057a469b6e77533de8c1f884b31c0089151222c97561da7cb777440b6",
+      "size_bytes": 318563
+    },
     "geometry_component_fin_l": {
       "path": "geometry/component_fin_l.stl",
       "role": "verified_geometry_component_fin_l",
       "sha256": "aa852977e1f70424c4f93ebc4656805d727cec9b458743fc2ac3c20bb6be9904",
       "size_bytes": 164856
     },
+    "geometry_component_fin_l_root": {
+      "path": "geometry/component_fin_l_root.stl",
+      "role": "verified_geometry_component_fin_l_root",
+      "sha256": "d7613f3099af0253daa4cf339ce7dff2feb162c24dd6265702e30a2ad0628cda",
+      "size_bytes": 164874
+    },
     "geometry_component_fin_r": {
       "path": "geometry/component_fin_r.stl",
       "role": "verified_geometry_component_fin_r",
       "sha256": "4d3e1c0c31f0bbe07d3f754e4c55e7e3e8bfb79a2bf3e14b48a2b77e058d7e3d",
       "size_bytes": 163204
+    },
+    "geometry_component_fin_r_root": {
+      "path": "geometry/component_fin_r_root.stl",
+      "role": "verified_geometry_component_fin_r_root",
+      "sha256": "80d36952a7fb653fef8f02adc769dd901a16ea8bac6b79fc79cd5c27971435cc",
+      "size_bytes": 163200
     },
     "geometry_component_fuselage": {
       "path": "geometry/component_fuselage.stl",
@@ -133,14 +151,14 @@
     "geometry_vsp3": {
       "path": "geometry/atomrc-dolphin-v1-1.vsp3",
       "role": "verified_geometry_vsp3",
-      "sha256": "774afae27afdda74e6f60f3f69bc9c81529a9947504087b265229fc6415d6360",
-      "size_bytes": 415360
+      "sha256": "4e9fbd91c8520a2ad83f32b74e4cbe7cfcecd30c22f18bbc7ecb245132790379",
+      "size_bytes": 627504
     },
     "geometry_whole_stl": {
       "path": "geometry/atomrc-dolphin-v1-1.stl",
       "role": "verified_geometry_whole_stl",
-      "sha256": "6b5fb32d524e6da2c52132ccd6f53f6fc8a8075baf5cb3aea1d1a314cff73083",
-      "size_bytes": 2597362
+      "sha256": "c6f5587ebe1197fe1624a32147657fdbb0cc54058fc6c454e6253097e1ccd300",
+      "size_bytes": 3243954
     },
     "integration_guide": {
       "path": "integration_guide.md",
@@ -157,14 +175,14 @@
     "provenance": {
       "path": "provenance.md",
       "role": "human_readable_provenance",
-      "sha256": "126d14d810a578606126d809b61046655bcaa6493e7a314263587826af333f1f",
+      "sha256": "d81bfd880ba19cd29c2679b857afdb084ebb7d72d343e8efe869df61bd26a346",
       "size_bytes": 1004
     },
     "render_glb": {
       "path": "atomrc-dolphin-v1-1.glb",
       "role": "render_mesh_body_frame",
-      "sha256": "19301f33a9f18ab70bc79c199f29e187b9daf59b9be6afaa5c3f3f935895b48d",
-      "size_bytes": 155760
+      "sha256": "4e0e53b0b6197aefe3f009eacb92cf0e190c5a388cb3436fcc1183b50c9fd3a9",
+      "size_bytes": 183700
     },
     "trim_map": {
       "path": "trim_map.csv",
@@ -297,7 +315,7 @@
       "Propulsion map is evaluated from the analytic lapse/TSFC model, not an identified engine deck.",
       "No measured inertia tensor is available; consumers must not invent one from this package."
     ],
-    "design_sha256": "167db3f4e623c4719d97c29f4ec27188684bb1fa1877a448bca97478151576eb",
+    "design_sha256": "74a33f0e0efb44126839e9614770ee0cb98356d97ae5c3b21e50526d5c570648",
     "evidence_classes": {
       "aerodynamics": "C",
       "mass_properties": "C",
@@ -305,14 +323,14 @@
       "propulsion": "D",
       "reference_geometry": "C"
     },
-    "model_source_sha256": "ed3c5ebf61d678e1ba3a758b2610806616a9d172810fd403377103ce2b5199b7",
-    "pipeline_run_id": "ad03787b40a34ab68b700ebb7e03584f",
-    "source_git_commit": "d772c0edec594d0737e3607499a7db50e67527fa",
+    "model_source_sha256": "1dda28b80e996e89b19a7e394d2e8ae08e11e372689b9723a301dd77ab05aef2",
+    "pipeline_run_id": "cabfc57ad2774113bba8f03313fe4cb6",
+    "source_git_commit": "c7ad921a3fbf0dca9dfc0a3e69ac701874fdd0d3",
     "upstream_sha256": {
-      "aero.json": "f21c6b8e4ad5861ef250ce0ea33e29ea9b39e2e6ca1a88573b148fb0bab9ac29",
-      "geometry.json": "12a8a71bba2b78659e19e7b1120e644d49bc963adea163963de95d283cee5c49",
-      "structures.json": "53539fdc6acea760b5fc69f3b01d815b03a8b00d0301e255ad3afbeceb94a71b",
-      "validation.json": "a336e4a5fb346ca0239e766d98a148464d9211c43c5a3bbd7c5c2fa8184068ba"
+      "aero.json": "fecbc8c02ebead6bfcb1c1067192bf7089a513d5d6b5e316955755db2bdd56fd",
+      "geometry.json": "5837dfb3fbc33a7b39c5568954e595e50c40e45d25660971f50e1aaaebdbf88b",
+      "structures.json": "faa3e44e7a2a125206b37986a89492e9c46a443e3a0fffa4159de6a4bf9f56c0",
+      "validation.json": "c50e07a3041e5ac96736d57fe7bc930c399d95f2e51bbeaa6bff0291f6f36308"
     }
   },
   "reference_geometry": {
@@ -320,6 +338,94 @@
     "aspect_ratio": 4.328309429019278,
     "evidence_class": "C",
     "fuselage": {
+      "fairings": [
+        {
+          "name": "aft_shoulder",
+          "role": "shoulder",
+          "stations": [
+            {
+              "bottom_power": 2.0,
+              "height_m": 0.0,
+              "max_width_loc": 0.0,
+              "side_power": 2.0,
+              "top_power": 2.0,
+              "width_m": 0.0,
+              "x_over_length": 0.7444,
+              "z_offset_m": 0.0568
+            },
+            {
+              "bottom_power": 2.0,
+              "height_m": 0.0329,
+              "max_width_loc": -1.0,
+              "side_power": 1.74,
+              "top_power": 2.71,
+              "width_m": 0.1438,
+              "x_over_length": 0.7514,
+              "z_offset_m": 0.0403
+            },
+            {
+              "bottom_power": 2.0,
+              "height_m": 0.0314,
+              "max_width_loc": -1.0,
+              "side_power": 1.71,
+              "top_power": 2.52,
+              "width_m": 0.149,
+              "x_over_length": 0.7655,
+              "z_offset_m": 0.04
+            },
+            {
+              "bottom_power": 2.0,
+              "height_m": 0.034,
+              "max_width_loc": -1.0,
+              "side_power": 1.56,
+              "top_power": 3.31,
+              "width_m": 0.1438,
+              "x_over_length": 0.7795,
+              "z_offset_m": 0.0378
+            },
+            {
+              "bottom_power": 2.0,
+              "height_m": 0.0325,
+              "max_width_loc": -1.0,
+              "side_power": 1.64,
+              "top_power": 2.49,
+              "width_m": 0.1488,
+              "x_over_length": 0.7936,
+              "z_offset_m": 0.0376
+            },
+            {
+              "bottom_power": 2.0,
+              "height_m": 0.0357,
+              "max_width_loc": -1.0,
+              "side_power": 0.78,
+              "top_power": 3.61,
+              "width_m": 0.1339,
+              "x_over_length": 0.8919,
+              "z_offset_m": 0.0314
+            },
+            {
+              "bottom_power": 2.0,
+              "height_m": 0.0375,
+              "max_width_loc": -1.0,
+              "side_power": 0.88,
+              "top_power": 2.22,
+              "width_m": 0.1393,
+              "x_over_length": 0.913,
+              "z_offset_m": 0.0301
+            },
+            {
+              "bottom_power": 2.0,
+              "height_m": 0.0,
+              "max_width_loc": 0.0,
+              "side_power": 2.0,
+              "top_power": 2.0,
+              "width_m": 0.0,
+              "x_over_length": 0.92,
+              "z_offset_m": 0.0489
+            }
+          ]
+        }
+      ],
       "fuel_tank_x_m": 0.3,
       "length_m": 0.712,
       "max_height_m": 0.107,
@@ -333,6 +439,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 0.0,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 0.0,
@@ -342,6 +449,7 @@
         {
           "bottom_power": 2.86,
           "height_m": 0.065,
+          "max_width_loc": 0.0,
           "side_power": 2.75,
           "top_power": 1.03,
           "width_m": 0.089,
@@ -351,6 +459,7 @@
         {
           "bottom_power": 1.17,
           "height_m": 0.107,
+          "max_width_loc": 0.0,
           "side_power": 3.0,
           "top_power": 0.89,
           "width_m": 0.118,
@@ -360,6 +469,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 0.1,
+          "max_width_loc": 0.0,
           "side_power": 2.0,
           "top_power": 2.0,
           "width_m": 0.15,
@@ -369,6 +479,7 @@
         {
           "bottom_power": 0.64,
           "height_m": 0.082,
+          "max_width_loc": 0.0,
           "side_power": 1.92,
           "top_power": 2.61,
           "width_m": 0.141,
@@ -378,6 +489,7 @@
         {
           "bottom_power": 0.66,
           "height_m": 0.071,
+          "max_width_loc": 0.0,
           "side_power": 3.67,
           "top_power": 4.71,
           "width_m": 0.099,
@@ -387,6 +499,7 @@
         {
           "bottom_power": 2.0,
           "height_m": 0.059,
+          "max_width_loc": 0.0,
           "side_power": 2.44,
           "top_power": 4.07,
           "width_m": 0.095,
@@ -396,6 +509,7 @@
         {
           "bottom_power": 6.33,
           "height_m": 0.048,
+          "max_width_loc": 0.0,
           "side_power": 1.05,
           "top_power": 3.44,
           "width_m": 0.045,
@@ -411,8 +525,11 @@
       "geometry/atomrc-dolphin-v1-1.stl",
       "geometry/component_fuselage.stl",
       "geometry/component_wing.stl",
+      "geometry/component_fairing_aft_shoulder.stl",
       "geometry/component_fin_r.stl",
-      "geometry/component_fin_l.stl"
+      "geometry/component_fin_l.stl",
+      "geometry/component_fin_r_root.stl",
+      "geometry/component_fin_l_root.stl"
     ],
     "horizontal_tail": {
       "area_m2": 0.0,

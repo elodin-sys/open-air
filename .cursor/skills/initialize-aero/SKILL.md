@@ -120,12 +120,19 @@ is tool-agnostic on purpose.
     For inspiration or requirement intent, pass that treatment to ingest;
     sections remain disclosed as a reproduction alternative but
     `suggested.wing` stays scalar and valid for MDO.
+4aa. When `measurements.fairings.aft_shoulder.ok`, inspect its fin-point
+    exclusion, fit RMS, simplification residual, base-burial allowance, and
+    junction crease in `reference-sections.png`. For a reproduction copy the
+    complete `suggested.fuselage.fairings` list; do not hand-tune its stations.
+    `max_width_loc: -1` is the measured dome convention. Inspiration and
+    requirement modes keep the candidate disclosed but do not emit it.
 4b. When the fin measurement resolves a root junction, write its mirrored
    absolute y and shared z into `vtail.y_root_m/z_root_m` and set
    `vtail.root_attachment: measured`. The default `derived` mode intentionally
    ignores those coordinates and applies the legacy 60%-body rule; never use
-   it for a measured reference-model reproduction. Record any deck/strake
-   fairing the single body loft cannot support.
+   it for a measured reference-model reproduction. If the measured junction
+   needs a shoulder fairing, require the generated fairing plus derived buried
+   root extension; never project the exposed fin inward or relax attachment QA.
 5. The scan silhouettes (`sketch-top/side/front.png`) are the primary views:
    orthographic, rectified by construction, 10 mm grid, mm/px in the PNG
    metadata. Keep any photographs or renders in the source list as secondary

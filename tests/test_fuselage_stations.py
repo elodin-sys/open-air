@@ -10,6 +10,7 @@ from openair.geometry.fuselage import (
     fuselage_z_bounds,
     polygon_area,
     section_area_m2,
+    section_eccentricity,
     section_polygon,
 )
 from openair.geometry.openvsp_model import build_openvsp_model
@@ -162,6 +163,52 @@ def test_split_superellipse_polygon_and_power_interpolation():
     assert section_area_m2(ellipse) == pytest.approx(
         math.pi * shape.width_m * shape.height_m / 4.0
     )
+
+
+def test_max_width_location_matches_openvsp_split_section_equation():
+    shape = fuselage_section_shape(
+        VehicleSpec.model_validate(
+            {
+                "fuselage": {
+                    "stations": [
+                        {**STATIONS[0]},
+                        {**STATIONS[1], "max_width_loc": -1.0},
+                        {**STATIONS[2], "max_width_loc": -1.0},
+                        {**STATIONS[3], "max_width_loc": -1.0},
+                        {**STATIONS[4], "max_width_loc": -1.0},
+                        {**STATIONS[5]},
+                    ]
+                }
+            }
+        ),
+        0.42 * VehicleSpec().fuselage.length_m,
+    )
+    assert shape.max_width_z_m == pytest.approx(
+        shape.z_center_m - 0.5 * shape.height_m
+    )
+    assert shape.bottom_height_m == pytest.approx(0.0)
+    assert shape.top_height_m == pytest.approx(shape.height_m)
+
+    points = section_polygon(
+        shape.width_m,
+        shape.height_m,
+        z_center_m=shape.z_center_m,
+        side_power=shape.side_power,
+        top_power=shape.top_power,
+        bottom_power=shape.bottom_power,
+        max_width_loc=shape.max_width_loc,
+    )
+    assert points[0] == pytest.approx(
+        (0.5 * shape.width_m, shape.z_center_m - 0.5 * shape.height_m)
+    )
+    assert section_eccentricity(shape, points[0][0], points[0][1]) == pytest.approx(
+        1.0
+    )
+    assert section_eccentricity(
+        shape,
+        0.0,
+        shape.z_center_m + 0.5 * shape.height_m,
+    ) == pytest.approx(1.0)
 
 
 def test_station_aware_packing_uses_local_sections():

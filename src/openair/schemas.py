@@ -484,12 +484,41 @@ class FuselageStation(PhysicalModel):
     side_power: float = Field(2.0, ge=0.5, le=10.0)
     top_power: float = Field(2.0, ge=0.5, le=10.0)
     bottom_power: float = Field(2.0, ge=0.5, le=10.0)
+    # OpenVSP split-superellipse location of maximum width, normalized by
+    # half-height: -1 is the lower edge, 0 the section centre, +1 the upper
+    # edge.  A lower-edge maximum lets an auxiliary fairing form a shoulder
+    # dome without changing the core-body section.
+    max_width_loc: float = Field(0.0, ge=-1.0, le=1.0)
 
     @model_validator(mode="after")
     def nondegenerate_section(self) -> Self:
         if (self.width_m == 0.0) != (self.height_m == 0.0):
             raise ValueError(
                 "a fuselage station must be a point or have both width and height"
+            )
+        return self
+
+
+class BodyFairingSpec(PhysicalModel):
+    """One source-measured, loft-only appendage on the fuselage."""
+
+    name: str = Field(pattern=r"^[a-z][a-z0-9_]*$")
+    role: Literal["shoulder"] = "shoulder"
+    stations: list[FuselageStation] = Field(min_length=4, max_length=8)
+
+    @model_validator(mode="after")
+    def validate_stations(self) -> Self:
+        xs = [station.x_over_length for station in self.stations]
+        if any(right - left <= 1e-6 for left, right in zip(xs, xs[1:])):
+            raise ValueError("body fairing stations must be strictly increasing in x/L")
+        if self.stations[0].width_m != 0.0 or self.stations[-1].width_m != 0.0:
+            raise ValueError("body fairing stations must start and end with point caps")
+        if any(
+            station.width_m <= 0.0 or station.height_m <= 0.0
+            for station in self.stations[1:-1]
+        ):
+            raise ValueError(
+                "interior body fairing stations must have positive width and height"
             )
         return self
 
@@ -510,9 +539,14 @@ class FuselageSpec(PhysicalModel):
         min_length=4,
         max_length=8,
     )
+    fairings: list[BodyFairingSpec] | None = Field(default=None, max_length=4)
 
     @model_validator(mode="after")
     def validate_stations(self) -> Self:
+        if self.fairings is not None:
+            names = [fairing.name for fairing in self.fairings]
+            if len(names) != len(set(names)):
+                raise ValueError("body fairing names must be unique")
         if self.stations is None:
             return self
         xs = [station.x_over_length for station in self.stations]
@@ -1043,6 +1077,18 @@ class VehicleSpec(PhysicalModel):
 
     def assert_cross_model_invariants(self) -> None:
         """Recheck invariants that nested assignment cannot trigger on the parent."""
+        if self.fuselage.fairings:
+            FuselageSpec.model_validate(
+                self.fuselage.model_dump(mode="python", exclude_computed_fields=True)
+            )
+            if not (
+                self.sketch is not None and self.sketch.treatment == "reproduction"
+            ):
+                raise ValueError(
+                    "fuselage.fairings currently requires "
+                    "sketch.treatment='reproduction'; fairings are measured "
+                    "loft-fidelity geometry"
+                )
         if self.wing.sections is not None:
             WingSpec.model_validate(
                 self.wing.model_dump(mode="python", exclude_computed_fields=True)

@@ -334,6 +334,8 @@ def test_sectioned_studio_preserves_reproduction_and_true_wing_metrics(tmp_path)
     assert spec.sketch.hard_scale == pytest.approx(1.0)
     assert spec.wing.sections is not None
     assert len(spec.wing.sections) == 11
+    assert spec.fuselage.fairings is not None
+    assert len(spec.fuselage.fairings) == 1
     for handle_id in (
         "wing-root-le",
         "wing-root-te",
@@ -344,6 +346,9 @@ def test_sectioned_studio_preserves_reproduction_and_true_wing_metrics(tmp_path)
     ):
         assert f'data-handle="{handle_id}"' not in dom
     assert re.search(r'data-path="wing\.taper"[^>]* disabled', dom)
+    assert re.search(r'data-path="fuselage\.fairings"[^>]* disabled', dom)
+    assert 'class="fairing-shape"' in dom
+    assert "root-extension" in dom
 
     brief_match = re.search(
         r'<pre id="smoke-brief" hidden(?:="")?>(.*?)</pre>',
@@ -356,6 +361,8 @@ def test_sectioned_studio_preserves_reproduction_and_true_wing_metrics(tmp_path)
     assert "Wing equivalent tip chord | 0.1325 m" in brief
     assert "Wing projected area | 0.1668 m²" in brief
     assert "Wing mean aerodynamic chord | 0.2293 m" in brief
+    assert "### Measured body fairings" in brief
+    assert "Fin buried root extension | 0.0330 m" in brief
 
 
 def test_blank_disabled_optional_section_does_not_block_openvsp(tmp_path):
