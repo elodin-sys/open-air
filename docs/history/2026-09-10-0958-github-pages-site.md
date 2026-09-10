@@ -1,7 +1,7 @@
 # 2026-09-10 — GitHub Pages design-review site
 
 - Type: milestone
-- Commits: `c615456`
+- Commits: `c615456`, `43a48b0`
 
 The repository already committed a deliberately small presentation subset for
 each aircraft, but GitHub displayed the interactive HTML reports as source or
