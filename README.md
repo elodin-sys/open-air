@@ -1,5 +1,7 @@
 # open-air
 
+<img width="1200" height="600" alt="image" src="https://github.com/user-attachments/assets/09d12edf-f365-4845-af18-4e279fb0f08b" />
+
 Agent-friendly aerostructures design suite. Python is the control plane; solver kernels stay untouched.
 
 ```
