@@ -168,6 +168,11 @@ the optimized three-view image, and links to:
 - `results/<name>/executive_brief.pdf`
 - `results/<name>/optimized/design.yaml`
 
+When publishing a new committed preview, add its curated title, summary, kind,
+and optional featured status to `site/designs.yaml`. The Pages build is
+deliberately fail-closed when that manifest and the
+`results/*/report.html` set differ.
+
 To make the delivered geometry the explicit source for another iteration, use
 `python -m openair promote <name> <new-name>`; never copy generated YAML over
 the current source concept.

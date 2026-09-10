@@ -25,6 +25,7 @@ results/**
 !results/*/cg_np_balance.png
 !results/*/*/elodin_package/**
 design-studio.html
+_site/
 *.db
 *.n2.html
 *.out

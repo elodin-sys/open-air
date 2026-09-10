@@ -453,6 +453,28 @@ requirement scorecard, evidence-backed gate table with feedback, MDO
 evolution, V&V summary, engineering appendix) and the five-page
 `executive_brief.pdf`.
 
+### Static publishing — `src/openair/site/`
+
+`python -m openair.site build --out _site` assembles the committed preview
+subset into a GitHub Pages artifact; it never runs a solver or reads ignored
+stage JSONs. `site/designs.yaml` supplies curated titles and summaries while
+the builder reads treatment from source YAML and phase-labeled optimized
+dimensions/provenance from committed Elodin manifests. Every source, report,
+PDF, PNG, and package-manifest input used for publication must be a regular
+Git blob matching the exact build revision. The site manifest and
+`results/*/report.html` set must match exactly, and every generated local link
+and HTML fragment is checked before publication.
+
+Published reports remain self-contained. The builder copies each one to
+`designs/<concept>/index.html`, adds a return link, and rewrites repository
+guidebook links to the exact build commit. `src/openair/theme.py` is shared by
+the report generator and landing page so both use one visual contract. The
+sealed X8 capstone receives a publication-only warning because its original
+report named source/generated YAML paths that were never committed. The
+native Pages workflow (`.github/workflows/deploy-site.yml`) builds on relevant
+pull requests and deploys only from `main`; `_site/` itself is generated and
+gitignored.
+
 ## Quality system
 
 `reporting/gates.py` evaluates the canonical twelve gates — schema, geometry

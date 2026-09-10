@@ -86,9 +86,10 @@ non-claims. Do not turn calibration or post-hoc agreement into validation.
 - [14:15 — Measured fin-root attachment](2026-09-09-1415-measured-fin-attachment.md): made fin placement explicitly derived or measured, honoured the Dolphin scan junction, and reduced fin p95 from 20–21 mm to 3–4 mm.
 - [19:27 — Multi-section measured wing planforms](2026-09-09-1927-multi-section-wing-planform.md): replaced the Dolphin's geometry-only equivalent trapezoid with one measured section source shared by OpenVSP, OAS, Studio, and QA, raising top/front IoU to 0.968/0.899 and re-closing at 12/12 gates.
 
-### 2026-09-10 — Artifact continuity
+### 2026-09-10 — Artifact continuity and publishing
 
 - [00:56 — Fin shoulder fairing and buried roots](2026-09-10-0056-fin-shoulder-fairing.md): represented the Dolphin's measured aft shoulder, continued both fin roots into it, replaced a permissive slab attachment check with local containment, and re-closed at 12/12 gates.
+- [09:58 — GitHub Pages design-review site](2026-09-10-0958-github-pages-site.md): assembled the committed preview subset into a professional, fail-closed static index and native Pages deployment without rerunning solvers.
 
 ## Adding an entry
 

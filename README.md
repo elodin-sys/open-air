@@ -95,6 +95,13 @@ same change that alters what they show. GitHub renders the PDF and PNGs
 in-browser; `report.html` is a download (GitHub shows the HTML as source).
 Baseline and optimized packages are different aircraft — do not mix them.
 
+The committed preview set is also assembled into the
+[open-air design review site](https://elodin-sys.github.io/open-air/).
+Its landing page indexes every published concept; each design page serves a
+publication copy of the self-contained `report.html` committed here, with
+site navigation and any necessary historical-artifact notice added. The
+native GitHub Pages workflow builds from `main` without rerunning any solver.
+
 - **bdx** — Elite Aerosports BDX RC sport-jet reconstruction.
   [executive brief](results/bdx/executive_brief.pdf) ·
   [baseline vs optimized](results/bdx/baseline_vs_optimized.png) ·
