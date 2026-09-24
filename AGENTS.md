@@ -25,6 +25,8 @@ TACS/SU2 stretch cross-checks. Stages run as
 - `designs/<concept>/design.yaml` is the single source of truth; generated
   specs never live in `designs/`. The sizing overlay carries only
   `mass.fuel_mass_kg` (see guidebook chapter 08, audit F13).
+- `family: multirotor` uses the baseline-only chapter-14 workflow; fixed-wing
+  sizing/OAS/structures/MDO gates are `not_applicable`, never fabricated passes.
 - Stretch solvers (TACS/SU2) are calibration data, never pass/fail evidence.
 - Files under `truth/cases/*/truth/` are immutable evidence. Never tune a model
   against a case whose manifest role is `validation`; calibration-role use,

@@ -1,0 +1,90 @@
+family: multirotor
+name: racing-quad-streamlined
+notes: >-
+  Propeller-free streamlined racing-quad baseline derived from the supplied
+  assembled reference mesh. This is a tail-sitter Quad-X: geometry +Z is the
+  thrust/nose axis, while Betaflight body +X is the 45-degree bisector between
+  the two forward motors. Geometry is measured; mass and propulsion values are
+  provisional until replaced by physical measurements.
+reference:
+  generated: reference/reference.json
+  units: mm
+  axes: x:+x,y:+y,z:+z
+  propeller_radial_min_m: 0.13
+  propeller_planar_span_min_m: 0.12
+  motor_radial_min_m: 0.145
+  arm_radial_min_m: 0.07
+  frame_planar_span_min_m: 0.25
+  body_longitudinal_extent_min_m: 0.07
+  tail_fin_count: 4
+frames:
+  thrust_axis_geometry: [0.0, 0.0, 1.0]
+  forward_azimuth_deg: 45.0
+  world: ENU_Z_UP
+  body: X_FORWARD_Y_LEFT_Z_UP
+motors:
+  layout: quad_x
+  betaflight_order: [BR, FR, BL, FL]
+  spin: props_out
+  positions: measured
+  prop_diameter_m: measured
+propulsion:
+  max_thrust_n: 15.0
+  time_constant_s: 0.02
+  torque_coefficient_m: 0.012
+  command_exponent: 1.0
+  source: Class-D typical racing-quad placeholder; replace with thrust-stand data
+  evidence_class: D
+mass:
+  source: Class-D one-kilogram component budget; replace with scale, CG balance, and inertia test
+  evidence_class: D
+  components:
+    - name: fuselage_shell
+      mass_kg: 0.22
+      shape: reference_group
+      group: body
+      position_m: measured
+      source: provisional component budget
+    - name: center_frame_and_arms
+      mass_kg: 0.18
+      shape: reference_group
+      group: arms
+      position_m: measured
+      source: provisional component budget
+    - name: four_motors
+      mass_kg: 0.24
+      shape: reference_group
+      group: motors
+      position_m: measured
+      source: provisional 60 g per installed motor
+    - name: external_equipment
+      mass_kg: 0.08
+      shape: reference_group
+      group: protrusions
+      position_m: measured
+      source: provisional component budget
+    - name: flight_battery
+      mass_kg: 0.25
+      shape: box
+      position_m: [0.0, 0.0, -0.08]
+      dimensions_m: [0.035, 0.075, 0.11]
+      source: provisional racing battery
+    - name: fasteners_and_wiring
+      mass_kg: 0.03
+      shape: point
+      position_m: [0.0, 0.0, -0.04]
+      source: provisional component budget
+aero:
+  air_density_kg_m3: 1.225
+  dynamic_viscosity_pa_s: 1.789e-5
+  reference_speed_mps: 20.0
+  grid_step_deg: 5
+  include_rate_derivatives: true
+  body_crossflow_cd: 1.2
+  plate_normal_cd: 1.28
+  uncertainty_fraction: 0.5
+  evidence_class: D
+  component_overrides: {}
+validity:
+  speed_mps: [2.0, 60.0]
+  extrapolation_policy: flag_invalid_do_not_clamp

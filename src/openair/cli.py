@@ -22,6 +22,7 @@ from openair.paths import (
     results_dir_for,
 )
 from openair.provenance import model_source_sha256
+from openair.multirotor.schema import MultirotorSpec
 from openair.schemas import VehicleSpec
 
 _PIPELINE_RUN_ID: str | None = None
@@ -57,10 +58,23 @@ def _select_auto_retry(feedback: dict[str, Any]) -> dict[str, Any] | None:
     return None
 
 
-def load_spec(design_path: str | Path) -> VehicleSpec:
-    """Load a spec from a concept directory, design YAML, or bare YAML."""
+def load_spec(design_path: str | Path) -> VehicleSpec | MultirotorSpec:
+    """Load the family-specific spec from a concept directory or YAML."""
     _, design_yaml, _ = resolve_design(design_path)
-    return VehicleSpec.model_validate(load_yaml(design_yaml))
+    payload = load_yaml(design_yaml)
+    if payload.get("family") == "multirotor":
+        return MultirotorSpec.model_validate(payload)
+    return VehicleSpec.model_validate(payload)
+
+
+def load_fixed_wing_spec(design_path: str | Path) -> VehicleSpec:
+    spec = load_spec(design_path)
+    if not isinstance(spec, VehicleSpec):
+        raise ValueError(
+            "fixed-wing stage requested for a multirotor concept; "
+            "run `python -m openair.multirotor run <concept>` instead"
+        )
+    return spec
 
 
 def promote_design(design_path: str | Path, new_name: str) -> Path:
@@ -74,7 +88,7 @@ def promote_design(design_path: str | Path, new_name: str) -> Path:
         raise FileNotFoundError(
             f"Optimized design not found: {optimized_yaml}. Run the pipeline first."
         )
-    optimized = load_spec(optimized_yaml)
+    optimized = load_fixed_wing_spec(optimized_yaml)
     destination = DESIGNS_DIR / promoted_name
     if destination.exists():
         raise FileExistsError(
@@ -159,7 +173,7 @@ def stage_main(stage: str, run: Callable[[VehicleSpec, Path], dict[str, Any]]) -
     parser.add_argument("design", type=Path, help="concept folder or design YAML")
     args = parser.parse_args()
     _, design_yaml, _ = resolve_design(args.design)
-    spec = load_spec(design_yaml)
+    spec = load_fixed_wing_spec(design_yaml)
     from openair.mission.sizing import load_sized_spec
 
     spec = load_sized_spec(design_yaml, spec)
@@ -225,11 +239,11 @@ def _run_core(
     from openair.structures.oas_wingbox import run_structures_stage
 
     outdir = results_dir_for(design_yaml)
-    spec = load_spec(design_yaml)
+    spec = load_fixed_wing_spec(design_yaml)
     spec._wing_mass_override_kg = wing_mass_override_kg
     if sizing:
         _record_stage(design_yaml, "sizing", run_sizing_stage(spec, outdir))
-        fallback = load_spec(design_yaml)
+        fallback = load_fixed_wing_spec(design_yaml)
         fallback._wing_mass_override_kg = wing_mass_override_kg
         spec = load_sized_spec(design_yaml, fallback)
         spec._wing_mass_override_kg = wing_mass_override_kg
@@ -366,10 +380,27 @@ def top_main(argv: list[str] | None = None) -> int:
         parser.error(f"{args.command} does not accept <new-name>")
 
     concept, design_yaml, results_root = resolve_design(args.design)
+    if load_yaml(design_yaml).get("family") == "multirotor":
+        if args.command == "optimize":
+            raise ValueError(
+                "multirotor v1 is a measured baseline pipeline and has no MDO phase"
+            )
+        from openair.multirotor.pipeline import run_multirotor_pipeline
+
+        products = run_multirotor_pipeline(
+            design_yaml,
+            clean=args.command == "run",
+            pipeline_run_id=_PIPELINE_RUN_ID,
+        )
+        print(f"pipeline complete: {concept} (multirotor baseline)")
+        print(f"  baseline: {products['outdir']}")
+        print(f"  package:  {products['package_dir']}")
+        print(f"  report:   {products['report']}")
+        return 0
     if args.command == "validate":
         from openair.mission.sizing import load_sized_spec
 
-        spec = load_sized_spec(design_yaml, load_spec(design_yaml))
+        spec = load_sized_spec(design_yaml, load_fixed_wing_spec(design_yaml))
         _run_reviews(design_yaml, spec)
         print(f"done: validate {design_yaml}")
         return 0

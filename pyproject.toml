@@ -47,7 +47,7 @@ testpaths = ["tests"]
 addopts = "-q --durations=20 -m 'not stretch'"
 markers = [
     "slow: heavier OAS/MDO runs (seconds, not milliseconds)",
-    "stretch: requires SU2_CFD binary or the micromamba tacs env; run with -m stretch",
+    "stretch: requires optional SU2/TACS or the pinned isolated Elodin runtime; run with -m stretch",
     "truth: committed external-truth corpus and scorecard checks",
 ]
 filterwarnings = [

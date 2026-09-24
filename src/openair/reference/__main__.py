@@ -121,7 +121,7 @@ def _print_summary(summary: dict) -> None:
 
 
 def _compare(args: argparse.Namespace) -> int:
-    from openair.cli import load_spec
+    from openair.cli import load_fixed_wing_spec
     from openair.reference.compare import compare_reference
 
     concept, design_yaml, results_root = resolve_design(args.concept)
@@ -145,7 +145,7 @@ def _compare(args: argparse.Namespace) -> int:
         if args.phase == "optimized" and (phase_dir / "design.yaml").exists()
         else design_yaml
     )
-    spec = load_spec(spec_path)
+    spec = load_fixed_wing_spec(spec_path)
     result = compare_reference(
         spec,
         phase_dir,

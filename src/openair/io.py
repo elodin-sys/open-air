@@ -47,7 +47,7 @@ def _json_default(obj: Any) -> Any:
 
         if isinstance(obj, np.ndarray):
             return obj.tolist()
-        if isinstance(obj, (np.floating, np.integer)):
+        if isinstance(obj, (np.floating, np.integer, np.bool_)):
             return obj.item()
     except Exception:
         pass

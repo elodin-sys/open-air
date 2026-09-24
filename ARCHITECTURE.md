@@ -6,10 +6,11 @@ its code lives, what it writes, and which
 Read it top to bottom once; afterwards each section stands alone as a
 reference.
 
-The system turns one immutable concept source — a sketch-traced
-`designs/<concept>/design.yaml` — into two independently analyzed aircraft
-(baseline and optimized), a 12-gate quality verdict, and a self-contained
-interactive report.
+The system turns one immutable `designs/<concept>/design.yaml` into a
+family-specific analysis. Fixed-wing concepts produce independently analyzed
+baseline and optimized aircraft plus the 12-gate verdict. Multirotor concepts
+produce one measured baseline, a passive-airframe force/moment table, and a
+hash-verified Elodin package; inapplicable fixed-wing gates are explicit.
 
 ```
 Design Studio (browser)                 designs/<concept>/
@@ -58,6 +59,29 @@ Design Studio (browser)                 designs/<concept>/
   model accuracy by truth class and intended use; a green gate table cannot
   override a failing external scorecard.
 
+### Vehicle-family boundary
+
+An absent `family` key retains the historical fixed-wing `VehicleSpec`.
+`family: multirotor` selects `MultirotorSpec` and
+`src/openair/multirotor/`. Family dispatch happens before any fixed-wing stage
+is loaded: a quad does not acquire an invented wing, tail, fuel system, static
+margin, or wingbox simply to reuse the pipeline.
+
+The multirotor v1 workflow is baseline-only:
+
+```text
+assembled mesh -> shell segmentation (propellers excluded)
+               -> artifact geometry -> declared mass/inertia
+               -> declared Quad-X propulsion
+               -> full-sphere passive-airframe force/moment tables
+               -> hashed Elodin package + report
+```
+
+`python -m openair run designs/<multirotor>` dispatches to the same workflow as
+`python -m openair.multirotor run`; `openair optimize` refuses the family.
+OpenAeroStruct, VSPAERO, TACS, and SU2 are `not_applicable` in v1, not green
+evidence. See [guidebook chapter 14](docs/guidebook/14-multirotor-airframe.md).
+
 ## Repository layout
 
 ```
@@ -77,7 +101,8 @@ results/          <concept>/{baseline,optimized}/ artifacts. Committed
                   other meshes, and truth/<case>/ stay gitignored.
 ```
 
-`src/openair/` packages: `schemas` (the contract), `designer` (authoring UI),
+`src/openair/` packages: `schemas` (the fixed-wing contract), `multirotor`
+(its separate contract, mesh/aero stages, and Elodin export), `designer` (authoring UI),
 `mission` (sizing/engine/mass/balance), `geometry`, `aero`, `flightdyn`,
 `structures`, `mdo`, `validation`, `reporting`, `truth`, plus cross-cutting
 `paths`, `io`, `units`, `atmosphere`, and the `cli` orchestrator.
@@ -243,6 +268,14 @@ optimized YAML (`paths.resolve_design` routes artifacts to the matching
 | `python -m openair.validation run <design>` | `validation.json` |
 | `python -m openair.reporting run <design>` | `report.json`, `design_report.md`, plots |
 | `python -m openair.reporting present <design>` | `report.html`, `executive_brief.pdf` |
+
+Multirotor authoring and execution use:
+
+| Command | Output |
+|---|---|
+| `python -m openair.multirotor ingest <mesh> --concept <design>` | `reference/reference.json`, segmented STLs, artifact sketches |
+| `python -m openair.multirotor run <design>` | `multirotor_*.json`, `airframe_tables.npz`, `baseline/elodin_package/`, `report.html` |
+| `python -m openair.multirotor verify <design>` | isolated-Elodin hover, terminal-speed, and sign result |
 
 In Cursor, `/create-aero designs/<concept>`
 ([.cursor/skills/create-aero](.cursor/skills/create-aero/SKILL.md)) wraps the
