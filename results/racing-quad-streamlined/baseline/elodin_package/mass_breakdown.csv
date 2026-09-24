@@ -1,0 +1,13 @@
+name,parent,mass_kg,x_body_origin_m,y_body_origin_m,z_body_origin_m,source,evidence_class
+fuselage_shell[0],fuselage_shell,0.22,-0.000517615026,0.000274654815,-0.0289121921,provisional component budget,D
+center_frame_and_arms[0],center_frame_and_arms,0.045,0.0772796506,-0.0775206048,-0.0694842016,provisional component budget,D
+center_frame_and_arms[1],center_frame_and_arms,0.045,0.0755346737,0.0753896452,-0.0694251779,provisional component budget,D
+center_frame_and_arms[2],center_frame_and_arms,0.045,-0.0775205516,0.0769251112,-0.0694167922,provisional component budget,D
+center_frame_and_arms[3],center_frame_and_arms,0.045,-0.0778263442,-0.0779402374,-0.0694378483,provisional component budget,D
+four_motors[0],four_motors,0.06,0.122582674,-0.122362684,-0.0774115557,provisional 60 g per installed motor,D
+four_motors[1],four_motors,0.06,0.122481607,0.122483739,-0.0771683684,provisional 60 g per installed motor,D
+four_motors[2],four_motors,0.06,-0.12230557,0.122344519,-0.0775937887,provisional 60 g per installed motor,D
+four_motors[3],four_motors,0.06,-0.122293179,-0.122341226,-0.0776392021,provisional 60 g per installed motor,D
+external_equipment[0],external_equipment,0.08,8.33107057e-05,0.0104549641,0.0360101706,provisional component budget,D
+flight_battery,flight_battery,0.25,0,0,-0.08,provisional racing battery,D
+fasteners_and_wiring,fasteners_and_wiring,0.03,0,0,-0.04,provisional component budget,D

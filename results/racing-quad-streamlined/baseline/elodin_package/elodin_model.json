@@ -1,0 +1,349 @@
+{
+  "schema_version": "1.0",
+  "vehicle_family": "multirotor",
+  "model_id": "racing-quad-streamlined-baseline",
+  "concept": "racing-quad-streamlined",
+  "phase": "baseline",
+  "created_at": "2026-09-23T18:37:39+00:00",
+  "credibility": "geometry-correlated",
+  "manifest": {
+    "render_glb": {
+      "path": "racing-quad-streamlined.glb",
+      "role": "render_mesh_body_frame_cg_origin",
+      "sha256": "3ce67b6f2317ea81111ecbb39b7028a7d260fcaf52705cf50c7593fa2020d2c1",
+      "size_bytes": 3509948
+    },
+    "airframe_tables": {
+      "path": "airframe_tables.npz",
+      "role": "airframe_force_moment_tables",
+      "sha256": "2874512f831215d687e6c5f5f2ffeaad0c4beefb24d9fd1d90b213d85e6e6393",
+      "size_bytes": 257441
+    },
+    "mass_breakdown": {
+      "path": "mass_breakdown.csv",
+      "role": "component_mass_breakdown",
+      "sha256": "b9515265d48f65bd11c2fd0c4b45e1571c8a9ca4fbc7719715342f2572ff3bec",
+      "size_bytes": 1436
+    },
+    "integration_guide": {
+      "path": "integration_guide.md",
+      "role": "betaflight_sitl_integration_guide",
+      "sha256": "4600af5ecca60dbfb26fb4df2e45309cf52d83f2a02e55fc0784197dacb70bd0",
+      "size_bytes": 5297
+    },
+    "provenance": {
+      "path": "provenance.md",
+      "role": "human_readable_provenance",
+      "sha256": "069c0576a6cf8a3f0f2d9c67c10fb7598c022e7dd9fa272531e37c34d81266e0",
+      "size_bytes": 1107
+    }
+  },
+  "frames": {
+    "world": "ENU_Z_UP",
+    "body": "X_FORWARD_Y_LEFT_Z_UP",
+    "geometry": "Z_THRUST_XY_ROTOR_PLANE",
+    "glb": "X_FORWARD_Y_LEFT_Z_UP_CG_ORIGIN",
+    "moment_reference": "CG",
+    "geometry_origin_in_body_m": [
+      0.00019324426240201575,
+      -0.0007627081686066919,
+      0.05576802441143099
+    ],
+    "cg_in_geometry_m": [
+      -0.0006759604464580223,
+      0.00040267178971830665,
+      -0.05576802441143099
+    ],
+    "geometry_to_body_matrix": [
+      [
+        0.7071067811865476,
+        0.7071067811865475,
+        0.0,
+        0.00019324426240201575
+      ],
+      [
+        -0.7071067811865475,
+        0.7071067811865476,
+        0.0,
+        -0.0007627081686066919
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.05576802441143099
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "velocity_convention": "table input is vehicle velocity relative to air in body FLU; force opposes that velocity",
+    "motor_packet_order": [
+      "BR",
+      "FR",
+      "BL",
+      "FL"
+    ]
+  },
+  "reference_geometry": {
+    "extents_body_m": [
+      0.2849824687242644,
+      0.2844583568579633,
+      0.3994174897670746
+    ],
+    "projected_area_axes_m2": [
+      0.05001075,
+      0.049796,
+      0.0197275
+    ],
+    "wetted_area_m2": 0.5643561621810422,
+    "propellers_in_airframe_geometry": false,
+    "geometry_assets": [
+      "racing-quad-streamlined.glb"
+    ],
+    "glb_verification": {
+      "ok": true,
+      "extents_m": [
+        0.28498247265815735,
+        0.28445835411548615,
+        0.3994174897670746
+      ],
+      "component_nodes": [
+        "arms",
+        "body",
+        "motors",
+        "protrusions"
+      ],
+      "expected_faces": 194840,
+      "loaded_faces": 194840,
+      "projected_area_axes_m2": [
+        0.05001075,
+        0.049796,
+        0.0197275
+      ],
+      "checks": {
+        "face_count_preserved": true,
+        "surface_area_relative_error": 5.214198798206816e-09,
+        "surface_area_preserved": true,
+        "projected_area_relative_error": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "projected_areas_preserved": true,
+        "maximum_edge_growth_m": -1.8580682548119398e-09,
+        "no_long_edge_growth": true,
+        "finite_vertices": true,
+        "degenerate_faces": 0,
+        "no_degenerate_faces": true
+      }
+    },
+    "evidence_class": "C"
+  },
+  "mass_properties": {
+    "mass_kg": 1.0,
+    "cg_geometry_m": [
+      -0.0006759604464580223,
+      0.00040267178971830665,
+      -0.05576802441143099
+    ],
+    "cg_body_m": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "full_inertia_tensor_kg_m2": [
+      [
+        0.011720006697076816,
+        1.702385961609105e-05,
+        -3.1100583682296296e-06
+      ],
+      [
+        1.702385961609105e-05,
+        0.01162480378156742,
+        -8.25576504780786e-05
+      ],
+      [
+        -3.1100583682296296e-06,
+        -8.25576504780786e-05,
+        0.012138939539590674
+      ]
+    ],
+    "elodin_diagonal_kg_m2": [
+      0.011720006697076816,
+      0.01162480378156742,
+      0.012138939539590674
+    ],
+    "diagonal_approximation_declared": true,
+    "source": "Class-D one-kilogram component budget; replace with scale, CG balance, and inertia test",
+    "evidence_class": "D",
+    "breakdown_asset": "mass_breakdown.csv"
+  },
+  "propulsion": {
+    "model": "first_order_command_to_thrust",
+    "max_thrust_n_per_motor": 15.0,
+    "command_exponent": 1.0,
+    "time_constant_s": 0.02,
+    "torque_coefficient_m": 0.012,
+    "motors": [
+      {
+        "index": 0,
+        "label": "BR",
+        "position_body_m": [
+          -0.12209993433859745,
+          -0.12310393420384019,
+          -0.021871177713846328
+        ],
+        "thrust_axis_body": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "spin_direction": -1,
+        "prop_diameter_m": 0.16780449676513673
+      },
+      {
+        "index": 1,
+        "label": "FR",
+        "position_body_m": [
+          0.12277591785334467,
+          -0.12312539219346227,
+          -0.02164353124433919
+        ],
+        "thrust_axis_body": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "spin_direction": 1,
+        "prop_diameter_m": 0.16780449676513673
+      },
+      {
+        "index": 2,
+        "label": "BL",
+        "position_body_m": [
+          -0.12211232623522908,
+          0.12158181040770874,
+          -0.021825764300194485
+        ],
+        "thrust_axis_body": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "spin_direction": 1,
+        "prop_diameter_m": 0.16780449676513673
+      },
+      {
+        "index": 3,
+        "label": "FL",
+        "position_body_m": [
+          0.12267485152806816,
+          0.12172103066845183,
+          -0.02140034394729872
+        ],
+        "thrust_axis_body": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "spin_direction": -1,
+        "prop_diameter_m": 0.16780449676513673
+      }
+    ],
+    "provisional": true,
+    "source": "Class-D typical racing-quad placeholder; replace with thrust-stand data",
+    "evidence_class": "D",
+    "not_modeled": [
+      "advance-ratio thrust loss",
+      "rotor H-force and flapping",
+      "induced inflow and rotor-body interference",
+      "battery voltage sag and ESC/motor efficiency",
+      "ground effect"
+    ]
+  },
+  "airframe_aero": {
+    "model": "direction_table_with_local_rate_derivatives",
+    "table_asset": "airframe_tables.npz",
+    "direction_convention": "theta from body +Z; phi=atan2(body +Y, body +X); input is vehicle velocity relative to air",
+    "force_units": "force_area_body_m2",
+    "moment_units": "moment_area_length_body_m3",
+    "rotational_damping_m5": [
+      0.00012468031193194282,
+      0.00012588797013044452,
+      0.0001730953258648636
+    ],
+    "reference_speed_mps": 20.0,
+    "reference_air_density_kg_m3": 1.225,
+    "validity_speed_mps": [
+      2.0,
+      60.0
+    ],
+    "extrapolation_policy": "flag_invalid_do_not_clamp",
+    "uncertainty_fraction": 0.5,
+    "evidence_class": "D",
+    "not_modeled": [
+      "rotor inflow and rotor-body interaction",
+      "propeller drag, H-force, and windmilling",
+      "unsteady separation and vortex shedding",
+      "Reynolds-number variation outside the single reference condition",
+      "ground effect and atmospheric wind"
+    ]
+  },
+  "capability_manifest": {
+    "rigid_body": {
+      "status": "approximated",
+      "basis": "Class-D one-kilogram component budget; replace with scale, CG balance, and inertia test",
+      "claim_limit": "replace before predictive controller tuning"
+    },
+    "propulsion": {
+      "status": "approximated",
+      "basis": "Class-D typical racing-quad placeholder; replace with thrust-stand data",
+      "claim_limit": "no advance-ratio or electrical model"
+    },
+    "passive_airframe_aerodynamics": {
+      "status": "approximated",
+      "basis": "empirical orthogonal component drag with body cross-flow strips",
+      "uncertainty_fraction": 0.5
+    },
+    "rotor_airframe_interaction": {
+      "status": "absent",
+      "claim_limit": "no installed-rotor accuracy claim"
+    },
+    "physical_validation": {
+      "status": "absent",
+      "claim_limit": "software and representation verification only"
+    }
+  },
+  "provenance": {
+    "pipeline_run_id": "4b7e87986485438f9413e0021a30917a",
+    "design_sha256": "4567f226702bcd437a485aaa5d03c02dde77e932592f5f3e86c8b198f991cc38",
+    "reference_sha256": "9e258e013ffdb0599cb182248ef5ec35a1b0db2614528f4d2e47668887ba7086",
+    "source_mesh_sha256": "163e539c552174e75ed69001c8ce8edfd9b0f1464f60237b46fb7462498a381e",
+    "model_source_sha256": "197387dd7fe94a94697ccd36634c7ba9f902d6f3729dda40f7c7ac6522861935",
+    "source_git_commit": "91696c2d418fb77c088ec656fadc75b92287418d",
+    "stage_sha256": {
+      "multirotor_geometry.json": "5496f18a49e71612a6e379fee66e5879bf6b51d31fb146ef6fe63366960a9d3b",
+      "multirotor_mass.json": "f27034f20fa5b5468de70c5428824a7d8f17117709649d859da697497a9a70a5",
+      "multirotor_propulsion.json": "99b3b24cd5f2ee030aa2d44267073338b73f51461ae6151ca6d971c5d1bc0489",
+      "multirotor_aero.json": "ef17596bec7f7ee36a3418554b89dc0667274e148262202063d34864e9067e9c"
+    },
+    "allowances": [
+      "rotor inflow and rotor-body interaction",
+      "propeller drag, H-force, and windmilling",
+      "unsteady separation and vortex shedding",
+      "Reynolds-number variation outside the single reference condition",
+      "ground effect and atmospheric wind",
+      "advance-ratio thrust loss",
+      "rotor H-force and flapping",
+      "induced inflow and rotor-body interference",
+      "battery voltage sag and ESC/motor efficiency",
+      "ground effect",
+      "Mass properties and propulsion constants are provisional class-D inputs.",
+      "No fixed-wing solver output is used as physical validation."
+    ]
+  }
+}

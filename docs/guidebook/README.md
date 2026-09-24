@@ -29,6 +29,7 @@ failures preserved as regression doctrine.
 | [11 — Environment](11-environment.md) | uv, .deb extraction, micromamba | — | setup |
 | [12 — Truth validation](12-truth-validation.md) | external evidence, scorecards, claims | this repo | truth |
 | [13 — Reference models](13-reference-models.md) | scans/CAD meshes as measured design input | trimesh 5 | initialize-aero, geometry |
+| [14 — Multirotor airframes](14-multirotor-airframe.md) | mesh-segmented body aero + Elodin export | this repo | multirotor baseline |
 
 ## The one rule
 

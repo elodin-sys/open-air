@@ -87,6 +87,27 @@ libraries it needs into `tools/` from official archives.
    python -m openair promote my-concept my-concept-v2
    ```
 
+## Multirotor / racing-quad export
+
+Multirotors use a separate schema and baseline-only workflow; they are not
+forced through fictitious fixed-wing sizing, wingbox, or MDO stages.
+
+```bash
+python -m openair.multirotor ingest assembled-reference.stl \
+  --concept designs/racing-quad-streamlined
+python -m openair run designs/racing-quad-streamlined
+python -m openair.multirotor verify designs/racing-quad-streamlined
+```
+
+The ingest identifies and removes rotating propeller/hub shells, then publishes
+segmented passive-airframe geometry. The run builds declared mass/Quad-X
+propulsion, full-sphere body force/moment tables, a CG-origin FLU GLB, and a
+SHA-256 manifest under `baseline/elodin_package/`. Its
+`integration_guide.md` is the handoff for Elodin's Betaflight SITL example.
+This first model is geometry-correlated with class-D mass, propulsion, and
+aerodynamics; physical predictive accuracy remains unvalidated. See
+[guidebook chapter 14](docs/guidebook/14-multirotor-airframe.md).
+
 ## Design previews
 
 Each complete concept keeps a browsable preview under `results/<concept>/`.
@@ -164,7 +185,7 @@ native GitHub Pages workflow builds from `main` without rerunning any solver.
 ```bash
 pytest              # contracts, analytics, solver smoke tests
 pytest -m truth     # immutable external-truth corpus and scorecards
-pytest -m stretch   # TACS / SU2 cross-checks (skip cleanly if absent)
+pytest -m stretch   # TACS / SU2 plus isolated Elodin checks (skip if absent)
 ./scripts/ci_reference_smoke.sh  # nightly/pre-merge four-design E2E contract
 ```
 

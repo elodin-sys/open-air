@@ -29,6 +29,12 @@ STL, so both the numbers and the physical artifact can be reviewed.
 
 A prototype passes QA only when all of these hold, in this order:
 
+This twelve-gate list is the fixed-wing contract. A `family: multirotor`
+concept uses the family-specific schema and checklist in
+[chapter 14](14-multirotor-airframe.md); wing balance, trim, stall,
+wingbox/structures, and fixed-wing MDO are recorded as `not_applicable` with
+that reason, never converted into passes.
+
 1. **Schema**: the concept's `design.yaml` round-trips through `VehicleSpec`
    (chapter 08).
 2. **Geometry truth**: `geometry.json .openvsp.readback.matches_spec == true`,

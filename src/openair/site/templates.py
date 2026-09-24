@@ -45,15 +45,16 @@ def _text(value: object) -> str:
 
 def _fact_items(design: Mapping[str, Any]) -> str:
     facts: list[str] = []
+    phase = "baseline" if design.get("kind_key") == "multirotor" else "optimized"
     span_m = design.get("span_m")
     length_m = design.get("length_m")
     if isinstance(span_m, (int, float)):
-        facts.append(f"optimized {span_m:.2f} m span")
+        facts.append(f"{phase} {span_m:.2f} m span")
     if isinstance(length_m, (int, float)):
-        facts.append(f"optimized {length_m:.2f} m length")
+        facts.append(f"{phase} {length_m:.2f} m length")
     if design.get("credibility"):
         facts.append(
-            "optimized package: "
+            f"{phase} package: "
             + str(design["credibility"]).replace("-", " ")
         )
     if design.get("run_date"):
@@ -71,14 +72,22 @@ def _design_card(
     title = _text(design["title"])
     package_link = ""
     if design.get("has_package"):
+        package_phase = _text(design.get("package_phase", "optimized"))
         package_link = (
             '<a class="button text" href="'
-            f"{_text(repo_url)}/tree/{_text(commit)}/results/{slug}/optimized/"
+            f"{_text(repo_url)}/tree/{_text(commit)}/results/{slug}/{package_phase}/"
             'elodin_package/">Elodin package ↗</a>'
         )
+    brief_link = (
+        f'<a class="button secondary" href="designs/{slug}/executive_brief.pdf">'
+        "Executive brief</a>"
+        if design.get("has_executive_brief")
+        else ""
+    )
+    phase = "baseline" if design.get("kind_key") == "multirotor" else "optimized"
     return f"""<article class="card design-card">
   <a class="design-card-media" href="designs/{slug}/" aria-label="Open {title} design review">
-    <img src="designs/{slug}/optimized-threeview.png" alt="{title} optimized exported-mesh top and side views" loading="lazy">
+    <img src="designs/{slug}/optimized-threeview.png" alt="{title} {phase} exported-mesh top and side views" loading="lazy">
   </a>
   <div class="design-card-body">
     <div><span class="pill">{_text(design["kind"])}</span></div>
@@ -87,7 +96,7 @@ def _design_card(
     <div class="fact-list">{_fact_items(design)}</div>
     <div class="card-actions">
       <a class="button" href="designs/{slug}/">Open design review</a>
-      <a class="button secondary" href="designs/{slug}/executive_brief.pdf">Executive brief</a>
+      {brief_link}
       {package_link}
     </div>
   </div>

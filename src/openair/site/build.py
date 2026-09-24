@@ -32,7 +32,7 @@ PUBLISHED_ASSETS = (
 )
 THREEVIEW_PREVIEW_ASSET = "optimized-threeview.png"
 OUTPUT_MARKER = ".openair-generated-site"
-ALLOWED_KINDS = {"reproduction", "inspiration", "sealed holdout"}
+ALLOWED_KINDS = {"reproduction", "inspiration", "multirotor", "sealed holdout"}
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 REVISION_RE = re.compile(r"^[0-9a-fA-F]{7,64}$")
 REPO_PART_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
@@ -319,6 +319,8 @@ def _design_view(
         sketch = source.get("sketch")
         if isinstance(sketch, dict) and isinstance(sketch.get("treatment"), str):
             treatment = sketch["treatment"]
+        if source.get("family") == "multirotor":
+            treatment = "multirotor"
 
     if design["kind"] != "sealed holdout" and treatment != design["kind"]:
         raise SiteBuildError(
@@ -330,9 +332,8 @@ def _design_view(
             f"{slug}: sealed holdout entries must not have a mutable design source"
         )
 
-    package_dir = (
-        repo_root / "results" / slug / "optimized" / "elodin_package"
-    )
+    package_phase = "baseline" if design["kind"] == "multirotor" else "optimized"
+    package_dir = repo_root / "results" / slug / package_phase / "elodin_package"
     model_path = package_dir / "elodin_model.json"
     credibility: str | None = None
     created_at: str | None = None
@@ -346,7 +347,7 @@ def _design_view(
             expected_root=package_dir,
         )
         model = _read_json(model_path)
-        if model.get("concept") != slug or model.get("phase") != "optimized":
+        if model.get("concept") != slug or model.get("phase") != package_phase:
             raise SiteBuildError(
                 f"{slug}: Elodin package identity/phase does not match its path"
             )
@@ -356,6 +357,15 @@ def _design_view(
             fuselage = reference_geometry.get("fuselage")
             if isinstance(fuselage, dict):
                 length_m = _as_float(fuselage.get("length_m"))
+            extents = reference_geometry.get("extents_body_m")
+            if (
+                design["kind"] == "multirotor"
+                and isinstance(extents, list)
+                and len(extents) == 3
+                and all(_as_float(value) is not None for value in extents)
+            ):
+                span_m = max(float(extents[0]), float(extents[1]))
+                length_m = float(extents[2])
         if isinstance(model.get("credibility"), str):
             credibility = model["credibility"]
         if isinstance(model.get("created_at"), str):
@@ -380,6 +390,10 @@ def _design_view(
         "source_git_commit": source_commit,
         "pipeline_run_id": pipeline_run_id,
         "has_package": model_path.is_file(),
+        "package_phase": package_phase,
+        "has_executive_brief": (
+            repo_root / "results" / slug / "executive_brief.pdf"
+        ).is_file(),
     }
 
 
@@ -411,7 +425,10 @@ def _validate_publish_set(
             tracked=tracked,
             expected_root=design_root,
         )
-        for asset in PUBLISHED_ASSETS:
+        assets = () if next(
+            design["kind"] for design in designs if design["slug"] == slug
+        ) == "multirotor" else PUBLISHED_ASSETS
+        for asset in assets:
             _require_tracked_regular(
                 design_root / asset,
                 repo_root=repo_root,
@@ -529,7 +546,8 @@ def _copy_design(
         ),
         encoding="utf-8",
     )
-    for asset in PUBLISHED_ASSETS:
+    assets = () if design["kind_key"] == "multirotor" else PUBLISHED_ASSETS
+    for asset in assets:
         shutil.copy2(results_root / slug / asset, destination / asset)
 
 

@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import json
 import subprocess
 from datetime import datetime, timezone
 from io import BytesIO
@@ -69,6 +70,12 @@ def test_site_build_publishes_every_design_review(tmp_path: Path):
     report_slugs = {
         path.parent.name
         for path in (REPO_ROOT / "results").glob("*/report.html")
+        if subprocess.run(
+            ["git", "check-ignore", "-q", str(path)],
+            cwd=REPO_ROOT,
+            check=False,
+        ).returncode
+        != 0
     }
     assert {view["slug"] for view in views} == report_slugs
     assert sum(bool(view["featured"]) for view in views) == 1
@@ -86,6 +93,7 @@ def test_site_build_publishes_every_design_review(tmp_path: Path):
     assert "optimized 2.56 m span" in index
     assert "2.65 m span" not in index
     assert "source 65f48ec9" not in index
+    views_by_slug = {view["slug"]: view for view in views}
     for slug in report_slugs:
         assert f'href="designs/{slug}/"' in index
         published = output / "designs" / slug
@@ -93,8 +101,13 @@ def test_site_build_publishes_every_design_review(tmp_path: Path):
         preview = published / THREEVIEW_PREVIEW_ASSET
         assert preview.is_file()
         with Image.open(preview) as image:
-            assert image.size == (1200, 600)
-        for asset in PUBLISHED_ASSETS:
+            assert image.width == 2 * image.height
+        assets = (
+            ()
+            if views_by_slug[slug]["kind_key"] == "multirotor"
+            else PUBLISHED_ASSETS
+        )
+        for asset in assets:
             assert (published / asset).is_file()
 
     dolphin = (
@@ -319,3 +332,82 @@ def test_site_build_uses_revision_tree_and_rejects_worktree_symlinks(
             manifest_path=manifest,
             commit=fixture_commit,
         )
+
+
+def test_site_build_accepts_baseline_only_multirotor_without_fixed_wing_assets(
+    tmp_path: Path,
+):
+    repo = tmp_path / "repo"
+    design = repo / "designs" / "quad"
+    results = repo / "results" / "quad"
+    package = results / "baseline" / "elodin_package"
+    design.mkdir(parents=True)
+    package.mkdir(parents=True)
+    (design / "design.yaml").write_text(
+        "family: multirotor\nname: quad\n",
+        encoding="utf-8",
+    )
+    (results / "report.html").write_text(
+        _report_with_embedded_threeview(),
+        encoding="utf-8",
+    )
+    (package / "elodin_model.json").write_text(
+        json.dumps(
+            {
+                "concept": "quad",
+                "phase": "baseline",
+                "credibility": "geometry-correlated",
+                "created_at": "2026-09-23T12:00:00+00:00",
+                "reference_geometry": {"extents_body_m": [0.3, 0.3, 0.4]},
+                "provenance": {
+                    "source_git_commit": "a" * 40,
+                    "pipeline_run_id": "fixture",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+    subprocess.run(["git", "add", "."], cwd=repo, check=True)
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=open-air tests",
+            "-c",
+            "user.email=tests@open-air.invalid",
+            "commit",
+            "-qm",
+            "multirotor site fixture",
+        ],
+        cwd=repo,
+        check=True,
+    )
+    commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    manifest = tmp_path / "multirotor-designs.yaml"
+    manifest.write_text(
+        "designs:\n"
+        "  - slug: quad\n"
+        "    title: Quad\n"
+        "    summary: Baseline-only multirotor fixture.\n"
+        "    kind: multirotor\n"
+        "    featured: true\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "_site"
+    views = build_site(
+        repo_root=repo,
+        output_dir=output,
+        manifest_path=manifest,
+        commit=commit,
+    )
+    assert views[0]["package_phase"] == "baseline"
+    index = (output / "index.html").read_text(encoding="utf-8")
+    assert "/results/quad/baseline/elodin_package/" in index
+    assert "executive_brief.pdf" not in index
