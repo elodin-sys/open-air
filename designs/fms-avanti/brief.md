@@ -207,8 +207,8 @@ positions, transmitter rates/expo and linkage geometry were not measured.
 | optimization and finite-difference settings | repository defaults for a fixed-wing concept | numerical controls |
 
 `oas_with_wave` is disabled at the subsonic reference condition.
-`vspaero_wake_iters: 8` and convergence factor 0.01 follow the repository's
-resolved control-derivative quality settings.
+`vspaero_wake_iters: 20` and convergence factor 0.01 follow the repository's
+resolved high-lift wake-quality settings.
 
 ## 7. Visible unsupported features and fidelity limits
 
@@ -249,6 +249,11 @@ resolved control-derivative quality settings.
   and large swept fin within the recorded tolerances. The known canopy,
   inlet/root blend and rounded-tip abstractions remain those listed in §7.
   The bounded loop stopped after iteration 2 of 3.
+- Full-pipeline QA 1: 11/12 gates passed. The only failure was VSPAERO's
+  7° lift-slope point: all eight wake iterations completed and CL stabilized
+  to 0.36%, but the final three CM values spanned 5.37% against the 2% gate.
+  `solver.vspaero_wake_iters` was increased 8→20; no geometry, physical
+  parameter, source tolerance or acceptance criterion changed.
 
 <!-- OPENAIR_SKETCH_WORKSHEET_START -->
 ## Sketch measurement worksheet
