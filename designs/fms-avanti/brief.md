@@ -32,7 +32,8 @@ and no thrust-vectoring tail.
 | [FMS flight review](https://www.fmshobby.com/blogs/rc-airplanes/fms-90mm-avanti-edf-jet-review) | manufacturer-hosted review | 7 lb 10 oz ready-to-fly cross-check, 6S 6000 mAh setup, control/trim observations |
 | [FMS EDF component listing](https://www.3dextratime.eu/products/fms-90mm-edf-12-blade-1950-kv-inrunner-power-system) | vendor component specification | 93.8 mm outer diameter, 85 mm length, 340 g EDF/motor mass, approximately 3,620 g static thrust at 25 V / 98 A |
 | [FMS ESC manual in MAN-G0287](https://www.fms-model.com/download/fms-90mm-avanti-manual.pdf) | manufacturer component specification | 93 g ESC mass and 120 A continuous rating |
-| catalog top view, source sha256 `0bb53f21ee610adeed90dd6f914aa9c7b10049af3160e55602a1293b3e0e3ab7` | near-orthographic top product image | primary top trace → `sketch-top.png` |
+| manual page-4 wing drawing | orthographic component drawing | primary wing-planform trace, scaled by published area and span |
+| catalog top view, source sha256 `0bb53f21ee610adeed90dd6f914aa9c7b10049af3160e55602a1293b3e0e3ab7` | near-orthographic top product image | whole-aircraft cross-check → `sketch-top.png` |
 | catalog left-side view, source sha256 `86f11d3445e1ee7bb3a0dc802e26b228ba14a72d6ad4ffa9a3dd3182593978db` | near-orthographic side product image | primary side trace → `sketch-side.png` |
 | catalog front view, source sha256 `25ac908e86832b80ac47ade31ce55a08dfac86996ce726d247e992761d2850b7` | near-orthographic front product image | primary front cross-check → `sketch-front.png` |
 
@@ -102,30 +103,31 @@ perspective justify the nonzero tolerances below.
 
 ### Main-wing planform
 
-The top view shows a mildly swept leading edge and an approximately straight
-trailing edge. Taper is measured at about 0.60 ±0.05. Published gross area
-then fixes the trapezoid rather than allowing pixel error to overstate it:
+The manual's page-4 wing component is the strongest planform evidence. Its
+230 px span, 61.37 px mean root chord, 27.04 px effective tip chord and
+31.93 px leading-edge setback give taper 0.4406. Scaling the trace by both
+the published span and area agrees to 0.05%, unlike the perspective catalog
+view:
 
 ```text
-root chord = 2 S / [b (1 + taper)] = 0.310078 m
-tip chord  = taper × root chord       = 0.186047 m
-LE sweep   = atan[(root-tip)/(b/2)]   = 10.885 deg
+root chord = 2 S / [b (1 + taper)] = 0.3444 m
+tip chord  = taper × root chord       = 0.1517 m
+LE sweep   = atan[setback/(b/2)]       = 15.52 deg
 ```
 
-The sweep expression makes the trailing edge straight, matching the rectified
-top view. The manual CG and user nose-referenced CG place the root LE at
-0.7082 m. These values give:
+The manual CG and user nose-referenced CG place the root LE at 0.7082 m.
+These values give:
 
 | Quantity | Value | Tolerance / provenance |
 |---|---:|---|
 | span/length | 0.948529 | published anchors; ±0.010 shape tolerance |
-| root chord/length | 0.2280 | area + image taper; ±0.015 |
-| taper | 0.60 | catalog top trace; ±0.05 |
-| LE sweep | 10.885° | area/straight-TE reconstruction; ±2° |
+| root chord/length | 0.25322 | manual trace + published area; ±0.015 |
+| taper | 0.4406 | manual component trace; ±0.05 |
+| LE sweep | 15.52° | manual component trace; ±2° |
 | root LE x | 0.7082 m (x/L 0.520735) | user CG + manual range; ±0.0204 m |
-| dihedral | +2.5° | front image; inferred ±1.5° |
+| dihedral | 0° | front/manual views; inferred ±2° |
 | twist | 0° root, −1° tip | not visible; inferred ±2° |
-| section | NACA 2412, t/c 0.12 | unmeasured cambered surrogate |
+| section | NACA 0012, t/c 0.12 | unmeasured symmetric surrogate |
 
 ### Fuselage loft
 
@@ -137,13 +139,13 @@ come from the side profile.
 | x/L | width m | height m | z offset m | side/top/bottom powers | Provenance |
 |---:|---:|---:|---:|---|---|
 | 0.00 | 0 | 0 | 0 | 2/2/2 | nose point |
-| 0.10 | 0.075 | 0.080 | +0.018 | 2/2/2 | measured profile |
-| 0.22 | 0.135 | 0.150 | +0.040 | 2/1.8/3 | measured canopy forebody |
-| 0.38 | 0.180 | 0.190 | +0.055 | 1.6/1.6/4 | canopy/body envelope; curvature inferred |
-| 0.56 | 0.200 | 0.170 | +0.040 | 1.4/2/4 | maximum inlet/root-shoulder envelope |
-| 0.74 | 0.180 | 0.150 | +0.035 | 1.8/2/3 | aft body |
-| 0.90 | 0.120 | 0.120 | +0.020 | 2/2/2 | boattail; raised 10 mm within image tolerance for published EDF clearance |
-| 1.00 | 0.090 | 0.090 | +0.015 | 2/2/2 | EDF outlet anchor |
+| 0.10 | 0.070 | 0.140 | +0.010 | 2/2/2 | measured profile |
+| 0.22 | 0.110 | 0.220 | +0.045 | 2/1.8/3 | measured canopy forebody |
+| 0.42 | 0.190 | 0.250 | +0.070 | 1.6/1.6/4 | maximum canopy/body envelope |
+| 0.60 | 0.150 | 0.220 | +0.070 | 1.4/2/4 | inlet/root-shoulder envelope |
+| 0.76 | 0.145 | 0.170 | +0.065 | 1.8/2/3 | aft body; width retains published EDF clearance |
+| 0.90 | 0.120 | 0.120 | +0.075 | 2/2/2 | boattail |
+| 1.00 | 0.090 | 0.090 | +0.080 | 2/2/2 | EDF outlet anchor |
 
 Station dimensions carry at least ±10 mm width/height and ±8 mm vertical
 offset uncertainty; the inlet/shoulder stations carry ±20 mm.
@@ -152,14 +154,14 @@ offset uncertainty; the inlet/shoulder stations carry ±20 mm.
 
 | Quantity | Value | Tolerance / provenance |
 |---|---:|---|
-| horizontal-tail span | 0.58 m | top trace, ±0.04 m |
-| horizontal-tail root chord / taper | 0.23 m / 0.52 | top trace, ±0.03 m / ±0.08 |
-| horizontal-tail LE sweep | 19° | top trace, ±4° |
-| horizontal-tail root LE x / z | 1.09 m / +0.070 m | top/side trace, ±0.04 / ±0.02 m |
-| vertical-tail span | 0.26 m | side trace above deck, ±0.03 m |
-| vertical-tail root chord / taper | 0.48 m / 0.24 | dorsal-blend abstraction, ±0.05 m / ±0.06 |
-| vertical-tail LE sweep | 55° | side trace, ±4° |
-| vertical-tail root LE x | 0.86 m | side trace, ±0.05 m |
+| horizontal-tail span | 0.525 m | tail/wing image ratio, ±0.025 m |
+| horizontal-tail root chord / taper | 0.178 m / 0.52 | component/image ratios, ±0.015 m / ±0.05 |
+| horizontal-tail LE sweep | 22° | top trace, ±3° |
+| horizontal-tail root LE x / z | 1.17 m / +0.070 m | perspective-photo inference, ±0.04 / ±0.03 m |
+| vertical-tail span | 0.27 m | side trace above deck, ±0.03 m |
+| vertical-tail root chord / taper | 0.34 m / 0.30 | manual/photo reconciliation, ±0.04 m / ±0.10 |
+| vertical-tail LE sweep | 46° | side trace, ±5° |
+| vertical-tail root LE x | 0.98 m modeled (1.02 m trace) | side trace ±0.05 m; moved within that band so the swept tip TE closes at the 1.36 m tail |
 | fin cant | 0° | front/top symmetry, ±2° |
 
 ### Controls
@@ -261,6 +263,15 @@ follow the retained high-lift convergence study in the iteration log.
   0.25 also reached L2 log10 −2.30 and CL span 0.043%. The source now declares
   `vspaero_wake_relax: 0.25`. This is a numerical-convergence setting applied
   uniformly to VSPAERO runs, not a physical or acceptance-band adjustment.
+- Iteration 3: post-pipeline source audit found that the manual's page-4 wing
+  component drawing, unlike the catalog whole-aircraft view, independently
+  reproduces both published span and area. The source planform and image-scale
+  tail/body trace were corrected to the measurements in §5. Final geometry
+  `ok: true`: area 0.320012 m², MAC 0.26054 m, OpenVSP in-memory and reopened
+  read-back match, bbox/16 mesh checks pass, errors are empty, and packing
+  passes with 135.0/149.9 mm minimum EDF-bay width/height. The fin root was
+  placed at x 0.98 m, within the trace's ±0.05 m band, so its swept tip closes
+  at the physical tail. The bounded geometry loop ended at iteration 3 of 3.
 
 <!-- OPENAIR_SKETCH_WORKSHEET_START -->
 ## Sketch measurement worksheet
@@ -270,13 +281,13 @@ Rectification: catalog top image globally widened 1.0522× so published
 without projective rectification. No four-point controls or source grid were
 available.
 
-Current geometry: fuselage 1.360 m long, max width 0.200 m, max height
-0.190 m, eight stations (0.120 m boattail height at x/L 0.90); wing span
-1.290 m, root/tip chords
-0.3101/0.1860 m, taper 0.60, LE sweep 10.885°, root LE x 0.7082 m,
-dihedral +2.5°, twist 0/−1°; horizontal tail span/root/taper/sweep
-0.58 m / 0.23 m / 0.52 / 19° at x 1.09 m; one fin
-0.26 m span, 0.48 m root chord, taper 0.24, 55° sweep at x 0.86 m.
+Current geometry: fuselage 1.360 m long, max width 0.190 m, max height
+0.250 m, eight stations; wing span 1.290 m, root/tip chords
+0.3444/0.1517 m, taper 0.4406, LE sweep 15.52°, root LE x 0.7082 m,
+dihedral 0°, twist 0/−1°; horizontal tail span/root/taper/sweep
+0.525 m / 0.178 m / 0.52 / 22° at x 1.17 m; one fin
+0.27 m span, 0.34 m root chord, taper 0.30, 46° sweep at x 0.98 m
+(1.02 m trace target).
 
 Inferences: section shapes, twist, sectional powers, vertical placement,
 control angles, propulsion installation point, structures, drag, CLmax,
