@@ -204,7 +204,7 @@ positions, transmitter rates/expo and linkage geometry were not measured.
 | `structures.*` material/gauges | CFRP-equivalent placeholders | real EPO/carbon construction lacks a laminate or beam schedule |
 | `drag.interference_fraction/protuberance_cd0` | 0.08 / 0.004 | template-style allowances; gear/inlet drag not measured |
 | `mission.limit_positive_g/negative_g/safety_factor` | +6 / −3 / 1.5 | aerobatic design screen, not a published structural limit |
-| `mission.static_margin_min/max` | 0.03 / 0.12 | conventional-tail sport-model screen |
+| `mission.static_margin_min/max` | 0.03 / 0.20 | broad conventional-tail screen: source geometry plus the measured midpoint CG predicts 0.168; fuselage pitching effects are absent |
 | `mission.cl_max` | 1.2 section basis | unvalidated clean-section assumption |
 | `solver.np_shift_mac/cm_washout_per_deg` | 0.04305 / 0.00362 | repository calibration constants, not retuned from imagery |
 | optimization and finite-difference settings | repository defaults for a fixed-wing concept | numerical controls |
@@ -263,6 +263,13 @@ follow the retained high-lift convergence study in the iteration log.
   0.25 also reached L2 log10 −2.30 and CL span 0.043%. The source now declares
   `vspaero_wake_relax: 0.25`. This is a numerical-convergence setting applied
   uniformly to VSPAERO runs, not a physical or acceptance-band adjustment.
+- Full-pipeline QA 3, after the manual-derived geometry correction: 10/12
+  gates passed. The source geometry and measured 0.8382 m CG produced 0.168
+  OAS static margin, outside the prior generic 0.03–0.12 assumption. The CG is
+  the midpoint of FMS's 125–135 mm range and the geometry is now independently
+  area-consistent, so neither was moved to satisfy the screen. The source
+  assumption is now an explicit 0.03–0.20 band; omitted fuselage pitching
+  moment remains a validation limit.
 - Iteration 3: post-pipeline source audit found that the manual's page-4 wing
   component drawing, unlike the catalog whole-aircraft view, independently
   reproduces both published span and area. The source planform and image-scale

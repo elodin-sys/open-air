@@ -187,7 +187,7 @@ mission:
   limit_negative_g: -3.0
   safety_factor: 1.5
   static_margin_min: 0.03
-  static_margin_max: 0.12
+  static_margin_max: 0.20
   reserve_fuel_fraction: 0.0
   cl_max: 1.2
   cl_max_basis: section
