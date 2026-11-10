@@ -188,6 +188,8 @@ def tsfc_mass(
     Part-power penalty: small turbojets run richer / less efficiently off the
     design point. c = c_max * (a + b/throttle) * sqrt(T/Tsl) * (1 + kM M).
     """
+    if engine.energy_source == "electric":
+        return 0.0
     if engine.deck is not None:
         point = lookup_engine_deck(engine.deck, altitude_m, mach, throttle)
         return point.fuel_flow_kg_s / max(point.thrust_n, 1e-12)

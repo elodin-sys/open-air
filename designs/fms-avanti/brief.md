@@ -187,9 +187,10 @@ positions, transmitter rates/expo and linkage geometry were not measured.
 - The analytic electric map uses the one static point and no fuel flow. It
   does not model voltage sag, fan advance ratio, inlet loss, motor efficiency,
   controller limiting or spool dynamics.
-- `engine.min_throttle: 0.01` is a numerical idle floor for the package grid;
-  zero command still produces zero useful thrust and zero fuel flow. The first
-  package attempt exposed a producer divide-by-zero at an exact zero floor.
+- `engine.min_throttle: 0.0` preserves a true electric zero-thrust command.
+  The first package attempt exposed and led to repair of a producer
+  divide-by-zero that incorrectly applied liquid-fuel TSFC math to an electric
+  map; the retained map now starts at zero thrust and zero fuel flow.
 - Flown mass and longitudinal CG are user measurements. Vertical CG and the
   inertia tensor are unknown and remain absent.
 

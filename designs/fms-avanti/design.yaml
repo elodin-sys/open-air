@@ -55,7 +55,7 @@ engine:
   tsfc_part_a: 1.0
   tsfc_part_b: 0.0
   tsfc_mach_k: 0.0
-  min_throttle: 0.01
+  min_throttle: 0.0
   fuel_density_kg_m3: 800.0
   nacelle_frontal_cd: 0.08
   deck: null
