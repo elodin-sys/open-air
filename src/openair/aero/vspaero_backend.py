@@ -33,6 +33,8 @@ def set_vspaero_convergence_inputs(
         "NonLinearConvergenceFactor",
     ):
         vsp.SetDoubleAnalysisInput(analysis, name, [factor], 0)
+    wake_relax = float(spec.solver.vspaero_wake_relax)
+    vsp.SetDoubleAnalysisInput(analysis, "WakeRelax", [wake_relax], 0)
     vsp.SetIntAnalysisInput(
         analysis,
         "FixedWakeFlag",
@@ -42,6 +44,7 @@ def set_vspaero_convergence_inputs(
     return {
         "forward_gmres_convergence_factor": factor,
         "nonlinear_convergence_factor": factor,
+        "wake_relax": wake_relax,
         "fixed_wake": bool(fixed_wake),
     }
 

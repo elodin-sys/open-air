@@ -207,8 +207,8 @@ positions, transmitter rates/expo and linkage geometry were not measured.
 | optimization and finite-difference settings | repository defaults for a fixed-wing concept | numerical controls |
 
 `oas_with_wave` is disabled at the subsonic reference condition.
-`vspaero_wake_iters: 20` and convergence factor 0.01 follow the repository's
-resolved high-lift wake-quality settings.
+`vspaero_wake_iters: 20`, wake relaxation 0.25 and convergence factor 0.01
+follow the retained high-lift convergence study in the iteration log.
 
 ## 7. Visible unsupported features and fidelity limits
 
@@ -254,6 +254,12 @@ resolved high-lift wake-quality settings.
   to 0.36%, but the final three CM values spanned 5.37% against the 2% gate.
   `solver.vspaero_wake_iters` was increased 8→20; no geometry, physical
   parameter, source tolerance or acceptance criterion changed.
+- Full-pipeline QA 2: 20 iterations at the upstream 1.0 wake relaxation still
+  failed the same gate (final-three CM span 7.86%). A retained same-artifact
+  sweep at relaxation 0.75/0.50/0.25 gave CM spans 2.93%/2.76%/**0.60%**;
+  0.25 also reached L2 log10 −2.30 and CL span 0.043%. The source now declares
+  `vspaero_wake_relax: 0.25`. This is a numerical-convergence setting applied
+  uniformly to VSPAERO runs, not a physical or acceptance-band adjustment.
 
 <!-- OPENAIR_SKETCH_WORKSHEET_START -->
 ## Sketch measurement worksheet
