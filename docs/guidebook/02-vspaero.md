@@ -37,6 +37,10 @@ drag. We use it purely as an **independent cross-check** on OpenAeroStruct.
   leave coefficient noise as large as the perturbation signal. Every open-air
   sweep sets both to `solver.vspaero_convergence_factor` (default 0.01).
   Never publish a derivative table without the quality checks below.
+- Every sweep also sets `WakeRelax` from `solver.vspaero_wake_relax` (default
+  1.0). Reduce it only with a retained same-artifact study showing improved
+  residual and coefficient convergence; record the tested values and keep the
+  ordinary wake-convergence gates unchanged.
 - Results live in named containers (`VSPAERO_Polar`, `VSPAERO_History`), not
   in the wrapper rid returned by `ExecAnalysis`. Empty vector = missing, never 0.
 - The `.polar` file next to the model is the same data on disk — a sound

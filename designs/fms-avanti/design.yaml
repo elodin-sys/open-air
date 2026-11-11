@@ -1,0 +1,334 @@
+name: fms-avanti
+notes: >-
+  FMS 90 mm Avanti 18th Anniversary EDF sport-jet model grounded in FMS
+  dimensions and orthographic catalog views. The flown configuration overrides
+  the published mass with 7.72 lb (3.501733 kg) and places the CG 2.75 ft
+  (0.8382 m) aft of the nose. Published wing area fixes the trapezoid area;
+  planform ratios, fuselage loft, and tail geometry remain image-derived.
+
+sketch:
+  treatment: reproduction
+  hard_scale: 1.0
+  fidelity_weight: 1.0
+  span_over_length: 0.948529
+  span_over_length_tol: 0.010
+  root_over_length: 0.25322
+  root_over_length_tol: 0.015
+  le_sweep_deg: 15.52
+  le_sweep_tol_deg: 2.0
+  taper: 0.4406
+  taper_tol: 0.05
+  x_le_root_over_length: 0.520735
+  x_le_root_over_length_tol: 0.015
+  payload_bay_x_lo_m: 0.28
+  payload_bay_x_hi_m: 0.55
+  fuel_tank_x_lo_m: 0.55
+  fuel_tank_x_hi_m: 0.75
+  twist_tip_lo_deg: -3.0
+  twist_tip_hi_deg: 0.0
+  fin_span_m: 0.27
+  fin_span_tol_m: 0.03
+  fin_root_chord_m: 0.34
+  fin_root_chord_tol_m: 0.05
+  fin_le_sweep_deg: 46.0
+  fin_le_sweep_tol_deg: 5.0
+  fin_cant_deg: 0.0
+  fin_cant_tol_deg: 2.0
+  fin_x_le_m: 1.02
+  fin_x_le_tol_m: 0.05
+
+engine:
+  name: FMS 90 mm 12-blade EDF with 3670-KV1950 motor and 120 A ESC
+  energy_source: electric
+  diameter_m: 0.0938
+  length_m: 0.085
+  dry_mass_kg: 0.433
+  installation: internal
+  installation_count: 1
+  x_m: 1.10
+  lateral_offset_m: 0.0
+  z_m: 0.015
+  max_thrust_sl_n: 35.50
+  fuel_flow_max_kg_s: 0.0
+  thrust_lapse_k_mach: 0.0
+  thrust_lapse_floor: 1.0
+  tsfc_part_a: 1.0
+  tsfc_part_b: 0.0
+  tsfc_mach_k: 0.0
+  min_throttle: 0.0
+  fuel_density_kg_m3: 800.0
+  nacelle_frontal_cd: 0.08
+  deck: null
+
+wing:
+  span_m: 1.29
+  root_chord_m: 0.3444
+  taper: 0.4406
+  le_sweep_deg: 15.52
+  dihedral_deg: 0.0
+  twist_root_deg: 0.0
+  twist_tip_deg: -1.0
+  t_over_c: 0.12
+  airfoil: "0012"
+  x_le_root_m: 0.7082
+  z_root_m: 0.010
+
+fuselage:
+  length_m: 1.36
+  max_width_m: 0.19
+  max_height_m: 0.25
+  nose_fine_ratio: 0.22
+  tail_fine_ratio: 0.28
+  payload_bay_length_m: 0.210
+  payload_bay_width_m: 0.085
+  payload_bay_height_m: 0.065
+  payload_bay_x_m: 0.40
+  fuel_tank_x_m: 0.65
+  stations:
+    - x_over_length: 0.0
+      width_m: 0.0
+      height_m: 0.0
+      z_offset_m: 0.0
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+      max_width_loc: 0.0
+    - x_over_length: 0.10
+      width_m: 0.070
+      height_m: 0.140
+      z_offset_m: 0.010
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+      max_width_loc: 0.0
+    - x_over_length: 0.22
+      width_m: 0.110
+      height_m: 0.220
+      z_offset_m: 0.045
+      side_power: 2.0
+      top_power: 1.8
+      bottom_power: 3.0
+      max_width_loc: 0.0
+    - x_over_length: 0.42
+      width_m: 0.190
+      height_m: 0.250
+      z_offset_m: 0.070
+      side_power: 1.6
+      top_power: 1.6
+      bottom_power: 4.0
+      max_width_loc: 0.0
+    - x_over_length: 0.60
+      width_m: 0.150
+      height_m: 0.220
+      z_offset_m: 0.070
+      side_power: 1.4
+      top_power: 2.0
+      bottom_power: 4.0
+      max_width_loc: 0.0
+    - x_over_length: 0.76
+      width_m: 0.145
+      height_m: 0.170
+      z_offset_m: 0.065
+      side_power: 1.8
+      top_power: 2.0
+      bottom_power: 3.0
+      max_width_loc: 0.0
+    - x_over_length: 0.90
+      width_m: 0.120
+      height_m: 0.120
+      z_offset_m: 0.075
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+      max_width_loc: 0.0
+    - x_over_length: 1.0
+      width_m: 0.090
+      height_m: 0.090
+      z_offset_m: 0.080
+      side_power: 2.0
+      top_power: 2.0
+      bottom_power: 2.0
+      max_width_loc: 0.0
+  fairings: null
+
+vtail:
+  count: 1
+  root_attachment: derived
+  span_m: 0.27
+  root_chord_m: 0.34
+  taper: 0.30
+  le_sweep_deg: 46.0
+  cant_deg: 0.0
+  t_over_c: 0.08
+  x_le_m: 0.98
+  y_root_m: 0.0
+  z_root_m: 0.16
+
+htail:
+  span_m: 0.525
+  root_chord_m: 0.178
+  taper: 0.52
+  le_sweep_deg: 22.0
+  t_over_c: 0.09
+  x_le_m: 1.17
+  z_m: 0.070
+  incidence_deg: 0.0
+
+mission:
+  endurance_s: 180.0
+  endurance_required: false
+  payload_kg: 0.0
+  cruise_altitude_m: 100.0
+  dash_altitude_m: 100.0
+  cruise_mach: 0.0882
+  cruise_cl: 0.1947
+  dash_mach_cap: 0.18
+  limit_positive_g: 6.0
+  limit_negative_g: -3.0
+  safety_factor: 1.5
+  static_margin_min: 0.03
+  static_margin_max: 0.20
+  reserve_fuel_fraction: 0.0
+  cl_max: 1.2
+  cl_max_basis: section
+  stall_speed_max_mps: 16.0
+  pitch_trim_control: auto
+
+structures:
+  fem_model_type: wingbox
+  spar_thickness_m: 0.0012
+  skin_thickness_m: 0.0008
+  tube_radius_m: 0.006
+  tube_thickness_m: 0.0012
+  wing_weight_ratio: 1.20
+  n_spanwise: 15
+  n_chordwise: 3
+  material:
+    name: Assumed quasi-isotropic CFRP equivalent for carbon-reinforced EPO
+    E_pa: 3.5e10
+    nu: 0.30
+    yield_pa: 2.5e8
+    density_kg_m3: 1600.0
+  spanwise: null
+  modal_calibration: []
+  sensor_stations: []
+
+drag:
+  interference_fraction: 0.08
+  protuberance_cd0: 0.004
+
+mass:
+  fuel_mass_kg: 0.0
+  fuel_mass_mode: fixed
+  fuel_capacity_kg: null
+  listed_mass_min_kg: 3.20
+  listed_mass_max_kg: 3.501733
+  listed_mass_state: >-
+    FMS publishes approximately 3.20 kg; an FMS review measured 7 lb 10 oz
+    ready to fly; the owner measured the flown Aleph configuration at 7.72 lb
+  operating_empty_mass_kg: 3.501733
+  operating_empty_cg_x_m: 0.8382
+  systems_kg: 0.0
+  landing_gear_fraction: 0.0
+  avionics_kg: 0.0
+  contingency_fraction: 0.0
+
+flight_dynamics:
+  enabled: false
+  reference_airspeed_mps: 30.0
+  reference_altitude_m: 100.0
+  inertia: null
+  control_surfaces:
+    - id: aileron
+      host: wing
+      span_start_fraction: 0.58
+      span_end_fraction: 0.94
+      chord_fraction: 0.20
+      max_up_deg: 24.0
+      max_down_deg: 24.0
+      source: >-
+        span and chord fraction traced from FMS top view; angle inferred from
+        the manual's 16 mm high-rate throw and local control chord
+      mixing:
+        - id: aileron
+          mode: differential
+          axis: roll
+          gain: 1.0
+    - id: flap
+      host: wing
+      span_start_fraction: 0.16
+      span_end_fraction: 0.58
+      chord_fraction: 0.22
+      max_up_deg: 5.0
+      max_down_deg: 50.0
+      source: >-
+        span and chord fraction traced from FMS top view; deflection inferred
+        from the manual's 50 mm flap throw
+      mixing:
+        - id: flap
+          mode: collective
+          axis: lift
+          gain: 1.0
+    - id: elevator
+      host: htail
+      span_start_fraction: 0.08
+      span_end_fraction: 0.96
+      chord_fraction: 0.30
+      max_up_deg: 20.0
+      max_down_deg: 20.0
+      source: >-
+        hinge abstraction from FMS top view; angle inferred from the manual's
+        14 mm high-rate throw and local control chord
+      mixing:
+        - id: elevator
+          mode: collective
+          axis: pitch
+          gain: 1.0
+    - id: rudder
+      host: vtail
+      span_start_fraction: 0.12
+      span_end_fraction: 0.95
+      chord_fraction: 0.30
+      max_up_deg: 17.0
+      max_down_deg: 17.0
+      source: >-
+        hinge abstraction from FMS side view; angle inferred from the manual's
+        22 mm high-rate throw and local control chord
+      mixing:
+        - id: rudder
+          mode: single
+          axis: yaw
+          gain: 1.0
+  aeroelastic:
+    enabled: false
+    strip_count: 48
+    modes_per_family: 1
+    frequency_min_hz: 0.5
+    frequency_max_hz: 30.0
+    frequency_points: 160
+    maximum_reduced_frequency: 0.3
+    elastic_axis_fraction_chord: 0.4
+    lift_curve_slope_per_rad: null
+    calibration_id: none
+  allow_diagonal_inertia_approximation: false
+  calibration_id: none
+
+solver:
+  oas_with_viscous: true
+  oas_with_wave: false
+  optimize_maxiter: 35
+  optimize_tol: 1.0e-5
+  fd_step: 1.0e-3
+  vspaero_wake_iters: 20
+  vspaero_wake_relax: 0.25
+  vspaero_convergence_factor: 0.01
+  su2_maxiter: 200
+  gmsh_lc_m: 0.04
+  stability_method: lifting_surface
+  np_shift_mac: 0.04305
+  wing_body_np_mac: null
+  wing_body_cl_alpha_per_deg: null
+  cm_washout_per_deg: 0.00362
+  tail_incidence_offset_deg: 0.0
+  tail_lift_effectiveness_factor: 1.0
+  tail_lift_effectiveness_source: null

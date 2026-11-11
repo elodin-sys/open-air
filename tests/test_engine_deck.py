@@ -74,6 +74,27 @@ def test_deck_drives_available_thrust_and_cruise_throttle() -> None:
     assert state.deck_clamped is False
 
 
+def test_electric_engine_has_zero_idle_and_fuel_flow() -> None:
+    engine = EngineSpec(
+        energy_source="electric",
+        fuel_flow_max_kg_s=0.0,
+        max_thrust_sl_n=50.0,
+        min_throttle=0.0,
+        thrust_lapse_k_mach=0.0,
+        thrust_lapse_floor=1.0,
+        tsfc_part_b=0.0,
+    )
+
+    idle = operate(engine, 0.0, 0.0, 0.0)
+    cruise = operate(engine, 0.0, 0.0, 25.0)
+
+    assert idle.throttle == 0.0
+    assert idle.thrust_used_n == 0.0
+    assert idle.fuel_flow_kg_s == 0.0
+    assert cruise.throttle == pytest.approx(0.5)
+    assert cruise.fuel_flow_kg_s == 0.0
+
+
 def test_deck_clamps_conditions_and_rejects_malformed_curves() -> None:
     deck = _deck()
     clamped = lookup_engine_deck(deck, 25000.0, 1.2, 1.0)

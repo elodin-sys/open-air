@@ -1012,6 +1012,9 @@ class SolverSpec(PhysicalModel):
     optimize_tol: float = 1e-5
     fd_step: float = 1e-3
     vspaero_wake_iters: int = 8
+    # Explicit-wake relaxation is aircraft-dependent. Keep the upstream
+    # default unless a retained convergence study supports a lower value.
+    vspaero_wake_relax: float = Field(1.0, gt=0.0, le=1.0)
     # VSPAERO stability perturbations are only 0.01 deg. The solver default
     # (1.0) leaves coefficient noise comparable to that signal on small
     # aircraft, so every sweep and derivative run uses this tighter factor.

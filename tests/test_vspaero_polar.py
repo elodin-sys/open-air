@@ -94,4 +94,6 @@ def test_vspaero_convergence_inputs_are_tight_and_explicit():
     assert fake.double[("VSPAEROSweep", "NonLinearConvergenceFactor", 0)] == [
         0.01
     ]
+    assert fake.double[("VSPAEROSweep", "WakeRelax", 0)] == [1.0]
+    assert settings["wake_relax"] == 1.0
     assert fake.integer[("VSPAEROSweep", "FixedWakeFlag", 0)] == [1]

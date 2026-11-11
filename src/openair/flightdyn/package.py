@@ -445,10 +445,16 @@ def _write_propulsion_map(path: Path, spec: VehicleSpec) -> None:
                         thrust_n = (
                             available_thrust(spec.engine, altitude_m, mach) * effective
                         )
-                        c_mass = tsfc_mass(spec.engine, altitude_m, mach, effective)
-                        fuel_flow = c_mass * thrust_n
+                        if spec.engine.energy_source == "electric":
+                            fuel_flow = 0.0
+                            source = "electric_static_lapse"
+                        else:
+                            c_mass = tsfc_mass(
+                                spec.engine, altitude_m, mach, effective
+                            )
+                            fuel_flow = c_mass * thrust_n
+                            source = "analytic_lapse_tsfc"
                         clamped = effective != throttle
-                        source = "analytic_lapse_tsfc"
                     writer.writerow(
                         {
                             "altitude_m": f"{altitude_m:.9g}",
@@ -805,6 +811,15 @@ def _write_integration_guide(
     deck_present = spec.engine.deck is not None
     bracket_present = spec.mass.listed_mass_min_kg is not None
     control_groups = sorted((derivatives or {}).get("controls") or {})
+    propulsion_contract = (
+        "thrust and zero fuel flow over throttle x Mach x altitude; interpolate "
+        "and lag commanded throttle through an explicitly selected electric "
+        "response model before lookup; zero command is zero thrust"
+        if spec.engine.energy_source == "electric"
+        else "thrust and fuel flow over throttle x Mach x altitude; interpolate, "
+        "lag commanded throttle through your spool state before lookup, and "
+        "deplete fuel by integrating `fuel_flow_kg_s`"
+    )
 
     def tier(present: bool, supply: str) -> str:
         return "present | —" if present else f"absent | {supply}"
@@ -889,9 +904,7 @@ def _write_integration_guide(
         " `Cm`, `mach`, `tas_mps`, `reynolds_per_m`)"
         + (" plus normalized derivative arrays" if derivatives is not None else "")
         + "; open with `allow_pickle=False`; interpolate only inside the table |",
-        "| `propulsion_map.csv` | thrust and fuel flow over throttle x Mach x"
-        " altitude; interpolate, lag commanded throttle through your spool state"
-        " before lookup, deplete fuel by integrating `fuel_flow_kg_s`"
+        f"| `propulsion_map.csv` | {propulsion_contract}"
         + (
             ""
             if deck_present

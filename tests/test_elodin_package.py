@@ -10,6 +10,7 @@ import trimesh
 
 from openair.flightdyn.package import (
     ElodinModelPackage,
+    _write_propulsion_map,
     build_elodin_package,
     load_elodin_package,
 )
@@ -331,6 +332,44 @@ def test_propulsion_map_is_monotonic_at_each_condition(tmp_path: Path):
         fuel = [float(row["fuel_flow_kg_s"]) for row in ordered]
         assert thrust == sorted(thrust)
         assert fuel == sorted(fuel)
+
+
+def test_electric_propulsion_map_starts_at_zero_without_fake_fuel(tmp_path: Path):
+    spec = VehicleSpec.model_validate(
+        {
+            "sketch": {
+                "treatment": "reproduction",
+                "span_over_length": 1.0,
+                "root_over_length": 0.4,
+                "le_sweep_deg": 20.0,
+            },
+            "engine": {
+                "name": "electric fan",
+                "energy_source": "electric",
+                "fuel_flow_max_kg_s": 0.0,
+                "dry_mass_kg": 0.5,
+                "max_thrust_sl_n": 50.0,
+                "min_throttle": 0.0,
+            },
+            "mass": {
+                "fuel_mass_kg": 0.0,
+                "fuel_mass_mode": "fixed",
+                "operating_empty_mass_kg": 5.0,
+                "operating_empty_cg_x_m": 1.0,
+            },
+            "mission": {"endurance_required": False},
+        }
+    )
+    path = tmp_path / "propulsion_map.csv"
+    _write_propulsion_map(path, spec)
+    with path.open(newline="", encoding="utf-8") as stream:
+        rows = list(csv.DictReader(stream))
+
+    idle = [row for row in rows if float(row["throttle"]) == 0.0]
+    assert idle
+    assert {float(row["thrust_n"]) for row in idle} == {0.0}
+    assert {float(row["fuel_flow_kg_s"]) for row in rows} == {0.0}
+    assert {row["source_model"] for row in rows} == {"electric_static_lapse"}
 
 
 def test_mixed_phase_pipeline_ids_are_rejected(tmp_path: Path):
