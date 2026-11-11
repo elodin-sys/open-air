@@ -7,6 +7,13 @@ designs:
     kind: reproduction
     featured: true
 
+  - slug: fms-avanti
+    title: FMS Avanti 90 mm
+    summary: >-
+      Source-locked electric sport-jet reproduction combining manufacturer
+      dimensions, a manual-derived wing planform, and the flown mass and CG.
+    kind: reproduction
+
   - slug: bdx
     title: Elite Aerosports BDX
     summary: >-
